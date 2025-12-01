@@ -1,0 +1,19 @@
+// const handleChange = (e) => {
+  //   const { name, value, type, checked, files } = e.target;
+  //   if (name.includes(".")) {
+  //     const [section, field] = name.split(".");
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       [section]: {
+  //         ...prev[section],
+  //         [field]:
+  //           type === "checkbox" ? checked : type === "file" ? files[0] : value,
+  //       },
+  //     }));
+  //   } else {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       [name]: type === "file" ? files[0] : value,
+  //     }));
+  //   }
+  // };
