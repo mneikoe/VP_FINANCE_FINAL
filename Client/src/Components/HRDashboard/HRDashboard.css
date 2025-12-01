@@ -1,0 +1,498 @@
+/* HR Dashboard Custom Styles */
+.hr-dashboard {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hr-dashboard .hr-sidebar {
+  width: 288px;
+}
+
+.hr-dashboard .hr-main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.hr-sidebar {
+  background-color: #e9ecef;
+  height: 100vh;
+  width: 288px;
+  box-shadow: none;
+  position: fixed;
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.hr-sidebar.mobile-hidden {
+  transform: translateX(-100%);
+}
+
+.hr-sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.hr-main-content {
+  margin-left: 0;
+  width: calc(100% - 288px);
+  background-color: #ffffff;
+  transition: margin-left 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.hr-top-nav {
+  background-color: #416de4;
+  height: 58px;
+  z-index: 100;
+}
+
+.hr-user-avatar {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.hr-info-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+}
+
+.hr-info-icon {
+  width: 32px;
+  height: 32px;
+  background-color: #eff6ff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.hr-nav-link {
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.hr-nav-link:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.hr-nav-link.active {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-right: 3px solid #2563eb;
+  font-weight: 500;
+}
+
+.hr-stat-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hr-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.hr-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.hr-quick-action-btn {
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.hr-quick-action-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+.hr-quick-action-btn.blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.hr-quick-action-btn.green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.hr-quick-action-btn.purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.hr-quick-action-btn.orange {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.hr-stage-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.hr-candidate-card {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.hr-candidate-card:hover {
+  background-color: #f3f4f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hr-pipeline-column {
+  min-width: 250px;
+  background-color: white;
+  border-radius: 8px;
+  border: 2px solid;
+  overflow: hidden;
+}
+
+.hr-pipeline-column-header {
+  padding: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid;
+}
+
+.hr-pipeline-column-body {
+  min-height: 200px;
+  padding: 8px;
+}
+
+.hr-form-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.hr-table-responsive {
+  overflow-x: auto;
+}
+
+.hr-table {
+  min-width: 100%;
+}
+
+.hr-table thead {
+  background-color: #f9fafb;
+}
+
+.hr-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.05em;
+}
+
+.hr-table td {
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.hr-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.hr-btn-primary {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.hr-btn-primary:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+}
+
+.hr-btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.hr-btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.hr-btn-danger {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.hr-btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.hr-form-input {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.hr-form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.hr-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+}
+
+.hr-modal-content {
+  background-color: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.hr-chart-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .hr-sidebar {
+    position: relative;
+    transform: none !important;
+  }
+  
+  .hr-sidebar.mobile-hidden {
+    transform: none !important;
+  }
+  
+  .hr-main-content {
+    margin-left: 0 !important;
+    width: calc(100% - 288px);
+    flex-grow: 1;
+    background-color: #ffffff;
+    overflow: hidden;
+  }
+  
+  .hr-dashboard {
+    background-color: #e9ecef;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+  }
+  
+  .hr-dashboard main {
+    background-color: #ffffff;
+  }
+}
+
+@media (max-width: 767px) {
+  .hr-sidebar {
+    width: 288px;
+    position: fixed;
+  }
+  
+  .hr-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .hr-stat-card {
+    padding: 16px;
+  }
+  
+  .hr-form-card {
+    padding: 16px;
+  }
+  
+  .hr-dashboard main {
+    padding: 16px !important;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+/* HRDashboard.css ya App.css mein yeh add karo */
+.hr-dashboard * {
+  color: black !important;
+}
+
+/* Table headers ko visible karo */
+.hr-dashboard th {
+  color: black !important;
+  font-weight: bold !important;
+  background-color: #f8f9fa !important;
+}
+
+.hr-dashboard .table-light th {
+  background-color: #f8f9fa !important;
+  color: black !important;
+}
+
+/* Form labels ko dark karo */
+.hr-dashboard .form-label {
+  color: black !important;
+  font-weight: 600 !important;
+}
+
+.hr-dashboard label {
+  color: black !important;
+  font-weight: 500 !important;
+}
+
+/* Card headers ko visible karo */
+.hr-dashboard .card-header {
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.hr-dashboard .bg-primary .card-header,
+.hr-dashboard .bg-success .card-header,
+.hr-dashboard .bg-info .card-header,
+.hr-dashboard .bg-warning .card-header,
+.hr-dashboard .bg-secondary .card-header {
+  color: white !important;
+}
+
+/* Button text white rahe */
+.hr-dashboard .btn {
+  color: white !important;
+}
+
+.hr-dashboard .btn-outline-primary {
+  color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+
+.hr-dashboard .btn-outline-success {
+  color: #198754 !important;
+  border-color: #198754 !important;
+}
+
+.hr-dashboard .btn-outline-warning {
+  color: #ffc107 !important;
+  border-color: #ffc107 !important;
+}
+
+.hr-dashboard .text-muted {
+  color: #6c757d !important;
+}
+
+/* Badge text visible karo */
+.hr-dashboard .badge {
+  color: white !important;
+}
+
+.hr-dashboard .bg-light {
+  background-color: #f8f9fa !important;
+  color: black !important;
+}
