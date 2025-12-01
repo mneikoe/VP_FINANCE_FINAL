@@ -1,7 +1,7 @@
 // Routes/candidateRoutes.js
 const express = require("express");
 const router = express.Router();
-const Candidate = require("../models/Candidate");
+const Candidate = require("../Models/Candidate");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
