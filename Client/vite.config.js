@@ -24,7 +24,7 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "https://backend.systemmanager.in/vpfinance",
+        target: "https://vp-finance-final.onrender.com",
         changeOrigin: true,
         secure: false,
       },
