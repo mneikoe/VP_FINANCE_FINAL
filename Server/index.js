@@ -70,7 +70,7 @@ const SuspectRoute = require("./Routes/SuspectRoute");
 const ProspectRoute = require("./Routes/ProspectRoute");
 const kycrouter = require("./Routes/Kycdocumentname");
 const cre = require("./Routes/CRE.js");
-const businessAssociatesRoutes = require("./Routes/businessAssociates");
+const businessAssociatesRoutes = require("./Routes/BusinessAssociates");
 const employeeRoute = require("./Routes/employeeRoute");
 
 // STATIC FILES
