@@ -24,7 +24,7 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "https://vp-finance-final.onrender.com",
+        target: "https://vpf.amnrj.in",
         changeOrigin: true,
         secure: false,
       },
