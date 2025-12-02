@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const BusinessAssociate = require("../models/BusinessAssociate");
+const BusinessAssociate = require("../Models/BusinessAssociate");
 
 // Get all business associates
 router.get("/", async (req, res) => {
