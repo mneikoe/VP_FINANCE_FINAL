@@ -9,10 +9,8 @@ const morgan = require("morgan");
 // Initialize Express app
 const app = express();
 
-//stupendous-croissant-ed072e.netlify.app/auth/login
-
-// Middleware
-https: app.use(
+// CORS Middleware
+app.use(
   cors({
     origin: [
       "http://localhost:3000",
@@ -34,19 +32,10 @@ app.use(morgan("tiny"));
 // Database Connection
 const dbUrl = process.env.dbUrl;
 
-let dbName = "UnknownDB";
-try {
-  const afterSlash = dbUrl.split("/").pop();
-  dbName = afterSlash.split("?")[0];
-} catch (e) {
-  console.log("Could not extract DB name");
-}
-
 mongoose
   .connect(dbUrl)
   .then(() => {
     console.log(`✅ DB Connected Successfully`);
-    console.log(`📌 Connected to Database: ${dbName}`);
   })
   .catch((err) => {
     console.error("❌ DB Connection Error:", err);
@@ -84,15 +73,21 @@ const cre = require("./Routes/CRE.js");
 const businessAssociatesRoutes = require("./Routes/businessAssociates");
 const employeeRoute = require("./Routes/employeeRoute");
 
-// Routes
+// STATIC FILES
 app.use(
   "/vacancy-images",
   express.static(path.join(__dirname, "public/vacancy-creation-images"))
 );
+
 app.use(
   "/candidate-resumes",
   express.static(path.join(__dirname, "public/candidate-resumes"))
 );
+
+app.use("/images", express.static("public/images"));
+app.use("/Images", express.static(path.join(__dirname, "public/Images")));
+
+// API ROUTES
 app.use("/api/vacancynotice", vacancyRoutes);
 app.use("/api/addcandidate", candidateRoutes);
 app.use("/api/telemarketer", telemarketerRoutes);
@@ -124,36 +119,18 @@ app.use("/api/occupation/types", OccupationTypeRoute);
 app.use("/api/occupation", LeadOccupationRoute);
 app.use("/api/employee", employeeRoute);
 app.use("/api/cre", cre);
-app.use("/images", express.static("public/images"));
-app.use("/Images", express.static(path.join(__dirname, "public/Images")));
 
-// Error Handling Middleware
-app.use((err, req, res, next) => {
-  console.error("Error:", err.stack);
-  res.status(500).json({
-    error: "Something went wrong!",
-    message:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Internal server error",
-  });
-});
+// 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
 
-// Handle React routing, return all requests to React app
+// React Route (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
-// 404 Handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    error: "Route not found",
-    message: `The route ${req.originalUrl} does not exist`,
-  });
-});
 
 // Start Server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
