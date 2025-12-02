@@ -81,7 +81,7 @@ const SuspectRoute = require("./Routes/SuspectRoute");
 const ProspectRoute = require("./Routes/ProspectRoute");
 const kycrouter = require("./Routes/Kycdocumentname");
 const cre = require("./Routes/CRE.js");
-const businessAssociatesRoutes = require("./routes/businessAssociates");
+const businessAssociatesRoutes = require("./Routes/businessAssociates");
 const employeeRoute = require("./Routes/employeeRoute");
 
 // Routes
