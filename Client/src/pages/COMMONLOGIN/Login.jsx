@@ -20,27 +20,26 @@ export default function Login() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = (e) => {
-  e.preventDefault();
-  
-  // ✅ IMPROVED: Prepare login data properly
-  let loginData = {};
-  
-  if (loginType === "email") {
-    loginData = {
-      email: formData.loginId,
-      password: formData.password
-    };
-  } else {
-    loginData = {
-      employeeCode: formData.loginId,
-      password: formData.password
-    };
-  }
-  
-  console.log("📤 Login data:", loginData);
-  dispatch(loginUser(loginData));
-};
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // ✅ IMPROVED: Prepare login data properly
+    let loginData = {};
+
+    if (loginType === "email") {
+      loginData = {
+        email: formData.loginId,
+        password: formData.password,
+      };
+    } else {
+      loginData = {
+        employeeCode: formData.loginId,
+        password: formData.password,
+      };
+    }
+
+    dispatch(loginUser(loginData));
+  };
 
   // Switch between email and employee code login
   const toggleLoginType = () => {
@@ -82,13 +81,13 @@ export default function Login() {
       username: "HR Manager",
       email: "hr@test.com",
       role: "HR",
-      token: "test-token-hr"
+      token: "test-token-hr",
     };
-    
+
     // Save to localStorage
     localStorage.setItem("token", testUser.token);
     localStorage.setItem("user", JSON.stringify(testUser));
-    
+
     // Dispatch success and navigate
     toast.success("Logged in as HR Manager");
     navigate("/dashboard");
@@ -98,19 +97,21 @@ export default function Login() {
     <div className="container">
       <form className="card" onSubmit={handleSubmit}>
         <h2>Login</h2>
-        
+
         {/* Login Type Toggle */}
         <div className="login-type-toggle">
-          <button 
+          <button
             type="button"
             className={`toggle-btn ${loginType === "email" ? "active" : ""}`}
             onClick={() => setLoginType("email")}
           >
             📧 Email Login
           </button>
-          <button 
+          <button
             type="button"
-            className={`toggle-btn ${loginType === "employeeCode" ? "active" : ""}`}
+            className={`toggle-btn ${
+              loginType === "employeeCode" ? "active" : ""
+            }`}
             onClick={() => setLoginType("employeeCode")}
           >
             🆔 Employee Code
@@ -122,8 +123,8 @@ export default function Login() {
           type="text"
           name="loginId"
           placeholder={
-            loginType === "email" 
-              ? "Enter Email Address" 
+            loginType === "email"
+              ? "Enter Email Address"
               : "Enter Employee Code (e.g., TC1234)"
           }
           value={formData.loginId}
@@ -144,12 +145,16 @@ export default function Login() {
         <div className="help-text">
           {loginType === "employeeCode" ? (
             <small>
-              <strong>Employee Code Examples:</strong><br />
-              • TC1234 (Telecaller)<br />
-              • TM5678 (Telemarketer)<br />
-              • OE9012 (OE)<br />
-              • HR3456 (HR)<br />
-              • RM7890 (RM)
+              <strong>Employee Code Examples:</strong>
+              <br />
+              • TC1234 (Telecaller)
+              <br />
+              • TM5678 (Telemarketer)
+              <br />
+              • OE9012 (OE)
+              <br />
+              • HR3456 (HR)
+              <br />• RM7890 (RM)
             </small>
           ) : (
             <small>
@@ -161,27 +166,29 @@ export default function Login() {
         <button type="submit" disabled={loading}>
           {loading ? "🔄 Logging in..." : "🚀 Login"}
         </button>
-        
+
         {/* Quick Login Buttons */}
         <div className="quick-login-section">
           <p style={{ textAlign: "center", margin: "10px 0", color: "#666" }}>
             OR
           </p>
-          
-          <button 
-            type="button" 
+
+          <button
+            type="button"
             onClick={handleHRTestLogin}
             className="quick-login-btn hr-btn"
           >
             👥 Login as HR Manager
           </button>
 
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={toggleLoginType}
             className="quick-login-btn switch-btn"
           >
-            {loginType === "email" ? "🆔 Switch to Employee Code" : "📧 Switch to Email Login"}
+            {loginType === "email"
+              ? "🆔 Switch to Employee Code"
+              : "📧 Switch to Email Login"}
           </button>
         </div>
 
@@ -384,7 +391,7 @@ export default function Login() {
             margin: 20px;
             padding: 20px;
           }
-          
+
           .login-type-toggle {
             flex-direction: column;
           }
