@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const morgan = require("morgan");
+const fs = require("fs");
 
 // Initialize Express app
 const app = express();
@@ -72,6 +73,9 @@ const kycrouter = require("./Routes/Kycdocumentname");
 const cre = require("./Routes/CRE.js");
 const businessAssociatesRoutes = require("./Routes/BusinessAssociates");
 const employeeRoute = require("./Routes/employeeRoute");
+const rulesRoutes = require("./Routes/rulesRoutes");
+const futurePlansRoutes = require("./Routes/futurePlansRoutes");
+const internshipRoutes = require("./Routes/internshipRoutes");
 
 // STATIC FILES
 app.use(
@@ -83,10 +87,35 @@ app.use(
   "/candidate-resumes",
   express.static(path.join(__dirname, "public/candidate-resumes"))
 );
-
+app.use(
+  "/offer-letters",
+  express.static(path.join(__dirname, "public/offer-letters"))
+);
+app.use(
+  "/joining-letters",
+  express.static(path.join(__dirname, "public/joining-letters"))
+);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/documents", express.static(path.join(__dirname, "public/Documents")));
 app.use("/images", express.static("public/images"));
 app.use("/Images", express.static(path.join(__dirname, "public/Images")));
+const ensureDirectories = () => {
+  const directories = [
+    "public/offer-letters",
+    "public/joining-letters",
+    "public/candidate-resumes",
+  ];
 
+  directories.forEach((dir) => {
+    const dirPath = path.join(__dirname, dir);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+      console.log(`✅ Created directory: ${dirPath}`);
+    }
+  });
+};
+
+ensureDirectories();
 // API ROUTES
 app.use("/api/vacancynotice", vacancyRoutes);
 app.use("/api/addcandidate", candidateRoutes);
@@ -119,7 +148,9 @@ app.use("/api/occupation/types", OccupationTypeRoute);
 app.use("/api/occupation", LeadOccupationRoute);
 app.use("/api/employee", employeeRoute);
 app.use("/api/cre", cre);
-
+app.use("/api/rules", rulesRoutes);
+app.use("/api/future-plans", futurePlansRoutes);
+app.use("/api/internships", internshipRoutes);
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
 
