@@ -17,6 +17,12 @@ import ResumeShortlist from "./modules/ResumeShortlist.jsx";
 import InterviewProcess from "./modules/InterviewProcess.jsx";
 import JoiningData from "./modules/JoiningData.jsx";
 import AddEmployeeFromCandidates from "./modules/AddEmployeeFromCandidates.jsx";
+
+// Import New Components
+import InternshipStudents from "./modules/InternshipStudents.jsx";
+import RulesRegulations from "./modules/RulesRegulations.jsx";
+import FuturePlans from "./modules/FuturePlans.jsx";
+
 const HRDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -53,6 +59,15 @@ const HRDashboard = () => {
               path="/add-employee-from-candidates"
               element={<AddEmployeeFromCandidates />}
             />
+
+            {/* New Routes for Business Associates */}
+            <Route
+              path="/internship-students"
+              element={<InternshipStudents />}
+            />
+            <Route path="/rules-regulations" element={<RulesRegulations />} />
+            <Route path="/future-plans" element={<FuturePlans />} />
+
             {/* Catch all route - redirect to dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

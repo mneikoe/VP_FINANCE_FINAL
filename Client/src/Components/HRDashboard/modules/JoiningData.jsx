@@ -17,6 +17,13 @@ import {
   FaFileAlt,
   FaPaperPlane,
   FaCheck,
+  FaUpload,
+  FaDownload,
+  FaFilePdf,
+  FaFileWord,
+  FaFileImage,
+  FaExternalLinkAlt,
+  FaTimes,
 } from "react-icons/fa";
 
 const JoiningData = () => {
@@ -25,6 +32,12 @@ const JoiningData = () => {
   const [error, setError] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [actionType, setActionType] = useState(null); // 'offer' or 'joining'
+  const [offerLetterFile, setOfferLetterFile] = useState(null);
+  const [joiningLetterFile, setJoiningLetterFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [viewingFile, setViewingFile] = useState(null); // For PDF viewer
+  const [viewingFileName, setViewingFileName] = useState("");
+  const [viewingFileType, setViewingFileType] = useState("");
 
   useEffect(() => {
     fetchCandidates();
@@ -124,62 +137,231 @@ const JoiningData = () => {
     console.log("📋 currentStatus:", candidate.currentStatus);
     setSelectedCandidate(candidate);
     setActionType(null);
+    setOfferLetterFile(null);
+    setJoiningLetterFile(null);
   };
 
   const closeDetails = () => {
     setSelectedCandidate(null);
     setActionType(null);
+    setOfferLetterFile(null);
+    setJoiningLetterFile(null);
   };
 
   const handleOfferLetterAction = () => {
     setActionType("offer");
   };
 
+  // handleJoiningLetterAction function update करें:
   const handleJoiningLetterAction = () => {
     setActionType("joining");
   };
 
+  const handleOfferLetterFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file type
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert(
+          "Please upload only PDF, Word, or Image files (.pdf, .doc, .docx, .jpg, .png)"
+        );
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size should be less than 10MB");
+        e.target.value = "";
+        return;
+      }
+
+      setOfferLetterFile(file);
+    }
+  };
+
+  const handleJoiningLetterFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file type
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert(
+          "Please upload only PDF, Word, or Image files (.pdf, .doc, .docx, .jpg, .png)"
+        );
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size should be less than 10MB");
+        e.target.value = "";
+        return;
+      }
+
+      setJoiningLetterFile(file);
+    }
+  };
+
   const sendOfferLetter = async () => {
+    if (!offerLetterFile) {
+      alert("Please select a file to upload");
+      return;
+    }
+
     try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("sentDate", new Date().toISOString());
+      formData.append("accepted", "false");
+      formData.append("notes", "");
+      formData.append("offerLetterFile", offerLetterFile);
+
       const response = await axios.put(
         `/api/addcandidate/${selectedCandidate._id}/offer-letter`,
+        formData,
         {
-          sentDate: new Date().toISOString(),
-          accepted: false,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
       if (response.data.success) {
-        alert("✅ Offer Letter Sent status updated successfully!");
+        alert("✅ Offer Letter Sent successfully!");
         fetchCandidates();
         closeDetails();
       }
     } catch (error) {
       console.error("Error sending offer letter:", error);
-      alert("❌ Failed to update offer letter status");
+      alert("❌ Failed to send offer letter. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
   const sendJoiningLetter = async () => {
+    if (!joiningLetterFile) {
+      alert("Please select a file to upload");
+      return;
+    }
+
     try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("sentDate", new Date().toISOString());
+      formData.append("received", "false");
+      formData.append("notes", "");
+
+      formData.append("joiningDate", "");
+
+      formData.append("joiningLetterFile", joiningLetterFile);
+
       const response = await axios.put(
         `/api/addcandidate/${selectedCandidate._id}/joining-letter`,
+        formData,
         {
-          sentDate: new Date().toISOString(),
-          received: false,
-          joiningDate: null,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
       if (response.data.success) {
-        alert("✅ Joining Letter Sent status updated successfully!");
+        alert("✅ Joining Letter Sent successfully!");
         fetchCandidates();
         closeDetails();
       }
     } catch (error) {
       console.error("Error sending joining letter:", error);
-      alert("❌ Failed to update joining letter status");
+      alert("❌ Failed to send joining letter. Please try again.");
+    } finally {
+      setUploading(false);
     }
+  };
+
+  const viewFile = async (fileType, filename, originalName) => {
+    try {
+      const endpoint =
+        fileType === "offer"
+          ? `/api/addcandidate/view/offer-letter/${filename}`
+          : `/api/addcandidate/view/joining-letter/${filename}`;
+
+      // Check if it's a PDF
+      if (filename.toLowerCase().endsWith(".pdf")) {
+        // Open in new tab for PDF
+        window.open(endpoint, "_blank");
+      } else {
+        // For other files, download directly
+        downloadFile(fileType, filename, originalName);
+      }
+    } catch (error) {
+      console.error("Error viewing file:", error);
+      alert("Failed to view file");
+    }
+  };
+
+  const downloadFile = async (fileType, filename, originalName) => {
+    try {
+      const endpoint =
+        fileType === "offer"
+          ? `/api/addcandidate/download/offer-letter/${filename}`
+          : `/api/addcandidate/download/joining-letter/${filename}`;
+
+      const response = await axios.get(endpoint, {
+        responseType: "blob",
+      });
+
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", originalName || filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Failed to download file");
+    }
+  };
+
+  const viewPdfInModal = (fileType, filename, originalName) => {
+    const endpoint =
+      fileType === "offer"
+        ? `/api/addcandidate/view/offer-letter/${filename}`
+        : `/api/addcandidate/view/joining-letter/${filename}`;
+
+    setViewingFile(endpoint);
+    setViewingFileName(originalName || filename);
+    setViewingFileType(
+      filename.toLowerCase().endsWith(".pdf") ? "pdf" : "other"
+    );
+  };
+
+  const closePdfViewer = () => {
+    setViewingFile(null);
+    setViewingFileName("");
+    setViewingFileType("");
   };
 
   const calculateTotalMarks = (candidate) => {
@@ -330,6 +512,37 @@ const JoiningData = () => {
     return candidate.currentStage || candidate.currentStatus || "Joining Data";
   };
 
+  const getFileIcon = (filename) => {
+    if (!filename) return <FaFileAlt />;
+    const lowerName = filename.toLowerCase();
+    if (lowerName.endsWith(".pdf")) {
+      return <FaFilePdf style={{ color: "#dc3545", fontSize: "12px" }} />;
+    } else if (lowerName.endsWith(".doc") || lowerName.endsWith(".docx")) {
+      return <FaFileWord style={{ color: "#0d6efd", fontSize: "12px" }} />;
+    } else if (
+      lowerName.endsWith(".jpg") ||
+      lowerName.endsWith(".jpeg") ||
+      lowerName.endsWith(".png")
+    ) {
+      return <FaFileImage style={{ color: "#198754", fontSize: "12px" }} />;
+    }
+    return <FaFileAlt style={{ fontSize: "12px" }} />;
+  };
+  const hasOfferLetter = (candidate) => {
+    return candidate.offerLetterDetails?.file?.filename;
+  };
+
+  const hasJoiningLetter = (candidate) => {
+    return candidate.joiningLetterDetails?.file?.filename;
+  };
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -434,6 +647,11 @@ const JoiningData = () => {
               <th
                 style={{ color: "black", fontWeight: "600", padding: "12px" }}
               >
+                Documents
+              </th>
+              <th
+                style={{ color: "black", fontWeight: "600", padding: "12px" }}
+              >
                 Actions
               </th>
             </tr>
@@ -442,6 +660,8 @@ const JoiningData = () => {
             {candidates.map((candidate) => {
               const totalMarks = calculateTotalMarks(candidate);
               const currentStage = getCurrentStage(candidate);
+              const hasOfferLetter = candidate.offerLetterDetails?.file;
+              const hasJoiningLetter = candidate.joiningLetterDetails?.file;
 
               return (
                 <tr
@@ -500,6 +720,197 @@ const JoiningData = () => {
                     {getStatusBadge(candidate)}
                   </td>
                   <td style={{ padding: "12px" }}>
+                    <div className="d-flex flex-column gap-2">
+                      {candidate.offerLetterDetails?.file?.filename && (
+                        <div className="d-flex align-items-center gap-1">
+                          {getFileIcon(
+                            candidate.offerLetterDetails.file.originalName
+                          )}
+                          <small
+                            className="text-muted"
+                            style={{ fontSize: "11px" }}
+                          >
+                            Offer:
+                          </small>
+                          <span
+                            className="ms-1"
+                            style={{ fontSize: "11px", color: "#28a745" }}
+                          >
+                            ✓
+                          </span>
+                          <div className="d-flex gap-1 ms-1">
+                            <button
+                              className="btn btn-sm p-0"
+                              onClick={() =>
+                                viewPdfInModal(
+                                  "offer",
+                                  candidate.offerLetterDetails.file.filename,
+                                  candidate.offerLetterDetails.file.originalName
+                                )
+                              }
+                              style={{
+                                color: "#0d6efd",
+                                background: "none",
+                                border: "none",
+                                fontSize: "11px",
+                              }}
+                              title="View Offer Letter"
+                            >
+                              <FaEye size={10} />
+                            </button>
+                            <button
+                              className="btn btn-sm p-0"
+                              onClick={() =>
+                                downloadFile(
+                                  "offer",
+                                  candidate.offerLetterDetails.file.filename,
+                                  candidate.offerLetterDetails.file.originalName
+                                )
+                              }
+                              style={{
+                                color: "#28a745",
+                                background: "none",
+                                border: "none",
+                                fontSize: "11px",
+                              }}
+                              title="Download Offer Letter"
+                            >
+                              <FaDownload size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {candidate.joiningLetterDetails?.file?.filename && (
+                        <div className="d-flex align-items-center gap-1">
+                          {getFileIcon(
+                            candidate.joiningLetterDetails.file.originalName
+                          )}
+                          <small
+                            className="text-muted"
+                            style={{ fontSize: "11px" }}
+                          >
+                            Joining:
+                          </small>
+                          <span
+                            className="ms-1"
+                            style={{ fontSize: "11px", color: "#28a745" }}
+                          >
+                            ✓
+                          </span>
+                          <div className="d-flex gap-1 ms-1">
+                            <button
+                              className="btn btn-sm p-0"
+                              onClick={() =>
+                                viewPdfInModal(
+                                  "joining",
+                                  candidate.joiningLetterDetails.file.filename,
+                                  candidate.joiningLetterDetails.file
+                                    .originalName
+                                )
+                              }
+                              style={{
+                                color: "#0d6efd",
+                                background: "none",
+                                border: "none",
+                                fontSize: "11px",
+                              }}
+                              title="View Joining Letter"
+                            >
+                              <FaEye size={10} />
+                            </button>
+                            <button
+                              className="btn btn-sm p-0"
+                              onClick={() =>
+                                downloadFile(
+                                  "joining",
+                                  candidate.joiningLetterDetails.file.filename,
+                                  candidate.joiningLetterDetails.file
+                                    .originalName
+                                )
+                              }
+                              style={{
+                                color: "#28a745",
+                                background: "none",
+                                border: "none",
+                                fontSize: "11px",
+                              }}
+                              title="Download Joining Letter"
+                            >
+                              <FaDownload size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!candidate.offerLetterDetails?.file?.filename &&
+                        !candidate.joiningLetterDetails?.file?.filename && (
+                          <div className="d-flex align-items-center gap-1">
+                            <small
+                              className="text-muted"
+                              style={{ fontSize: "11px" }}
+                            >
+                              No documents
+                            </small>
+                            <button
+                              className="btn btn-sm p-0 ms-1"
+                              onClick={() => {
+                                const candidateId = candidate._id;
+                                // Create hidden file input for quick upload
+                                const input = document.createElement("input");
+                                input.type = "file";
+                                input.accept =
+                                  ".pdf,.doc,.docx,.jpg,.jpeg,.png";
+                                input.onchange = async (e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    try {
+                                      const formData = new FormData();
+                                      formData.append("offerLetterFile", file);
+
+                                      const response = await axios.post(
+                                        `/api/addcandidate/${candidateId}/upload-offer-letter`,
+                                        formData,
+                                        {
+                                          headers: {
+                                            "Content-Type":
+                                              "multipart/form-data",
+                                          },
+                                        }
+                                      );
+
+                                      if (response.data.success) {
+                                        alert(
+                                          "Document uploaded successfully!"
+                                        );
+                                        fetchCandidates();
+                                      }
+                                    } catch (error) {
+                                      console.error(
+                                        "Error uploading document:",
+                                        error
+                                      );
+                                      alert("Failed to upload document");
+                                    }
+                                  }
+                                };
+                                input.click();
+                              }}
+                              style={{
+                                color: "#6c757d",
+                                background: "none",
+                                border: "none",
+                                fontSize: "11px",
+                              }}
+                              title="Upload Document"
+                            >
+                              <FaUpload size={10} />
+                            </button>
+                          </div>
+                        )}
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px" }}>
                     <div
                       className="d-flex flex-column gap-1"
                       style={{ minWidth: "120px" }}
@@ -518,7 +929,7 @@ const JoiningData = () => {
                         }}
                       >
                         <FaEye className="me-1" style={{ fontSize: "12px" }} />
-                        <span>View</span>
+                        <span>View Details</span>
                       </button>
                       <div className="d-flex gap-1">
                         <span
@@ -649,6 +1060,93 @@ const JoiningData = () => {
         <div className="p-3">{renderContent()}</div>
       </div>
 
+      {/* PDF Viewer Modal */}
+      {viewingFile && viewingFileType === "pdf" && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "90vw",
+              height: "90vh",
+              backgroundColor: "white",
+              borderRadius: "4px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                padding: "15px",
+                backgroundColor: "#343a40",
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div className="d-flex align-items-center">
+                <FaFilePdf className="me-2" style={{ color: "#dc3545" }} />
+                <strong>{viewingFileName}</strong>
+              </div>
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-sm d-flex align-items-center"
+                  onClick={() => window.open(viewingFile, "_blank")}
+                  style={{
+                    backgroundColor: "#0d6efd",
+                    color: "white",
+                    border: "none",
+                  }}
+                >
+                  <FaExternalLinkAlt className="me-1" />
+                  Open in New Tab
+                </button>
+                <button
+                  onClick={closePdfViewer}
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "none",
+                    color: "white",
+                    fontSize: "1.5rem",
+                    cursor: "pointer",
+                    padding: "0",
+                  }}
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflow: "auto" }}>
+              <iframe
+                src={viewingFile}
+                title={viewingFileName}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Candidate Details Modal */}
       {selectedCandidate && (
         <div
@@ -672,7 +1170,7 @@ const JoiningData = () => {
               border: "1px solid #e0e0e0",
               borderRadius: "4px",
               width: "100%",
-              maxWidth: "700px",
+              maxWidth: "800px",
               maxHeight: "90vh",
               overflowY: "auto",
             }}
@@ -783,6 +1281,178 @@ const JoiningData = () => {
                     )}
                   </div>
 
+                  {/* Show uploaded files if available */}
+                  {selectedCandidate.offerLetterDetails?.file && (
+                    <div className="mt-3">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <small className="text-muted">
+                          ✅ Offer letter uploaded:
+                        </small>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {getFileIcon(
+                          selectedCandidate.offerLetterDetails.file.originalName
+                        )}
+                        <small
+                          className="text-truncate"
+                          style={{ maxWidth: "200px" }}
+                        >
+                          {
+                            selectedCandidate.offerLetterDetails.file
+                              .originalName
+                          }
+                        </small>
+                        <span
+                          className="text-muted"
+                          style={{ fontSize: "11px" }}
+                        >
+                          (
+                          {formatFileSize(
+                            selectedCandidate.offerLetterDetails.file
+                              .fileSize || 0
+                          )}
+                          )
+                        </span>
+                        <button
+                          className="btn btn-sm d-flex align-items-center ms-2"
+                          onClick={() =>
+                            viewFile(
+                              "offer",
+                              selectedCandidate.offerLetterDetails.file
+                                .filename,
+                              selectedCandidate.offerLetterDetails.file
+                                .originalName
+                            )
+                          }
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            color: "#0d6efd",
+                            border: "1px solid #ced4da",
+                            padding: "2px 8px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <FaExternalLinkAlt
+                            className="me-1"
+                            style={{ fontSize: "10px" }}
+                          />
+                          View
+                        </button>
+                        <button
+                          className="btn btn-sm d-flex align-items-center"
+                          onClick={() =>
+                            downloadFile(
+                              "offer",
+                              selectedCandidate.offerLetterDetails.file
+                                .filename,
+                              selectedCandidate.offerLetterDetails.file
+                                .originalName
+                            )
+                          }
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            color: "#28a745",
+                            border: "1px solid #ced4da",
+                            padding: "2px 8px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <FaDownload
+                            className="me-1"
+                            style={{ fontSize: "10px" }}
+                          />
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedCandidate.joiningLetterDetails?.file && (
+                    <div className="mt-3">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <small className="text-muted">
+                          ✅ Joining letter uploaded:
+                        </small>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {getFileIcon(
+                          selectedCandidate.joiningLetterDetails.file
+                            .originalName
+                        )}
+                        <small
+                          className="text-truncate"
+                          style={{ maxWidth: "200px" }}
+                        >
+                          {
+                            selectedCandidate.joiningLetterDetails.file
+                              .originalName
+                          }
+                        </small>
+                        <span
+                          className="text-muted"
+                          style={{ fontSize: "11px" }}
+                        >
+                          (
+                          {formatFileSize(
+                            selectedCandidate.joiningLetterDetails.file
+                              .fileSize || 0
+                          )}
+                          )
+                        </span>
+                        <button
+                          className="btn btn-sm d-flex align-items-center ms-2"
+                          onClick={() =>
+                            viewFile(
+                              "joining",
+                              selectedCandidate.joiningLetterDetails.file
+                                .filename,
+                              selectedCandidate.joiningLetterDetails.file
+                                .originalName
+                            )
+                          }
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            color: "#0d6efd",
+                            border: "1px solid #ced4da",
+                            padding: "2px 8px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <FaExternalLinkAlt
+                            className="me-1"
+                            style={{ fontSize: "10px" }}
+                          />
+                          View
+                        </button>
+                        <button
+                          className="btn btn-sm d-flex align-items-center"
+                          onClick={() =>
+                            downloadFile(
+                              "joining",
+                              selectedCandidate.joiningLetterDetails.file
+                                .filename,
+                              selectedCandidate.joiningLetterDetails.file
+                                .originalName
+                            )
+                          }
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            color: "#28a745",
+                            border: "1px solid #ced4da",
+                            padding: "2px 8px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <FaDownload
+                            className="me-1"
+                            style={{ fontSize: "10px" }}
+                          />
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Show status messages if letters already sent */}
                   {selectedCandidate.currentStage === "Offer Letter Sent" && (
                     <div className="mt-3">
@@ -829,8 +1499,41 @@ const JoiningData = () => {
                     <FaFileContract className="me-2" />
                     Send Offer Letter
                   </h6>
+
+                  <div className="mb-3">
+                    <label
+                      className="form-label"
+                      style={{ color: "black", fontWeight: "500" }}
+                    >
+                      <FaUpload className="me-2" />
+                      Upload Offer Letter (PDF/DOC/DOCX/JPG/PNG)
+                    </label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      onChange={handleOfferLetterFileChange}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
+                      disabled={uploading}
+                    />
+                    <small className="text-muted">
+                      Maximum file size: 10MB | Supported formats: PDF, DOC,
+                      DOCX, JPG, PNG
+                    </small>
+                    {offerLetterFile && (
+                      <div className="mt-2">
+                        <small className="text-success d-flex align-items-center">
+                          ✅ Selected file: {offerLetterFile.name}
+                          {getFileIcon(offerLetterFile.name)}
+                          <span className="ms-2">
+                            ({formatFileSize(offerLetterFile.size)})
+                          </span>
+                        </small>
+                      </div>
+                    )}
+                  </div>
+
                   <p style={{ color: "black" }}>
-                    Are you sure you want to mark Offer Letter as sent for{" "}
+                    Are you sure you want to send Offer Letter to{" "}
                     <strong>{selectedCandidate.candidateName}</strong>?
                   </p>
                   <div className="d-flex gap-2 mt-3">
@@ -844,9 +1547,26 @@ const JoiningData = () => {
                         padding: "8px 16px",
                         fontWeight: "500",
                       }}
+                      disabled={!offerLetterFile || uploading}
                     >
-                      <FaPaperPlane className="me-2" />
-                      Yes, Send Offer Letter
+                      {uploading ? (
+                        <>
+                          <div
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                          >
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <FaPaperPlane className="me-2" />
+                          {offerLetterFile
+                            ? "Upload & Send Offer Letter"
+                            : "Please select a file"}
+                        </>
+                      )}
                     </button>
                     <button
                       className="btn"
@@ -857,6 +1577,7 @@ const JoiningData = () => {
                         border: "none",
                         padding: "8px 16px",
                       }}
+                      disabled={uploading}
                     >
                       Cancel
                     </button>
@@ -881,8 +1602,41 @@ const JoiningData = () => {
                     <FaFileAlt className="me-2" />
                     Send Joining Letter
                   </h6>
+
+                  <div className="mb-3">
+                    <label
+                      className="form-label"
+                      style={{ color: "black", fontWeight: "500" }}
+                    >
+                      <FaUpload className="me-2" />
+                      Upload Joining Letter (PDF/DOC/DOCX/JPG/PNG)
+                    </label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      onChange={handleJoiningLetterFileChange}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
+                      disabled={uploading}
+                    />
+                    <small className="text-muted">
+                      Maximum file size: 10MB | Supported formats: PDF, DOC,
+                      DOCX, JPG, PNG
+                    </small>
+                    {joiningLetterFile && (
+                      <div className="mt-2">
+                        <small className="text-success d-flex align-items-center">
+                          ✅ Selected file: {joiningLetterFile.name}
+                          {getFileIcon(joiningLetterFile.name)}
+                          <span className="ms-2">
+                            ({formatFileSize(joiningLetterFile.size)})
+                          </span>
+                        </small>
+                      </div>
+                    )}
+                  </div>
+
                   <p style={{ color: "black" }}>
-                    Are you sure you want to mark Joining Letter as sent for{" "}
+                    Are you sure you want to send Joining Letter to{" "}
                     <strong>{selectedCandidate.candidateName}</strong>?
                   </p>
                   <div className="d-flex gap-2 mt-3">
@@ -896,9 +1650,26 @@ const JoiningData = () => {
                         padding: "8px 16px",
                         fontWeight: "500",
                       }}
+                      disabled={!joiningLetterFile || uploading}
                     >
-                      <FaPaperPlane className="me-2" />
-                      Yes, Send Joining Letter
+                      {uploading ? (
+                        <>
+                          <div
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                          >
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <FaPaperPlane className="me-2" />
+                          {joiningLetterFile
+                            ? "Upload & Send Joining Letter"
+                            : "Please select a file"}
+                        </>
+                      )}
                     </button>
                     <button
                       className="btn"
@@ -909,6 +1680,7 @@ const JoiningData = () => {
                         border: "none",
                         padding: "8px 16px",
                       }}
+                      disabled={uploading}
                     >
                       Cancel
                     </button>
@@ -982,7 +1754,8 @@ const JoiningData = () => {
                 </div>
 
                 {/* Show Offer Letter Details if sent */}
-                {selectedCandidate.offerLetterDetails?.sentDate && (
+                {(selectedCandidate.offerLetterDetails?.file ||
+                  selectedCandidate.offerLetterDetails?.sentDate) && (
                   <div
                     className="mt-3 p-3"
                     style={{ backgroundColor: "#fff3cd", borderRadius: "4px" }}
@@ -996,16 +1769,22 @@ const JoiningData = () => {
                     </h6>
                     <div style={{ color: "black" }}>
                       <small>
-                        <strong>Sent Date:</strong>{" "}
-                        {new Date(
-                          selectedCandidate.offerLetterDetails.sentDate
-                        ).toLocaleDateString()}
-                        <br />
+                        {selectedCandidate.offerLetterDetails?.sentDate && (
+                          <>
+                            <strong>Sent Date:</strong>{" "}
+                            {new Date(
+                              selectedCandidate.offerLetterDetails.sentDate
+                            ).toLocaleDateString()}
+                            <br />
+                          </>
+                        )}
                         <strong>Status:</strong>{" "}
-                        {selectedCandidate.offerLetterDetails.accepted
+                        {selectedCandidate.offerLetterDetails?.accepted
                           ? "Accepted"
-                          : "Pending"}
-                        {selectedCandidate.offerLetterDetails.acceptedDate && (
+                          : selectedCandidate.offerLetterDetails?.file
+                          ? "Sent"
+                          : "Not Sent"}
+                        {selectedCandidate.offerLetterDetails?.acceptedDate && (
                           <>
                             <br />
                             <strong>Accepted Date:</strong>{" "}
@@ -1014,13 +1793,92 @@ const JoiningData = () => {
                             ).toLocaleDateString()}
                           </>
                         )}
+                        {selectedCandidate.offerLetterDetails?.file && (
+                          <>
+                            <br />
+                            <div className="d-flex align-items-center mt-1">
+                              <strong>File:</strong>{" "}
+                              {getFileIcon(
+                                selectedCandidate.offerLetterDetails.file
+                                  .originalName
+                              )}
+                              <span className="ms-2">
+                                {
+                                  selectedCandidate.offerLetterDetails.file
+                                    .originalName
+                                }
+                              </span>
+                              <span
+                                className="text-muted ms-2"
+                                style={{ fontSize: "11px" }}
+                              >
+                                (
+                                {formatFileSize(
+                                  selectedCandidate.offerLetterDetails.file
+                                    .fileSize || 0
+                                )}
+                                )
+                              </span>
+                              <button
+                                className="btn btn-sm d-flex align-items-center ms-2"
+                                onClick={() =>
+                                  viewFile(
+                                    "offer",
+                                    selectedCandidate.offerLetterDetails.file
+                                      .filename,
+                                    selectedCandidate.offerLetterDetails.file
+                                      .originalName
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#f8f9fa",
+                                  color: "#0d6efd",
+                                  border: "1px solid #ced4da",
+                                  padding: "2px 8px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <FaExternalLinkAlt
+                                  className="me-1"
+                                  style={{ fontSize: "10px" }}
+                                />
+                                View
+                              </button>
+                              <button
+                                className="btn btn-sm d-flex align-items-center ms-1"
+                                onClick={() =>
+                                  downloadFile(
+                                    "offer",
+                                    selectedCandidate.offerLetterDetails.file
+                                      .filename,
+                                    selectedCandidate.offerLetterDetails.file
+                                      .originalName
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#f8f9fa",
+                                  color: "#28a745",
+                                  border: "1px solid #ced4da",
+                                  padding: "2px 8px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <FaDownload
+                                  className="me-1"
+                                  style={{ fontSize: "10px" }}
+                                />
+                                Download
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </small>
                     </div>
                   </div>
                 )}
-
                 {/* Show Joining Letter Details if sent */}
-                {selectedCandidate.joiningLetterDetails?.sentDate && (
+                {(selectedCandidate.joiningLetterDetails?.file ||
+                  selectedCandidate.joiningLetterDetails?.sentDate) && (
                   <div
                     className="mt-3 p-3"
                     style={{ backgroundColor: "#d4edda", borderRadius: "4px" }}
@@ -1034,16 +1892,23 @@ const JoiningData = () => {
                     </h6>
                     <div style={{ color: "black" }}>
                       <small>
-                        <strong>Sent Date:</strong>{" "}
-                        {new Date(
-                          selectedCandidate.joiningLetterDetails.sentDate
-                        ).toLocaleDateString()}
-                        <br />
+                        {selectedCandidate.joiningLetterDetails?.sentDate && (
+                          <>
+                            <strong>Sent Date:</strong>{" "}
+                            {new Date(
+                              selectedCandidate.joiningLetterDetails.sentDate
+                            ).toLocaleDateString()}
+                            <br />
+                          </>
+                        )}
                         <strong>Status:</strong>{" "}
-                        {selectedCandidate.joiningLetterDetails.received
+                        {selectedCandidate.joiningLetterDetails?.received
                           ? "Received"
-                          : "Pending"}
-                        {selectedCandidate.joiningLetterDetails.joiningDate && (
+                          : selectedCandidate.joiningLetterDetails?.file
+                          ? "Sent"
+                          : "Not Sent"}
+                        {selectedCandidate.joiningLetterDetails
+                          ?.joiningDate && (
                           <>
                             <br />
                             <strong>Joining Date:</strong>{" "}
@@ -1053,13 +1918,92 @@ const JoiningData = () => {
                           </>
                         )}
                         {selectedCandidate.joiningLetterDetails
-                          .receivedDate && (
+                          ?.receivedDate && (
                           <>
                             <br />
                             <strong>Received Date:</strong>{" "}
                             {new Date(
                               selectedCandidate.joiningLetterDetails.receivedDate
                             ).toLocaleDateString()}
+                          </>
+                        )}
+                        {selectedCandidate.joiningLetterDetails?.file && (
+                          <>
+                            <br />
+                            <div className="d-flex align-items-center mt-1">
+                              <strong>File:</strong>{" "}
+                              {getFileIcon(
+                                selectedCandidate.joiningLetterDetails.file
+                                  .originalName
+                              )}
+                              <span className="ms-2">
+                                {
+                                  selectedCandidate.joiningLetterDetails.file
+                                    .originalName
+                                }
+                              </span>
+                              <span
+                                className="text-muted ms-2"
+                                style={{ fontSize: "11px" }}
+                              >
+                                (
+                                {formatFileSize(
+                                  selectedCandidate.joiningLetterDetails.file
+                                    .fileSize || 0
+                                )}
+                                )
+                              </span>
+                              <button
+                                className="btn btn-sm d-flex align-items-center ms-2"
+                                onClick={() =>
+                                  viewFile(
+                                    "joining",
+                                    selectedCandidate.joiningLetterDetails.file
+                                      .filename,
+                                    selectedCandidate.joiningLetterDetails.file
+                                      .originalName
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#f8f9fa",
+                                  color: "#0d6efd",
+                                  border: "1px solid #ced4da",
+                                  padding: "2px 8px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <FaExternalLinkAlt
+                                  className="me-1"
+                                  style={{ fontSize: "10px" }}
+                                />
+                                View
+                              </button>
+                              <button
+                                className="btn btn-sm d-flex align-items-center ms-1"
+                                onClick={() =>
+                                  downloadFile(
+                                    "joining",
+                                    selectedCandidate.joiningLetterDetails.file
+                                      .filename,
+                                    selectedCandidate.joiningLetterDetails.file
+                                      .originalName
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#f8f9fa",
+                                  color: "#28a745",
+                                  border: "1px solid #ced4da",
+                                  padding: "2px 8px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <FaDownload
+                                  className="me-1"
+                                  style={{ fontSize: "10px" }}
+                                />
+                                Download
+                              </button>
+                            </div>
                           </>
                         )}
                       </small>

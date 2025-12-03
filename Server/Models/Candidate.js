@@ -137,10 +137,88 @@ const candidateSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+
+    // ✅ NEW: Offer Letter Details with PDF Upload
+    offerLetterDetails: {
+      sentDate: {
+        type: Date,
+        default: null,
+      },
+      accepted: {
+        type: Boolean,
+        default: false,
+      },
+      acceptedDate: {
+        type: Date,
+        default: null,
+      },
+      file: {
+        filename: String,
+        originalName: String,
+        path: String,
+        uploadedDate: {
+          type: Date,
+          default: Date.now,
+        },
+        fileType: String,
+        fileSize: Number,
+      },
+      notes: {
+        type: String,
+        default: "",
+      },
+    },
+
+    // ✅ NEW: Joining Letter Details with PDF Upload
+    joiningLetterDetails: {
+      sentDate: {
+        type: Date,
+        default: null,
+      },
+      received: {
+        type: Boolean,
+        default: false,
+      },
+      receivedDate: {
+        type: Date,
+        default: null,
+      },
+      joiningDate: {
+        type: Date,
+        default: null,
+      },
+      file: {
+        filename: String,
+        originalName: String,
+        path: String,
+        uploadedDate: {
+          type: Date,
+          default: Date.now,
+        },
+        fileType: String,
+        fileSize: Number,
+      },
+      notes: {
+        type: String,
+        default: "",
+      },
+    },
+
+    // ✅ NEW: Employee Details (When added as employee)
+    employeeDetails: {
+      employeeId: String,
+      joiningDate: Date,
+      department: String,
+      designation: String,
+      salary: String,
+      addedDate: {
+        type: Date,
+        default: Date.now,
+      },
+    },
   },
   {
     timestamps: true,
-    // ✅ Better error handling
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
