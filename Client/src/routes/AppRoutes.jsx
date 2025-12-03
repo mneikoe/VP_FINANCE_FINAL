@@ -94,16 +94,13 @@ import JoiningDataHR from "../Components/HRDashboard/modules/JoiningData";
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userRole = user?.role;
+  const user = JSON.parse(localStorage.getItem("user") || null);
 
-  // Check if user is authenticated
-  if (!token) {
+  if (!token || !user) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  // Check if user role is allowed
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/auth/login" replace />;
   }
 
@@ -160,8 +157,14 @@ const AppRoutes = () => {
 
         {/* 🟢 Children of Active Leads */}
         <Route path="Callback" element={<Callback />} />
-        <Route path="busy-on-another-call" element={<BusyOnAnotherCallPage />} />
-        <Route path="call-after-some-time" element={<CallAfterSomeTimePage />} />
+        <Route
+          path="busy-on-another-call"
+          element={<BusyOnAnotherCallPage />}
+        />
+        <Route
+          path="call-after-some-time"
+          element={<CallAfterSomeTimePage />}
+        />
         <Route path="call-not-picked" element={<CallNotPickedPage />} />
         <Route path="others" element={<OthersLeadsPage />} />
 
@@ -219,7 +222,7 @@ const AppRoutes = () => {
         {/* Employee - Only OA */}
         <Route path="/add-employee" element={<EmployeeAddForm />} />
         <Route path="/employee/:id" element={<EmployeeDetails />} />
-        
+
         {/* HR Module Routes for OA */}
         <Route path="/career-enquiry" element={<CareerEnquiry />} />
         <Route path="/vacancy-notice" element={<VacancyNotice />} />

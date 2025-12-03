@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "../../../config/axios"; 
+import axios from "../../../config/axios";
 
 // ✅ Login Thunk
 export const loginUser = createAsyncThunk(
@@ -8,30 +8,30 @@ export const loginUser = createAsyncThunk(
     try {
       // ✅ IMPROVED: Prepare data based on what's provided
       let requestData = {};
-      
+
       if (loginData.employeeCode) {
         requestData = {
           employeeCode: loginData.employeeCode,
-          password: loginData.password
+          password: loginData.password,
         };
       } else if (loginData.email) {
         requestData = {
           email: loginData.email,
-          password: loginData.password
+          password: loginData.password,
         };
       } else if (loginData.loginId) {
         // If loginId is provided, determine if it's email or employee code
         const isEmployeeCode = /^[A-Z]{2}\d+$/.test(loginData.loginId); // Pattern like TC1234, HR5678
-        
+
         if (isEmployeeCode) {
           requestData = {
             employeeCode: loginData.loginId,
-            password: loginData.password
+            password: loginData.password,
           };
         } else {
           requestData = {
             email: loginData.loginId,
-            password: loginData.password
+            password: loginData.password,
           };
         }
       }
@@ -55,9 +55,9 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// ✅ Logout Thunk
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  // ⚠️ EVERYTHING gets removed
+  localStorage.clear();
+
   return true;
 });

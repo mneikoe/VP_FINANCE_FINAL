@@ -1,22 +1,26 @@
 // src/App.js
-import React, { useEffect } from "react";
+import React from "react";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
 import { ToastContainer } from "react-toastify";
-import { initializeSampleData } from "./utils/initSampleData";
-
+import "react-toastify/dist/ReactToastify.css";
 
 const App = () => {
-
-  useEffect(() => {
-    initializeSampleData();
-  }, []);
-
   return (
     <BrowserRouter>
       <AppRoutes />
-      <ToastContainer />
-
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        limit={3}
+      />
     </BrowserRouter>
   );
 };
