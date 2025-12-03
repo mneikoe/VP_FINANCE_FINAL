@@ -1,5 +1,7 @@
 // components/HRDashboard/Sidebar.jsx
 import React, { useState, useEffect } from "react";
+import { logoutUser } from "../../redux/feature/auth/authThunx";
+import { useDispatch } from "react-redux";
 import {
   FaSignOutAlt,
   FaHome,
@@ -23,7 +25,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
+  const dispatch = useDispatch();
   // Check if mobile on mount and resize
   useEffect(() => {
     const checkIfMobile = () => {
@@ -108,8 +110,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    dispatch(logoutUser());
     navigate("/auth/login");
   };
 
