@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { logoutUser } from "../../redux/feature/auth/authThunx";
 import axiosInstance from "../../config/axios";
 import {
   FaTasks,
@@ -34,7 +35,7 @@ import {
   FaStar,
 } from "react-icons/fa";
 import "./RMDashboard.css";
-
+import { useDispatch } from "react-redux";
 const RMDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -48,7 +49,7 @@ const RMDashboard = () => {
     upcomingAppointments: 0,
     todayAppointments: 0,
   });
-
+  const dispatch = useDispatch();
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -146,8 +147,7 @@ const RMDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    dispatch(logoutUser());
     navigate("/auth/login");
   };
 

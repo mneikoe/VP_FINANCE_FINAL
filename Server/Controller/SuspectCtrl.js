@@ -994,3 +994,184 @@ exports.getAllAppointmentScheduled = async (req, res) => {
     });
   }
 };
+exports.getSuspectsAppointmentScheduled = async (req, res) => {
+  try {
+    console.log("🟢 [API] Fetching SUSPECTS with Appointment Scheduled...");
+
+    // Find only suspects (status: "suspect") with Appointment Scheduled
+    const suspectRecords = await suspectModel
+      .find({
+        status: "suspect", // ✅ Only suspects
+        "callTasks.taskStatus": "Appointment Scheduled",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "username email mobileno role employeeCode",
+        model: "Telecaller",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(
+      `✅ [API] Found ${suspectRecords.length} SUSPECTS with Appointment Scheduled`
+    );
+
+    if (suspectRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No suspects with appointment scheduled found",
+        data: {
+          suspects: [],
+          count: 0,
+        },
+      });
+    }
+
+    // Process and filter records
+    const processedSuspects = suspectRecords
+      .filter((record) => {
+        // Ensure record has call tasks
+        if (!record.callTasks || !Array.isArray(record.callTasks)) return false;
+
+        // Find Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) =>
+            task.taskStatus === "Appointment Scheduled" &&
+            task.nextAppointmentDate
+        );
+
+        return appointmentTasks.length > 0;
+      })
+      .map((record) => {
+        // Get Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        );
+
+        // Get latest appointment
+        const latestAppointment = appointmentTasks.reduce((latest, task) => {
+          if (!latest) return task;
+          const taskDate = new Date(task.taskDate || 0);
+          const latestDate = new Date(latest.taskDate || 0);
+          return taskDate > latestDate ? task : latest;
+        }, null);
+
+        // Format telecaller info
+        let telecallerInfo = {};
+        if (record.assignedTo && typeof record.assignedTo === "object") {
+          telecallerInfo = {
+            _id: record.assignedTo._id,
+            username: record.assignedTo.username || "Unknown",
+            email: record.assignedTo.email || "-",
+            mobileno: record.assignedTo.mobileno || "-",
+            employeeCode: record.assignedTo.employeeCode || "-",
+            role: record.assignedTo.role || "Telecaller",
+          };
+        } else if (record.assignedTo) {
+          // If assignedTo is just an ID (string/ObjectId)
+          telecallerInfo = {
+            _id: record.assignedTo,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            employeeCode: "-",
+            role: "-",
+          };
+        } else {
+          telecallerInfo = {
+            _id: null,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            employeeCode: "-",
+            role: "-",
+          };
+        }
+
+        return {
+          _id: record._id,
+          status: record.status || "suspect",
+          personalDetails: record.personalDetails || {},
+          assignedTo: telecallerInfo,
+          assignedAt: record.assignedAt,
+          callTasks: record.callTasks || [],
+
+          // Appointment info
+          latestAppointment: latestAppointment || null,
+          appointmentDate: latestAppointment?.nextAppointmentDate || null,
+          appointmentTime: latestAppointment?.nextAppointmentTime || null,
+          scheduledOn: latestAppointment?.taskDate || null,
+          appointmentRemarks: latestAppointment?.taskRemarks || "",
+
+          // For easy access
+          groupCode: record.personalDetails?.groupCode || "-",
+          groupName:
+            record.personalDetails?.groupName ||
+            record.personalDetails?.name ||
+            "Unknown",
+          organisation: record.personalDetails?.organisation || "-",
+          city: record.personalDetails?.city || "-",
+          mobileNo: record.personalDetails?.mobileNo || "-",
+          contactNo: record.personalDetails?.contactNo || "-",
+          emailId: record.personalDetails?.emailId || "-",
+          leadSource: record.personalDetails?.leadSource || "-",
+          grade: record.personalDetails?.grade || "-",
+          callingPurpose: record.personalDetails?.callingPurpose || "-",
+          gender: record.personalDetails?.gender || "-",
+          preferredMeetingArea:
+            record.personalDetails?.preferredMeetingArea || "-",
+          leadName: record.personalDetails?.leadName || "-",
+        };
+      });
+
+    console.log(`✅ [API] Processed ${processedSuspects.length} suspects`);
+
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const stats = {
+      total: processedSuspects.length,
+      today: processedSuspects.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === today.getTime();
+      }).length,
+      upcoming: processedSuspects.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate >= today && aptDate <= nextWeek;
+      }).length,
+    };
+
+    console.log("📊 Appointment Stats for SUSPECTS:", stats);
+
+    res.status(200).json({
+      success: true,
+      message: "Suspects with appointment scheduled fetched successfully",
+      data: {
+        suspects: processedSuspects,
+        count: processedSuspects.length,
+        stats: stats,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "❌ [API] Error fetching suspects appointment scheduled records:",
+      error
+    );
+    res.status(500).json({
+      success: false,
+      message:
+        "Server error while fetching suspects appointment scheduled records",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};

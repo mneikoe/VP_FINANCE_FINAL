@@ -703,3 +703,79 @@
   color: #999;
   font-style: italic;
 }
+
+/* TaskAssign.css में ये classes add करें */
+.assigned {
+  background-color: #f0f9ff !important;
+}
+
+.assigned td {
+  position: relative;
+}
+
+
+
+.selected {
+  background-color: #fff3cd !important;
+}
+
+.assigned-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.assigned-person {
+  font-weight: 600;
+  color: #28a745;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.assigned-person:before {
+  content: "✅";
+}
+
+.assigned-date {
+  font-size: 11px;
+  color: #666;
+}
+
+.to-assign-info {
+  color: #ffc107;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.to-assign-info:before {
+  content: "⏳";
+}
+
+.not-assigned {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.telecaller-badge {
+  display: inline-flex;
+}
+
+.telecaller-badge .badge {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+/* Checkbox styling */
+.checkbox-column input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.checkbox-column input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
