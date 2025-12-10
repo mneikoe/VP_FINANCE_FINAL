@@ -1,0 +1,343 @@
+const TestSchema = require("../Models/SusProsClientSchema");
+const Employee = require("../Models/employeeModel");
+const RMAssignment = require("../Models/RMAssignment");
+const mongoose = require("mongoose");
+
+// ✅ Get all RMs
+exports.getAllRMs = async (req, res) => {
+  try {
+    console.log("📋 Fetching all Relationship Managers...");
+
+    const rms = await Employee.find({ role: "RM" })
+      .select("_id name employeeCode emailId mobileNo designation")
+      .sort({ name: 1 });
+
+    console.log(`✅ Found ${rms.length} RMs`);
+
+    res.status(200).json({
+      success: true,
+      count: rms.length,
+      data: rms.map((rm) => ({
+        id: rm._id,
+        name: rm.name,
+        employeeCode: rm.employeeCode,
+        email: rm.emailId,
+        mobileNo: rm.mobileNo,
+        designation: rm.designation || "Relationship Manager",
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Error fetching RMs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Relationship Managers",
+      error: error.message,
+    });
+  }
+};
+
+exports.getProspectsForAssignment = async (req, res) => {
+  try {
+    console.log("🔍 Fetching prospects for RM assignment...");
+
+    // Find prospects with appointment scheduled
+    const prospects = await TestSchema.find({
+      status: "prospect",
+      "callTasks.taskStatus": "Appointment Scheduled",
+    })
+      .select("_id groupCode personalDetails callTasks createdAt status")
+      .sort({ createdAt: -1 });
+
+    // Get already assigned prospect IDs from RMAssignment collection ONLY
+    const assignedProspectIds = await RMAssignment.distinct("prospectId");
+
+    console.log(`📊 Total prospects: ${prospects.length}`);
+    console.log(
+      `📊 Already assigned in RMAssignment: ${assignedProspectIds.length}`
+    );
+
+    // Filter only unassigned prospects
+    const unassignedProspects = prospects.filter(
+      (prospect) => !assignedProspectIds.includes(prospect._id.toString())
+    );
+
+    // Format response
+    const formattedProspects = unassignedProspects.map((prospect) => {
+      const personal = prospect.personalDetails || {};
+      const appointmentTask = prospect.callTasks.find(
+        (task) => task.taskStatus === "Appointment Scheduled"
+      );
+
+      return {
+        id: prospect._id,
+        groupCode: prospect.groupCode || personal.groupCode || "N/A",
+        groupName: personal.groupName || personal.name || "N/A",
+        name: personal.name || "N/A",
+        mobileNo: personal.mobileNo || "N/A",
+        contactNo: personal.contactNo || "N/A",
+        organisation: personal.organisation || "N/A",
+        city: personal.city || "N/A",
+        leadSource: personal.leadSource || "N/A",
+        status: prospect.status,
+        appointmentDate: appointmentTask?.nextAppointmentDate || null,
+        appointmentTime: appointmentTask?.nextAppointmentTime || null,
+        scheduledOn: appointmentTask?.createdAt || null,
+      };
+    });
+
+    console.log(
+      `✅ Found ${formattedProspects.length} unassigned prospects with appointments`
+    );
+
+    res.status(200).json({
+      success: true,
+      count: formattedProspects.length,
+      data: formattedProspects,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching prospects:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch prospects for assignment",
+      error: error.message,
+    });
+  }
+};
+
+exports.assignProspectsToRM = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { rmId, rmName, rmCode, prospects, assignmentNotes } = req.body;
+
+    console.log("🎯 Assigning prospects to RM:", {
+      rmId,
+      rmName,
+      prospectsCount: prospects.length,
+    });
+
+    // Validate
+    if (!rmId || !rmName || !prospects || prospects.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "RM details and prospects are required",
+      });
+    }
+
+    // Check if RM exists
+    const rmExists = await Employee.findOne({ _id: rmId, role: "RM" }).session(
+      session
+    );
+    if (!rmExists) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: "Relationship Manager not found",
+      });
+    }
+
+    const assignmentResults = [];
+    const failedAssignments = [];
+
+    // Assign each prospect
+    for (const prospectId of prospects) {
+      try {
+        // Check if prospect exists
+        const prospect = await TestSchema.findById(prospectId).session(session);
+        if (!prospect) {
+          failedAssignments.push({
+            prospectId,
+            error: "Prospect not found",
+          });
+          continue;
+        }
+
+        // Check if already assigned to any RM in RMAssignment
+        const existingAssignment = await RMAssignment.findOne({
+          prospectId: prospectId,
+        }).session(session);
+
+        if (existingAssignment) {
+          failedAssignments.push({
+            prospectId,
+            error: `Already assigned to RM: ${existingAssignment.rmName}`,
+          });
+          continue;
+        }
+
+        // ✅✅✅ CREATE RM ASSIGNMENT ONLY - DO NOT UPDATE testSchema ✅✅✅
+        const newAssignment = new RMAssignment({
+          prospectId: prospectId,
+          rmId: rmId,
+          rmName: rmName,
+          rmCode: rmCode,
+          assignmentNotes: assignmentNotes,
+          status: "assigned",
+        });
+
+        await newAssignment.save({ session });
+
+        assignmentResults.push({
+          prospectId: prospect._id,
+          groupCode: prospect.groupCode,
+          name: prospect.personalDetails?.name,
+          success: true,
+        });
+
+        console.log(
+          `✅ Prospect ${prospectId} assigned to RM ${rmName} (RMAssignment only)`
+        );
+      } catch (prospectError) {
+        failedAssignments.push({
+          prospectId,
+          error: prospectError.message,
+        });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    console.log(
+      `✅ Assignment complete: ${assignmentResults.length} successful, ${failedAssignments.length} failed`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Assigned ${assignmentResults.length} prospects to ${rmName}`,
+      data: {
+        assigned: assignmentResults,
+        failed: failedAssignments,
+        rmDetails: {
+          id: rmId,
+          name: rmName,
+          code: rmCode,
+        },
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("❌ Assignment error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Assignment failed",
+      error: error.message,
+    });
+  }
+};
+exports.getRMAssignments = async (req, res) => {
+  try {
+    const { rmId } = req.query;
+
+    let query = {};
+    if (rmId) {
+      query.rmId = rmId;
+    }
+
+    const assignments = await RMAssignment.find(query)
+      .populate({
+        path: "prospectId",
+        select: "_id groupCode personalDetails status callTasks",
+        model: "testSchema",
+      })
+      .sort({ assignedAt: -1 });
+
+    // Format response
+    const formattedAssignments = assignments.map((assignment, index) => {
+      const prospect = assignment.prospectId;
+      const personal = prospect?.personalDetails || {};
+      const appointmentTask = prospect?.callTasks?.find(
+        (task) => task.taskStatus === "Appointment Scheduled"
+      );
+
+      return {
+        assignmentId: assignment._id,
+        prospectId: prospect?._id,
+        sn: index + 1,
+        groupCode: prospect?.groupCode || personal.groupCode,
+        groupName: personal.groupName,
+        prospectName: personal.name,
+        mobileNo: personal.mobileNo,
+        organisation: personal.organisation,
+        city: personal.city,
+        leadSource: personal.leadSource,
+        leadName: personal.leadName,
+        callingPurpose: personal.callingPurpose,
+        grade: personal.grade,
+        status: prospect?.status,
+        rmId: assignment.rmId,
+        rmName: assignment.rmName,
+        rmCode: assignment.rmCode,
+        assignedAt: assignment.assignedAt,
+        appointmentDate: appointmentTask?.nextAppointmentDate || null,
+        appointmentTime: appointmentTask?.nextAppointmentTime || null,
+        scheduledOn: appointmentTask?.createdAt || null,
+        assignmentNotes: assignment.assignmentNotes,
+        assignmentStatus: assignment.status,
+      };
+    });
+
+    console.log(`✅ Found ${formattedAssignments.length} RM assignments`);
+
+    res.status(200).json({
+      success: true,
+      count: formattedAssignments.length,
+      data: formattedAssignments,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching RM assignments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch RM assignments",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Get RM statistics
+exports.getRMStatistics = async (req, res) => {
+  try {
+    const totalRMs = await Employee.countDocuments({ role: "RM" });
+
+    const totalAssignedProspects = await TestSchema.countDocuments({
+      assignedRole: "RM",
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayAssignments = await TestSchema.countDocuments({
+      assignedRole: "RM",
+      assignedAt: { $gte: today },
+    });
+
+    // Prospects available for assignment
+    const availableProspects = await TestSchema.countDocuments({
+      status: "prospect",
+      "callTasks.taskStatus": "Appointment Scheduled",
+      assignedTo: null,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRMs,
+        totalAssignedProspects,
+        todayAssignments,
+        availableProspects,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching RM statistics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch RM statistics",
+      error: error.message,
+    });
+  }
+};

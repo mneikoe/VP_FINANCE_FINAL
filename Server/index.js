@@ -76,7 +76,7 @@ const employeeRoute = require("./Routes/employeeRoute");
 const rulesRoutes = require("./Routes/rulesRoutes");
 const futurePlansRoutes = require("./Routes/futurePlansRoutes");
 const internshipRoutes = require("./Routes/internshipRoutes");
-
+const RMRoutes = require("./Routes/RMRoutes");
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -151,6 +151,8 @@ app.use("/api/cre", cre);
 app.use("/api/rules", rulesRoutes);
 app.use("/api/future-plans", futurePlansRoutes);
 app.use("/api/internships", internshipRoutes);
+app.use("/api/rm", RMRoutes);
+
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
 

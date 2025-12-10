@@ -66,7 +66,7 @@ import AddSuspect from "../Components/EmployeeDashboard/TelecallerDashboard/AddS
 import DashboardPage from "../Components/EmployeeDashboard/TelecallerDashboard/Dashboard";
 import ForwardedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/ForwardedLeadsPage";
 import RejectedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/RejectedLeadsPage";
-import AppointmentsDonePage from "../Components/EmployeeDashboard/TelecallerDashboard/AppointmentsDonePage";
+import AppointmentsDonePage from "../Components/EmployeeDashboard/TelecallerDashboard/AppointmentsPage";
 import NotInterested from "../Components/EmployeeDashboard/TelecallerDashboard/NotInterested";
 import NotReachable from "../Components/EmployeeDashboard/TelecallerDashboard/NotReachable";
 import WrongNumber from "../Components/EmployeeDashboard/TelecallerDashboard/WrongNumber";
@@ -90,6 +90,10 @@ import CareerEnquiryHR from "../Components/HRDashboard/modules/CareerEnquiry";
 import ResumeShortlistHR from "../Components/HRDashboard/modules/ResumeShortlist";
 import InterviewProcessHR from "../Components/HRDashboard/modules/InterviewProcess";
 import JoiningDataHR from "../Components/HRDashboard/modules/JoiningData";
+import ProspectAppointmentList from "../Components/Reports/ProspectAppointmentList";
+import RMDashboard from "../Components/RMDashboard/RMDashboard";
+import SuspectDetailsPage from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectDetailsPage";
+import StatusBasedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/StatusBasedLeadsPage";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -149,28 +153,25 @@ const AppRoutes = () => {
         <Route path="calling-done" element={<CallingDonePage />} />
         <Route path="forwarded-leads" element={<ForwardedLeadsPage />} />
         <Route path="rejected-leads" element={<RejectedLeadsPage />} />
-        <Route path="appointments-done" element={<AppointmentsDonePage />} />
+        <Route path="suspect/details/:id" element={<SuspectDetailsPage />} />
+        <Route
+          path="appointments-scheduled"
+          element={<AppointmentsDonePage />}
+        />
         <Route path="appointments" element={<Monthlyappointment />} />
 
         {/* 🟢 Active Leads Parent */}
         <Route path="/telecaller/active" element={<ActiveLeadsPage />} />
 
         {/* 🟢 Children of Active Leads */}
-        <Route path="Callback" element={<Callback />} />
-        <Route
-          path="busy-on-another-call"
-          element={<BusyOnAnotherCallPage />}
-        />
-        <Route
-          path="call-after-some-time"
-          element={<CallAfterSomeTimePage />}
-        />
-        <Route path="call-not-picked" element={<CallNotPickedPage />} />
-        <Route path="others" element={<OthersLeadsPage />} />
-
-        <Route path="not-interested" element={<NotInterested />} />
-        <Route path="wrong-number" element={<WrongNumber />} />
-        <Route path="not-reachable" element={<NotReachable />} />
+        <Route path="Callback" element={<StatusBasedLeadsPage />} />
+        <Route path="busy-on-another-call" element={<StatusBasedLeadsPage />} />
+        <Route path="call-after-some-time" element={<StatusBasedLeadsPage />} />
+        <Route path="call-not-picked" element={<StatusBasedLeadsPage />} />
+        <Route path="others" element={<StatusBasedLeadsPage />} />
+        <Route path="not-interested" element={<StatusBasedLeadsPage />} />
+        <Route path="wrong-number" element={<StatusBasedLeadsPage />} />
+        <Route path="not-reachable" element={<StatusBasedLeadsPage />} />
       </Route>
 
       {/* 🏢 OA (Office Admin) - Only OA can access Layout & all other routes */}
@@ -183,14 +184,12 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<DashboardCards />} />
-
         {/* Masters - Only OA */}
         <Route path="/task-assign" element={<TaskAssign />} />
         <Route path="/area" element={<Area />} />
         <Route path="/sub-area" element={<SubArea />} />
         <Route path="/city" element={<City />} />
         <Route path="/composite" element={<Composite />} />
-
         <Route path="/kycdocument" element={<Kycdocument />} />
         <Route path="/lead-type" element={<LeadType />} />
         <Route path="/occupation-type" element={<OccupationType />} />
@@ -198,31 +197,30 @@ const AppRoutes = () => {
         <Route path="/lead-source" element={<LeadSource />} />
         <Route path="/marketing-task" element={<MarketingTask />} />
         <Route path="/servicing-task" element={<ServicingTask />} />
-
         {/* Customer - Only OA */}
         <Route path="/client" element={<ClientLeadTabs />} />
         <Route path="/client/:tabs" element={<ClientLeadTabs />} />
         <Route path="/client/add" element={<ClientFirstFrom />} />
         <Route path="/client/edit/:id" element={<ClientFirstFrom />} />
         <Route path="/client/detail/:id" element={<CustomerDetail />} />
-
         <Route path="/suspect" element={<SuspectLeadsTabs />} />
         <Route path="/suspect/add" element={<SuspectFirstForm />} />
         <Route path="/suspect/edit/:id" element={<SuspectFirstForm />} />
         <Route path="/suspect/detail/:id" element={<SuspectDetail />} />
-
         <Route path="/prospect" element={<ProspectLeadTabs />} />
         <Route path="/prospect/add" element={<ProspectFirstForm />} />
         <Route path="/prospect/edit/:id" element={<ProspectFirstForm />} />
         <Route path="/prospect/detail/:id" element={<ProspectDetail />} />
-
+        // Routes me add karo
+        <Route
+          path="/reports/prospect-list"
+          element={<ProspectAppointmentList />}
+        />
         <Route path="/import-lead" element={<ImportLead />} />
         <Route path="/kyc" element={<KYCtabs />} />
-
         {/* Employee - Only OA */}
         <Route path="/add-employee" element={<EmployeeAddForm />} />
         <Route path="/employee/:id" element={<EmployeeDetails />} />
-
         {/* HR Module Routes for OA */}
         <Route path="/career-enquiry" element={<CareerEnquiry />} />
         <Route path="/vacancy-notice" element={<VacancyNotice />} />
@@ -231,7 +229,6 @@ const AppRoutes = () => {
         <Route path="/interview-process" element={<SelectedInterviewTable />} />
         <Route path="/joining-data" element={<JoiningData />} />
         <Route path="/job-profile-target-admin" element={<Appointment />} />
-
         {/* Office - Only OA */}
         <Route path="/financial-product-list" element={<FinancialProduct />} />
         <Route path="/company-name" element={<CompanyTabs />} />
@@ -243,8 +240,15 @@ const AppRoutes = () => {
         <Route path="/CRE" element={<CREDashboard />} />
       </Route>
 
-      {/* 🔧 OE - Only OE specific routes (if any) can be added here */}
-      {/* 📈 Telemarketer - Only Telemarketer specific routes (if any) can be added here */}
+      {/* 🏦 RM Dashboard - Only RM can access */}
+      <Route
+        path="/rm/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={["RM"]}>
+            <RMDashboard />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

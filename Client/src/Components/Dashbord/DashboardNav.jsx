@@ -1,5 +1,5 @@
 import React from "react";
-import { Navbar, Container, Nav, Dropdown } from "react-bootstrap";
+import { Navbar, Container, Nav, Dropdown, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import {
   FiGrid,
@@ -13,6 +13,7 @@ import {
   FiFileText,
   FiChevronDown,
   FiMenu,
+  FiLogOut,
 } from "react-icons/fi";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -39,7 +40,9 @@ const Navbarfristn = () => {
       { name: "Contacts", to: "/crm/contacts" },
       { name: "Opportunities", to: "/crm/opportunities" },
     ],
+    // dropdownItems object me reports section update karo
     reports: [
+      { name: "Prospect/Appointment List", to: "/reports/prospect-list" }, // ✅ NEW
       { name: "Financial Reports", to: "/reports/financial" },
       { name: "Sales Reports", to: "/reports/sales" },
       { name: "Customer Reports", to: "/reports/customer" },
@@ -190,8 +193,6 @@ const Navbarfristn = () => {
                 </Dropdown.Menu>
               </Dropdown>
 
-              
-
               <Nav.Link as={Link} to="/task" className="nav-item">
                 <FiCheckSquare className="nav-icon" />
                 <span className="nav-text">Task</span>
@@ -222,6 +223,19 @@ const Navbarfristn = () => {
                 </Dropdown.Menu>
               </Dropdown>
             </Nav>
+
+            {/* Logout Button */}
+            <Button
+              variant="outline-danger"
+              className="logout-button"
+              onClick={() => {
+                // Add your logout logic here
+                console.log("Logout clicked");
+              }}
+            >
+              <FiLogOut className="me-2" />
+              Logout
+            </Button>
           </Navbar.Collapse>
         </Container>
       </Navbar>

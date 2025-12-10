@@ -779,3 +779,35 @@ optgroup {
     background: #cbd5e1;
     border-radius: 3px;
 }
+
+/* For the clickable name */
+.clickable-name {
+    color: #007bff !important;
+    cursor: pointer !important;
+    text-decoration: underline !important;
+    font-weight: 500;
+}
+
+.clickable-name:hover {
+    color: #0056b3 !important;
+    text-decoration: none !important;
+}
+
+/* For assigned date */
+.assigned-date-cell {
+    min-width: 120px;
+}
+
+/* For lead occupation */
+.lead-occupation-cell {
+    min-width: 150px;
+}
+
+/* For old assigned rows */
+.old-assigned {
+    background-color: #fff8e1 !important;
+}
+
+.old-assigned:hover {
+    background-color: #fff4d6 !important;
+}

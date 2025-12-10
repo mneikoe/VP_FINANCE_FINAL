@@ -9,6 +9,7 @@ const {
   getTelecallerStats,
   getTodaysActiveSuspects, // ✅ NEW
   getSuspectsByNextCallDate,
+  getTelecallerAppointments, // ✅ NEW
 } = require("../Controller/telecallerController");
 const Telecaller = require("../Models/telecallerModel");
 const router = express.Router();
@@ -58,5 +59,6 @@ router.get("/:telecallerId/assigned-suspects", getAssignedSuspects);
 router.get("/:telecallerId/stats", getTelecallerStats);
 router.get("/:telecallerId/todays-active", getTodaysActiveSuspects); // ✅ NEW
 router.get("/:telecallerId/date/:date", getSuspectsByNextCallDate);
-
+// Add this route in telecaller routes file
+router.get("/:telecallerId/appointments", getTelecallerAppointments);
 module.exports = router;

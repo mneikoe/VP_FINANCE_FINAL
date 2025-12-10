@@ -40,7 +40,10 @@ router.put("/update/personaldetails/:id", SuspectCtrl.updatePersonalDetails);
 router.get("/all", SuspectCtrl.getAllSuspects);
 
 //fetch all appointment done
-router.get("/allappointmentdone", SuspectCtrl.getAllSuspectsAppointmentDone);
+router.get(
+  "/allappointmentscheduled",
+  SuspectCtrl.getAllSuspectsAppointmentScheduled
+);
 
 // Get Suspect by ID
 router.get("/:id", SuspectCtrl.getSuspectById);
@@ -56,7 +59,7 @@ router.delete("/delete/:id", SuspectCtrl.deleteSuspect);
 
 // Add Call Task
 router.post("/:id/call-task", SuspectCtrl.addCallTask);
-
+router.get("/appointments/scheduled", SuspectCtrl.getAllAppointmentScheduled);
 // Get Call History
 router.get("/:id/call-history", SuspectCtrl.getCallHistory);
 // routes/suspect.js में नया route add करो

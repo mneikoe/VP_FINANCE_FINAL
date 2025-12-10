@@ -175,7 +175,7 @@ const callTaskSchema = new mongoose.Schema(
         "Not Reachable",
         "Wrong Number",
         "Not Interested",
-        "Appointment Done",
+        "Appointment Scheduled",
 
         // ✅ ACTIVE STATUSES
         "Callback",

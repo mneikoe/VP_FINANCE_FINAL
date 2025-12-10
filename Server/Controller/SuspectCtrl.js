@@ -59,11 +59,11 @@ exports.getAllSuspects = async (req, res) => {
 };
 
 //!SECTIONfetch all appointment done
-exports.getAllSuspectsAppointmentDone = async (req, res) => {
+exports.getAllSuspectsAppointmentScheduled = async (req, res) => {
   try {
     const allSuspects = await suspectModel.find({
       status: "suspect",
-      "callTasks.taskStatus": "Appointment Done",
+      "callTasks.taskStatus": "Appointment Scheduled",
     });
     if (allSuspects.length === 0)
       return res
@@ -159,7 +159,7 @@ exports.updatePersonalDetails = async (req, res) => {
   }
 };
 
-// Backend में addCallTask function - CORRECT VERSION
+// Backend me addCallTask function me change - Suspect ko prospect convert mat karo
 exports.addCallTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -168,8 +168,8 @@ exports.addCallTask = async (req, res) => {
       taskTime,
       taskRemarks,
       taskStatus,
-      nextFollowUpDate, // ✅ YEH USE KARO (frontend se yahi aata hai)
-      nextFollowUpTime, // ✅ YEH USE KARO
+      nextFollowUpDate,
+      nextFollowUpTime,
       nextAppointmentDate,
       nextAppointmentTime,
     } = req.body;
@@ -177,10 +177,6 @@ exports.addCallTask = async (req, res) => {
     console.log("🟢 BACKEND - ADD CALL TASK RECEIVED:", {
       suspectId: id,
       taskStatus,
-      nextFollowUpDate, // ✅ Check if this exists
-      nextFollowUpTime, // ✅ Check if this exists
-      nextAppointmentDate,
-      nextAppointmentTime,
     });
 
     // Validation
@@ -208,15 +204,15 @@ exports.addCallTask = async (req, res) => {
       });
     }
 
-    // Special validation for Appointment Done
+    // Special validation for Appointment Scheduled
     if (
-      taskStatus === "Appointment Done" &&
+      taskStatus === "Appointment Scheduled" &&
       (!nextAppointmentDate || !nextAppointmentTime)
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Next appointment date and time are required for Appointment Done status.",
+          "Next appointment date and time are required for Appointment Scheduled status.",
       });
     }
 
@@ -228,6 +224,21 @@ exports.addCallTask = async (req, res) => {
       });
     }
 
+    // ✅ CRITICAL CHANGE: Suspect ko prospect mat convert karo
+    // REMOVE this conversion logic:
+    // let statusChanged = false;
+    // if (taskStatus === "Appointment Scheduled" && suspect.status !== "prospect") {
+    //   console.log(`🎯 Converting suspect ${id} to prospect (Appointment Scheduled)`);
+    //   suspect.status = "prospect";
+    //   suspect.convertedAt = new Date();
+    //   suspect.conversionReason = "Telecaller Appointment";
+    //   statusChanged = true;
+    // }
+
+    // Suspect ka status change nahi karna hai, wo suspect hi rahega
+    // Isliye statusChanged hamesha false rahega
+    let statusChanged = false;
+
     // Determine category
     let taskCategory = "active";
     if (
@@ -235,7 +246,7 @@ exports.addCallTask = async (req, res) => {
         "Not Reachable",
         "Wrong Number",
         "Not Interested",
-        "Appointment Done",
+        "Appointment Scheduled",
       ].includes(taskStatus)
     ) {
       taskCategory = "closed";
@@ -243,7 +254,6 @@ exports.addCallTask = async (req, res) => {
       taskCategory = "forwarded";
     }
 
-    // ✅ CORRECTED: Use nextFollowUpDate (jo frontend se aata hai)
     const newCallTask = {
       taskDate: new Date(taskDate),
       taskTime:
@@ -257,7 +267,6 @@ exports.addCallTask = async (req, res) => {
       taskStatus,
       taskCategory,
 
-      // ✅ FOR FORWARDED: Use nextFollowUpDate (frontend se yahi aata hai)
       nextFollowUpDate:
         forwardedStatuses.includes(taskStatus) && nextFollowUpDate
           ? new Date(nextFollowUpDate)
@@ -268,14 +277,13 @@ exports.addCallTask = async (req, res) => {
           ? nextFollowUpTime
           : null,
 
-      // ✅ FOR APPOINTMENT DONE
       nextAppointmentDate:
-        taskStatus === "Appointment Done" && nextAppointmentDate
+        taskStatus === "Appointment Scheduled" && nextAppointmentDate
           ? new Date(nextAppointmentDate)
           : null,
 
       nextAppointmentTime:
-        taskStatus === "Appointment Done" && nextAppointmentTime
+        taskStatus === "Appointment Scheduled" && nextAppointmentTime
           ? nextAppointmentTime
           : null,
     };
@@ -284,6 +292,8 @@ exports.addCallTask = async (req, res) => {
 
     // Add to callTasks array
     suspect.callTasks.push(newCallTask);
+
+    // Save the suspect WITHOUT changing its status
     await suspect.save();
 
     res.status(200).json({
@@ -291,6 +301,9 @@ exports.addCallTask = async (req, res) => {
       message: "Call task added successfully.",
       callTask: newCallTask,
       totalCallTasks: suspect.callTasks.length,
+      statusChanged: false, // Hamesha false rahega
+      newStatus: suspect.status, // Yeh suspect hi rahega
+      suspectId: suspect._id,
     });
   } catch (error) {
     console.error("❌ Error adding call task:", error);
@@ -789,6 +802,195 @@ exports.getAllFamilyMembers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching family members",
+    });
+  }
+};
+// ✅ NEW: Get all appointment scheduled records (both suspects and prospects)
+exports.getAllAppointmentScheduled = async (req, res) => {
+  try {
+    console.log("🟢 [API] Fetching all Appointment Scheduled records...");
+
+    // Find all records with Appointment Scheduled status
+    // Both suspect and prospect status allowed
+    const allRecords = await suspectModel
+      .find({
+        "callTasks.taskStatus": "Appointment Scheduled",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "username email mobileno role",
+        model: "Telecaller",
+      })
+      .sort({ createdAt: -1 }) // Latest first
+      .lean();
+
+    console.log(
+      `✅ [API] Found ${allRecords.length} records with Appointment Scheduled`
+    );
+
+    if (allRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No appointment scheduled records found",
+        data: {
+          appointments: [],
+          count: 0,
+          stats: {
+            total: 0,
+            suspects: 0,
+            prospects: 0,
+            today: 0,
+            upcoming: 0,
+          },
+        },
+      });
+    }
+
+    // Process and filter records
+    const processedAppointments = allRecords
+      .filter((record) => {
+        // Ensure record has call tasks
+        if (!record.callTasks || !Array.isArray(record.callTasks)) return false;
+
+        // Find Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) =>
+            task.taskStatus === "Appointment Scheduled" &&
+            task.nextAppointmentDate
+        );
+
+        return appointmentTasks.length > 0;
+      })
+      .map((record) => {
+        // Get Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        );
+
+        // Get latest appointment
+        const latestAppointment = appointmentTasks.reduce((latest, task) => {
+          if (!latest) return task;
+          const taskDate = new Date(task.taskDate || 0);
+          const latestDate = new Date(latest.taskDate || 0);
+          return taskDate > latestDate ? task : latest;
+        }, null);
+
+        // Format telecaller info
+        let telecallerInfo = {};
+        if (record.assignedTo && typeof record.assignedTo === "object") {
+          telecallerInfo = {
+            _id: record.assignedTo._id,
+            username: record.assignedTo.username || "Unknown",
+            email: record.assignedTo.email || "-",
+            mobileno: record.assignedTo.mobileno || "-",
+            role: record.assignedTo.role || "Telecaller",
+          };
+        } else if (record.assignedTo) {
+          // If assignedTo is just an ID (string/ObjectId)
+          telecallerInfo = {
+            _id: record.assignedTo,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            role: "-",
+          };
+        } else {
+          telecallerInfo = {
+            _id: null,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            role: "-",
+          };
+        }
+
+        return {
+          _id: record._id,
+          status: record.status || "suspect",
+          personalDetails: record.personalDetails || {},
+          assignedTo: telecallerInfo,
+          assignedAt: record.assignedAt,
+          callTasks: record.callTasks || [],
+
+          // Appointment info
+          latestAppointment: latestAppointment || null,
+          appointmentDate: latestAppointment?.nextAppointmentDate || null,
+          appointmentTime: latestAppointment?.nextAppointmentTime || null,
+          scheduledOn: latestAppointment?.taskDate || null,
+          appointmentRemarks: latestAppointment?.taskRemarks || "",
+
+          // For easy access
+          groupCode: record.personalDetails?.groupCode || "-",
+          groupName:
+            record.personalDetails?.groupName ||
+            record.personalDetails?.name ||
+            "Unknown",
+          organisation: record.personalDetails?.organisation || "-",
+          city: record.personalDetails?.city || "-",
+          mobileNo: record.personalDetails?.mobileNo || "-",
+          contactNo: record.personalDetails?.contactNo || "-",
+          emailId: record.personalDetails?.emailId || "-",
+          leadSource: record.personalDetails?.leadSource || "-",
+        };
+      });
+
+    console.log(
+      `✅ [API] Processed ${processedAppointments.length} appointments`
+    );
+
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const stats = {
+      total: processedAppointments.length,
+      suspects: processedAppointments.filter((a) => a.status === "suspect")
+        .length,
+      prospects: processedAppointments.filter((a) => a.status === "prospect")
+        .length,
+      today: processedAppointments.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === today.getTime();
+      }).length,
+      upcoming: processedAppointments.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate >= today && aptDate <= nextWeek;
+      }).length,
+    };
+
+    // Log for debugging
+    console.log("📊 Appointment Stats:", stats);
+    console.log("👥 Telecallers found:", [
+      ...new Set(processedAppointments.map((a) => a.assignedTo.username)),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment scheduled records fetched successfully",
+      data: {
+        appointments: processedAppointments,
+        count: processedAppointments.length,
+        stats: stats,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "❌ [API] Error fetching appointment scheduled records:",
+      error
+    );
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching appointment scheduled records",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
