@@ -1,0 +1,49 @@
+.prospect-appointment-list {
+    padding: 20px;
+    background: #f0f2f5;
+    min-height: 100vh;
+}
+
+.ant-table-thead>tr>th {
+    background: #fafafa !important;
+    font-weight: 600 !important;
+    color: #1f1f1f !important;
+}
+
+.ant-table-tbody>tr:hover>td {
+    background: #f6ffed !important;
+}
+
+.ant-card {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.ant-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ant-tag {
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    font-weight: 500 !important;
+}
+
+@media (max-width: 768px) {
+    .prospect-appointment-list {
+        padding: 10px;
+    }
+
+    .ant-table {
+        font-size: 12px !important;
+    }
+
+    .ant-statistic-title {
+        font-size: 11px !important;
+    }
+
+    .ant-statistic-content {
+        font-size: 18px !important;
+    }
+}

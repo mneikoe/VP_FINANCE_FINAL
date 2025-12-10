@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Navbar, Container, Nav, Dropdown } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Navbar, Container, Nav, Dropdown, Button } from "react-bootstrap";
+import { logoutUser } from "../../redux/feature/auth/authThunx";
+import { useDispatch } from "react-redux";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiGrid,
   FiLayers,
@@ -13,6 +15,7 @@ import {
   FiFileText,
   FiChevronDown,
   FiMenu,
+  FiLogOut,
 } from "react-icons/fi";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -21,6 +24,13 @@ const Navbarfristn = () => {
   const [open, setOpen] = useState(false);
 
   const toggleMenu = () => setOpen(!open);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  // Logout function
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    navigate("/auth/login");
+  };
 
   const dropdownItems = {
     masters: [
@@ -689,6 +699,19 @@ const Navbarfristn = () => {
                   </div>
                 </Dropdown.Menu>
               </Dropdown>
+
+              {/* Logout Button */}
+              <div className="d-flex align-items-center ms-auto">
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="d-flex align-items-center gap-1"
+                >
+                  <FiLogOut size={14} />
+                  <span>Logout</span>
+                </Button>
+              </div>
             </Nav>
           </Navbar.Collapse>
         </Container>

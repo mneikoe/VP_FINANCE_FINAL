@@ -45,7 +45,7 @@ const DashboardPage = () => {
     notContacted: 0,
     forwarded: 0,
     callback: 0,
-    appointmentDone: 0,
+    appointmentScheduled: 0,
     notInterested: 0,
   });
 
@@ -188,7 +188,7 @@ const DashboardPage = () => {
       notContacted: 0,
       forwarded: 0,
       callback: 0,
-      appointmentDone: 0,
+      appointmentScheduled: 0,
       notInterested: 0,
     };
 
@@ -207,8 +207,8 @@ const DashboardPage = () => {
         case "Callback":
           stats.callback++;
           break;
-        case "Appointment Done":
-          stats.appointmentDone++;
+        case "Appointment Scheduled":
+          stats.appointmentScheduled++;
           break;
         case "Not Interested":
         case "Not Reachable":
@@ -242,7 +242,7 @@ const DashboardPage = () => {
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
-      case "Appointment Done":
+      case "Appointment Scheduled":
         return "status-badge success";
       case "Callback":
         return "status-badge warning";
@@ -283,7 +283,7 @@ const DashboardPage = () => {
       const latestStatus = latestTask.taskStatus;
 
       if (
-        latestStatus === "Appointment Done" &&
+        latestStatus === "Appointment Scheduled" &&
         latestTask.nextAppointmentDate
       ) {
         const appointmentDate =
@@ -348,19 +348,34 @@ const DashboardPage = () => {
   // Check if suspect is assigned before today
   const isOldAssigned = (suspect) => {
     if (!suspect.assignedAt) return false;
-    
+
     const assignedDate = new Date(suspect.assignedAt);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return assignedDate < today;
   };
 
   // Filter only "Not Contacted" suspects for Today's tab
   const getTodaysNotContactedSuspects = (suspects) => {
-    return suspects.filter(suspect => getLatestCallStatus(suspect) === "Not Contacted");
+    return suspects.filter(
+      (suspect) => getLatestCallStatus(suspect) === "Not Contacted"
+    );
   };
 
+  // Format assigned date
+  const formatAssignedDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB");
+  };
+
+  // Handle suspect name click to view details
+  const handleSuspectNameClick = (suspectId) => {
+    navigate(`/telecaller/suspect/details/${suspectId}`);
+  };
+
+  // Update status function (same as before)
   const updateStatus = async (suspectId, actionType) => {
     const {
       status,
@@ -384,24 +399,28 @@ const DashboardPage = () => {
     ];
     const closedStatuses = ["Not Reachable", "Wrong Number", "Not Interested"];
 
+    // Validation for forwarded calls
     if (forwardedStatuses.includes(status) && (!nextCallDate || !time)) {
       alert("Please select next call date and time for forwarded status");
       return;
     }
 
+    // Validation for callback
     if (status === "Callback" && (!nextCallDate || !time)) {
       alert("Please select callback date and time");
       return;
     }
 
+    // Validation for appointment done
     if (
-      status === "Appointment Done" &&
+      status === "Appointment Scheduled" &&
       (!nextAppointmentDate || !nextAppointmentTime)
     ) {
       alert("Please select next appointment date and time");
       return;
     }
 
+    // Validation for closed calls
     if (closedStatuses.includes(status) && !remark) {
       alert("Please provide remarks for closing the call");
       return;
@@ -412,6 +431,7 @@ const DashboardPage = () => {
     try {
       const endpoint = `/api/suspect/${suspectId}/call-task`;
 
+      // ✅ Prepare the request body
       let body = {
         taskDate: new Date().toISOString().split("T")[0],
         taskTime:
@@ -425,29 +445,59 @@ const DashboardPage = () => {
         taskStatus: status,
       };
 
+      // ✅ Add next follow-up date/time for forwarded calls
       if (forwardedStatuses.includes(status) || status === "Callback") {
         body.nextFollowUpDate = nextCallDate;
         body.nextFollowUpTime = time;
       }
 
-      if (status === "Appointment Done") {
+      // ✅ Add next appointment date/time for appointment scheduled
+      if (status === "Appointment Scheduled") {
         body.nextAppointmentDate = nextAppointmentDate;
         body.nextAppointmentTime = nextAppointmentTime;
       }
 
+      console.log("📤 Sending status update:", {
+        suspectId,
+        status,
+        body,
+      });
+
+      // ✅ Send request to backend
       const response = await axiosInstance.post(endpoint, body);
 
       if (response.data && response.data.success === true) {
-        alert(`✅ Status updated to: ${status}`);
+        // ✅ CHECK IF SUSPECT WAS CONVERTED TO PROSPECT
+        let conversionMessage = "";
+        if (response.data.statusChanged) {
+          conversionMessage = "\n✅ Suspect has been converted to Prospect!";
+          console.log("🎯 Prospect conversion successful:", response.data);
+        }
 
+        // ✅ Show success message
+        alert(`✅ Status updated to: ${status}${conversionMessage}`);
+
+        // ✅ REFRESH ALL DATA
         await Promise.all([
-          fetchAssignedSuspects(),
-          fetchTodaysActiveSuspects(),
-          fetchTelecallerStats(),
-          dispatch(getAllSuspects()),
-          fetchScheduledCalls(selectedDate),
+          fetchAssignedSuspects(), // Refresh assigned suspects
+          fetchTodaysActiveSuspects(), // Refresh today's calls
+          fetchTelecallerStats(), // Refresh stats
+          dispatch(getAllSuspects()), // Refresh all suspects
+          fetchScheduledCalls(selectedDate), // Refresh scheduled calls
         ]);
 
+        // ✅ SPECIAL: If appointment done, fetch prospects too
+        if (status === "Appointment Scheduled") {
+          try {
+            // Optional: You can fetch prospects to verify
+            console.log("🔄 Verifying prospect list after appointment...");
+            // You could add a prospects fetch here if needed
+          } catch (err) {
+            console.log("ℹ️ Prospect verification not critical:", err.message);
+          }
+        }
+
+        // ✅ Clear the form and close action panel
         setActionPanel(null);
         setFormData({
           status: "",
@@ -461,12 +511,36 @@ const DashboardPage = () => {
         throw new Error(response.data?.message || "Status update failed");
       }
     } catch (error) {
-      console.error("Status Update Error:", error);
-      alert(
-        `❌ Status update failed: ${
-          error.response?.data?.message || "Something went wrong"
-        }`
-      );
+      console.error("❌ Status Update Error:", error);
+
+      // ✅ User-friendly error messages
+      let errorMessage = "Something went wrong";
+
+      if (error.response) {
+        // Server responded with error
+        errorMessage =
+          error.response.data?.message ||
+          `Server error: ${error.response.status}`;
+
+        // Specific handling for common errors
+        if (error.response.status === 404) {
+          errorMessage = "Suspect not found. Please refresh the page.";
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data?.details || "Invalid request data";
+        } else if (error.response.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        }
+      } else if (error.request) {
+        // Request was made but no response
+        errorMessage = "Network error. Please check your connection.";
+      }
+
+      alert(`❌ Status update failed: ${errorMessage}`);
+
+      // ✅ Don't close panel on error so user can fix and retry
+      if (error.response?.status !== 404) {
+        // Keep panel open for user to retry (except for 404)
+      }
     } finally {
       setIsAssigning(false);
     }
@@ -485,8 +559,8 @@ const DashboardPage = () => {
 
   // Contact component with icons
   const ContactInfo = ({ personal }) => {
-    const hasMobile = personal.mobileNo && personal.mobileNo.trim() !== '';
-    const hasContact = personal.contactNo && personal.contactNo.trim() !== '';
+    const hasMobile = personal.mobileNo && personal.mobileNo.trim() !== "";
+    const hasContact = personal.contactNo && personal.contactNo.trim() !== "";
 
     if (!hasMobile && !hasContact) {
       return <div className="cell-content">-</div>;
@@ -498,8 +572,8 @@ const DashboardPage = () => {
           <div className="contact-item">
             <span className="contact-icon mobile-icon">📱</span>
             <span className="contact-number">{personal.mobileNo}</span>
-            <a 
-              href={`tel:${personal.mobileNo}`} 
+            <a
+              href={`tel:${personal.mobileNo}`}
               className="call-link"
               title={`Call ${personal.mobileNo}`}
             >
@@ -511,8 +585,8 @@ const DashboardPage = () => {
           <div className="contact-item">
             <span className="contact-icon phone-icon">📞</span>
             <span className="contact-number">{personal.contactNo}</span>
-            <a 
-              href={`tel:${personal.contactNo}`} 
+            <a
+              href={`tel:${personal.contactNo}`}
               className="call-link"
               title={`Call ${personal.contactNo}`}
             >
@@ -524,8 +598,12 @@ const DashboardPage = () => {
     );
   };
 
-  // Table rendering function
-  const renderTable = (suspectsData, showNextAction = false, showOnlyNotContacted = false) => {
+  // Table rendering function - UPDATED AS PER REQUIREMENTS
+  const renderTable = (
+    suspectsData,
+    showNextAction = false,
+    showOnlyNotContacted = false
+  ) => {
     // Filter data based on requirement
     let filteredData = suspectsData;
     if (showOnlyNotContacted) {
@@ -536,13 +614,13 @@ const DashboardPage = () => {
       <table className="task-table">
         <thead>
           <tr>
+            <th>Assigned Date</th>
             <th>Group Code</th>
-            <th>Grade</th>
             <th>Group Name</th>
             <th>Name</th>
             <th>Contact Numbers</th>
             <th>Lead Source</th>
-            <th>Lead Name</th>
+            <th>Lead Occupation</th> {/* Changed from Lead Name */}
             <th>Area</th>
             <th>Current Status</th>
             {showNextAction && <th>Next Action</th>}
@@ -559,44 +637,85 @@ const DashboardPage = () => {
 
             return (
               <tr key={suspect._id} className={isOld ? "old-assigned" : ""}>
+                {/* Assigned Date */}
+                <td className="assigned-date-cell">
+                  <div className="cell-content">
+                    {formatAssignedDate(suspect.assignedAt)}
+                  </div>
+                </td>
+
+                {/* Group Code */}
                 <td className="group-code-cell">
-                  <div className="cell-content">{personal.groupCode || "-"}</div>
+                  <div className="cell-content">
+                    {personal.groupCode || "-"}
+                  </div>
                 </td>
-                <td className="grade-cell">
-                  <div className="cell-content">{personal.grade || "-"}</div>
-                </td>
+
+                {/* Group Name */}
                 <td className="group-name-cell">
-                  <div className="cell-content">{personal.groupName || "-"}</div>
+                  <div className="cell-content">
+                    {personal.groupName || "-"}
+                  </div>
                 </td>
+
+                {/* Name (Clickable) */}
                 <td className="name-cell">
-                  <div className="cell-content">{personal.name || "-"}</div>
+                  <div
+                    className="cell-content clickable-name"
+                    onClick={() => handleSuspectNameClick(suspect._id)}
+                    style={{
+                      color: "#007bff",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                    title="Click to view full details"
+                  >
+                    {personal.name || "-"}
+                  </div>
                 </td>
+
+                {/* Contact Numbers */}
                 <td className="contact-cell">
                   <ContactInfo personal={personal} />
                 </td>
+
+                {/* Lead Source */}
                 <td className="lead-source-cell">
-                  <div className="cell-content">{personal.leadSource || "-"}</div>
+                  <div className="cell-content">
+                    {personal.leadSource || "-"}
+                  </div>
                 </td>
-                <td className="lead-name-cell">
-                  <div className="cell-content">{personal.leadName || "-"}</div>
+
+                {/* Lead Occupation (Updated) */}
+                <td className="lead-occupation-cell">
+                  <div className="cell-content">
+                    {personal.leadOccupation || "-"}
+                  </div>
                 </td>
+
+                {/* Area */}
                 <td>
-                  <span className="area-badge">
-                    {personal.city || "-"}
-                  </span>
+                  <span className="area-badge">{personal.city || "-"}</span>
                 </td>
+
+                {/* Current Status */}
                 <td>
-                  <span className={statusBadgeClass}>
-                    {latestStatus}
-                  </span>
+                  <span className={statusBadgeClass}>{latestStatus}</span>
                 </td>
+
+                {/* Next Action (if shown) */}
                 {showNextAction && (
                   <td>
                     {nextActionInfo.type !== "none" ? (
-                      <div className={`next-action-info ${nextActionInfo.type}`}>
+                      <div
+                        className={`next-action-info ${nextActionInfo.type}`}
+                      >
                         {nextActionInfo.type === "appointment" && (
                           <div className="appointment-action">
-                            <span className="action-icon" title="Next Appointment">
+                            <span
+                              className="action-icon"
+                              title="Next Appointment"
+                            >
                               📅
                             </span>
                             <span className="action-date">
@@ -626,6 +745,8 @@ const DashboardPage = () => {
                     )}
                   </td>
                 )}
+
+                {/* Action Button */}
                 <td>
                   <button
                     className="action-button"
@@ -642,6 +763,7 @@ const DashboardPage = () => {
     );
   };
 
+  // Rest of the component remains exactly the same...
   return (
     <div className="dashboard-page">
       <h2 className="table-title">
@@ -696,9 +818,11 @@ const DashboardPage = () => {
         </div>
         <div
           className="card success"
-          onClick={() => navigate("/telecaller/appointments-done?filter=today")}
+          onClick={() =>
+            navigate("/telecaller/appointments-scheduled?filter=today")
+          }
         >
-          <h3>{realTimeStats.appointmentDone}</h3>
+          <h3>{realTimeStats.appointmentScheduled}</h3>
           <p>Successful</p>
           <div className="card-subtitle">Today's Appointments</div>
         </div>
@@ -712,7 +836,8 @@ const DashboardPage = () => {
             fetchTodaysActiveSuspects();
           }}
         >
-          Today's Calls ({getTodaysNotContactedSuspects(todaysActiveSuspects).length})
+          Today's Composite Call Task (
+          {getTodaysNotContactedSuspects(todaysActiveSuspects).length})
         </button>
         <button
           className={activeTab === "scheduled" ? "active" : ""}
@@ -721,7 +846,7 @@ const DashboardPage = () => {
             fetchScheduledCalls(selectedDate);
           }}
         >
-          📅 Scheduled Calls ({scheduledSuspects.length})
+          📅 Next Scheduled Call Tasks ({scheduledSuspects.length})
         </button>
         <button
           className={activeTab === "all" ? "active" : ""}
@@ -730,7 +855,7 @@ const DashboardPage = () => {
             fetchAssignedSuspects();
           }}
         >
-          All Assigned ({assignedSuspects.length})
+          All Tasks ({assignedSuspects.length})
         </button>
         <button
           className={activeTab === "analytics" ? "active" : ""}
@@ -752,7 +877,9 @@ const DashboardPage = () => {
               {assignedLoading ? "🔄 Loading..." : "↻ Refresh Today's Calls"}
             </button>
             <div className="summary-info">
-              <strong>Today's Not Contacted:</strong> {getTodaysNotContactedSuspects(todaysActiveSuspects).length} suspects
+              <strong>Today's Not Contacted:</strong>{" "}
+              {getTodaysNotContactedSuspects(todaysActiveSuspects).length}{" "}
+              suspects
             </div>
           </div>
 
@@ -762,7 +889,8 @@ const DashboardPage = () => {
                 <Spinner animation="border" />
                 <p>Loading today's active suspects...</p>
               </div>
-            ) : getTodaysNotContactedSuspects(todaysActiveSuspects).length === 0 ? (
+            ) : getTodaysNotContactedSuspects(todaysActiveSuspects).length ===
+              0 ? (
               <div className="text-center mt-4">
                 <p>No not contacted suspects for today.</p>
               </div>
@@ -785,7 +913,10 @@ const DashboardPage = () => {
               {assignedLoading ? "🔄 Loading..." : "↻ Refresh"}
             </button>
             <div className="summary-info">
-              <strong>Today's Stats:</strong> {realTimeStats.notContacted} Pending • {realTimeStats.forwarded} Forwarded • {realTimeStats.callback} Callbacks • {realTimeStats.appointmentDone} Success
+              <strong>Today's Stats:</strong> {realTimeStats.notContacted}{" "}
+              Pending • {realTimeStats.forwarded} Forwarded •{" "}
+              {realTimeStats.callback} Callbacks •{" "}
+              {realTimeStats.appointmentScheduled} Success
             </div>
           </div>
 
@@ -824,7 +955,8 @@ const DashboardPage = () => {
               />
             </div>
             <div className="summary-info">
-              <strong>Scheduled Calls:</strong> {scheduledSuspects.length} suspects
+              <strong>Scheduled Calls:</strong> {scheduledSuspects.length}{" "}
+              suspects
             </div>
           </div>
 
@@ -888,8 +1020,12 @@ const DashboardPage = () => {
                 <option value="">-- Select New Status --</option>
                 <optgroup label="📞 Forwarded Statuses">
                   <option value="Call Not Picked">Call Not Picked</option>
-                  <option value="Call After Sometimes">Call After Sometimes</option>
-                  <option value="Busy on Another Call">Busy on Another Call</option>
+                  <option value="Call After Sometimes">
+                    Call After Sometimes
+                  </option>
+                  <option value="Busy on Another Call">
+                    Busy on Another Call
+                  </option>
                   <option value="Others">Others</option>
                 </optgroup>
                 <optgroup label="❌ Closed Statuses">
@@ -898,7 +1034,9 @@ const DashboardPage = () => {
                   <option value="Not Interested">Not Interested</option>
                 </optgroup>
                 <optgroup label="✅ Success Status">
-                  <option value="Appointment Done">Appointment Done</option>
+                  <option value="Appointment Scheduled">
+                    Appointment Scheduled
+                  </option>
                 </optgroup>
                 <optgroup label="🔔 Active Status">
                   <option value="Callback">Callback</option>
@@ -967,7 +1105,7 @@ const DashboardPage = () => {
               </>
             )}
 
-            {formData.status === "Appointment Done" && (
+            {formData.status === "Appointment Scheduled" && (
               <>
                 <div className="form-row">
                   <label>Next Appointment Date *</label>

@@ -2,7 +2,7 @@ const Telecaller = require("../Models/telecallerModel");
 const Test = require("../Models/SusProsClientSchema"); // ✅ Correct model import
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const mongoose = require("mongoose");
 // ✅ Register Controller
 const registerTelecaller = async (req, res) => {
   try {
@@ -592,7 +592,7 @@ const getTodaysActiveSuspects = async (req, res) => {
       }
 
       // ✅ APPOINTMENT DONE - Show only if has next appointment TODAY
-      if (latestStatus === "Appointment Done") {
+      if (latestStatus === "Appointment Scheduled") {
         if (latestTask.nextAppointmentDate) {
           const nextAppointment = new Date(latestTask.nextAppointmentDate);
           nextAppointment.setHours(0, 0, 0, 0);
@@ -798,7 +798,7 @@ const getTelecallerStats = async (req, res) => {
       notContacted: 0,
       forwarded: 0, // ✅ ONLY forwarded with today's nextFollowUpDate
       callback: 0, // ✅ ONLY callbacks with today's nextFollowUpDate
-      appointmentDone: 0, // ✅ ONLY appointment done with today's nextAppointmentDate
+      appointmentScheduled: 0, // ✅ ONLY appointment scheduled with today's nextAppointmentDate
       notInterested: 0,
     };
 
@@ -848,13 +848,13 @@ const getTelecallerStats = async (req, res) => {
         }
       }
 
-      // ✅ APPOINTMENT DONE - Count only if nextAppointmentDate is TODAY
-      else if (latestStatus === "Appointment Done") {
+      // ✅ APPOINTMENT SCHEDULED - Count only if nextAppointmentDate is TODAY
+      else if (latestStatus === "Appointment Scheduled") {
         if (latestTask && latestTask.nextAppointmentDate) {
           const appointmentDate = new Date(latestTask.nextAppointmentDate);
           appointmentDate.setHours(0, 0, 0, 0);
           if (appointmentDate.getTime() === today.getTime()) {
-            stats.appointmentDone++;
+            stats.appointmentScheduled++;
           }
         }
       }
@@ -884,7 +884,229 @@ const getTelecallerStats = async (req, res) => {
     });
   }
 };
+// ✅ NEW: Get appointments scheduled for telecaller
+const getTelecallerAppointments = async (req, res) => {
+  try {
+    const { telecallerId } = req.params;
+    const { dateFilter = "all", startDate, endDate } = req.query;
 
+    if (!telecallerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Telecaller ID is required",
+      });
+    }
+
+    console.log(`📅 Fetching appointments for telecaller: ${telecallerId}`);
+
+    let assignedToQuery = telecallerId;
+
+    // Agar valid ObjectId hai to mongoose.Types.ObjectId use karo
+    if (mongoose.Types.ObjectId.isValid(telecallerId)) {
+      assignedToQuery = new mongoose.Types.ObjectId(telecallerId);
+      console.log("✅ Using ObjectId query");
+    } else {
+      console.log("⚠️ Using string query (not a valid ObjectId)");
+    }
+
+    // Today's date for filtering
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Build date filter query
+    let dateQuery = {};
+
+    if (dateFilter === "today") {
+      dateQuery = {
+        "callTasks.nextAppointmentDate": {
+          $gte: today,
+          $lt: tomorrow,
+        },
+      };
+    } else if (dateFilter === "tomorrow") {
+      const tomorrowDate = new Date(today);
+      tomorrowDate.setDate(today.getDate() + 1);
+      const dayAfterTomorrow = new Date(tomorrowDate);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+      dateQuery = {
+        "callTasks.nextAppointmentDate": {
+          $gte: tomorrowDate,
+          $lt: dayAfterTomorrow,
+        },
+      };
+    } else if (dateFilter === "this_week") {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      dateQuery = {
+        "callTasks.nextAppointmentDate": {
+          $gte: weekStart,
+          $lt: weekEnd,
+        },
+      };
+    } else if (dateFilter === "this_month") {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+      dateQuery = {
+        "callTasks.nextAppointmentDate": {
+          $gte: monthStart,
+          $lt: monthEnd,
+        },
+      };
+    } else if (dateFilter === "custom" && startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      dateQuery = {
+        "callTasks.nextAppointmentDate": {
+          $gte: start,
+          $lte: end,
+        },
+      };
+    }
+    // For 'all', no date filter
+
+    // Find suspects assigned to telecaller with Appointment Scheduled status
+    const query = {
+      $or: [
+        { assignedTo: assignedToQuery }, // For ObjectId
+        { assignedTo: telecallerId }, // For string
+      ],
+      $or: [{ status: "suspect" }],
+      "callTasks.taskStatus": "Appointment Scheduled",
+      ...dateQuery,
+    };
+    console.log("🔍 Query for appointments:", JSON.stringify(query, null, 2));
+
+    const suspectsWithAppointments = await Test.find(query)
+      .select("personalDetails callTasks assignedTo assignedAt status")
+      .populate("assignedTo", "username email")
+      .lean();
+
+    console.log(
+      `✅ Found ${suspectsWithAppointments.length} suspects with appointments`
+    );
+
+    // Process results to get latest appointment task
+    const appointments = suspectsWithAppointments
+      .map((suspect) => {
+        // Get only Appointment Scheduled tasks
+        const appointmentTasks = suspect.callTasks.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        );
+
+        if (appointmentTasks.length === 0) return null;
+
+        // Get latest appointment task
+        const latestAppointment = appointmentTasks.reduce((latest, task) => {
+          if (!latest) return task;
+          const taskDate = new Date(task.taskDate || 0);
+          const latestDate = new Date(latest.taskDate || 0);
+          return taskDate > latestDate ? task : latest;
+        }, null);
+
+        if (!latestAppointment || !latestAppointment.nextAppointmentDate) {
+          return null;
+        }
+
+        // Apply date filter on application level for safety
+        const appointmentDate = new Date(latestAppointment.nextAppointmentDate);
+        appointmentDate.setHours(0, 0, 0, 0);
+
+        let shouldInclude = true;
+        if (dateFilter === "today") {
+          shouldInclude = appointmentDate.getTime() === today.getTime();
+        } else if (dateFilter === "tomorrow") {
+          const tomorrowDate = new Date(today);
+          tomorrowDate.setDate(today.getDate() + 1);
+          shouldInclude = appointmentDate.getTime() === tomorrowDate.getTime();
+        } else if (dateFilter === "this_week") {
+          const weekStart = new Date(today);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          shouldInclude =
+            appointmentDate >= weekStart && appointmentDate < weekEnd;
+        } else if (dateFilter === "this_month") {
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          const monthEnd = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            1
+          );
+          shouldInclude =
+            appointmentDate >= monthStart && appointmentDate < monthEnd;
+        } else if (dateFilter === "custom" && startDate && endDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          shouldInclude = appointmentDate >= start && appointmentDate <= end;
+        }
+
+        if (!shouldInclude) return null;
+
+        return {
+          ...suspect,
+          latestAppointment,
+          appointmentDate: latestAppointment.nextAppointmentDate,
+          appointmentTime: latestAppointment.nextAppointmentTime,
+          scheduledOn: latestAppointment.taskDate,
+          appointmentStatus: latestAppointment.taskStatus,
+          appointmentRemarks: latestAppointment.taskRemarks,
+        };
+      })
+      .filter((appointment) => appointment !== null);
+
+    // Calculate stats
+    const stats = {
+      today: appointments.filter((app) => {
+        const appDate = new Date(app.appointmentDate);
+        appDate.setHours(0, 0, 0, 0);
+        return appDate.getTime() === today.getTime();
+      }).length,
+      tomorrow: appointments.filter((app) => {
+        const appDate = new Date(app.appointmentDate);
+        appDate.setHours(0, 0, 0, 0);
+        const tomorrowDate = new Date(today);
+        tomorrowDate.setDate(today.getDate() + 1);
+        return appDate.getTime() === tomorrowDate.getTime();
+      }).length,
+      total: appointments.length,
+      suspects: appointments.filter((app) => app.status === "suspect").length,
+      prospects: appointments.filter((app) => app.status === "prospect").length,
+    };
+
+    console.log(`📊 Appointment stats:`, stats);
+
+    res.json({
+      success: true,
+      message: "Appointments fetched successfully",
+      data: {
+        appointments,
+        stats,
+        count: appointments.length,
+        telecallerId,
+        dateFilter,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching telecaller appointments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching appointments",
+      error: error.message,
+    });
+  }
+};
 module.exports = {
   registerTelecaller,
   loginTelecaller,
@@ -895,4 +1117,5 @@ module.exports = {
   getTelecallerStats,
   getTodaysActiveSuspects, // ✅ NEW
   getSuspectsByNextCallDate,
+  getTelecallerAppointments, // ✅ NEW
 };

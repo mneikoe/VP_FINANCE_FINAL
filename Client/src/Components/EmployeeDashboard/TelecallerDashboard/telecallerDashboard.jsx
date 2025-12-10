@@ -46,7 +46,7 @@ const TelecallerPanel = () => {
     },
     {
       name: "Monthly Appointments",
-      path: "/telecaller/appointments",
+      path: "/telecaller/appointments-scheduled",
       icon: <FaCalendarAlt />,
     },
     {
@@ -267,7 +267,7 @@ const TelecallerPanel = () => {
               <span className="logout-icon">
                 <FaSignOutAlt />
               </span>
-              {sidebarOpen && <span className="logout-text">Sign Out</span>}
+              {sidebarOpen && <span className="logout-text">Logout</span>}
             </button>
 
             <div className="user-card">

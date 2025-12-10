@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../../../config/axios";
 import { Spinner, Alert, Button, Badge, Row, Col } from "react-bootstrap";
-import { 
-  FiUser, FiPhone, FiMail, FiMapPin 
-} from "react-icons/fi";
-import { 
-  FaBusinessTime, FaIdCardAlt, FaUsers, FaMoneyBillWave 
+import { FiUser, FiPhone, FiMail, FiMapPin } from "react-icons/fi";
+import {
+  FaBusinessTime,
+  FaIdCardAlt,
+  FaUsers,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 
 const EmployeeDetails = () => {
@@ -14,7 +15,7 @@ const EmployeeDetails = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,16 +23,14 @@ const EmployeeDetails = () => {
   useEffect(() => {
     fetchEmployeeData();
   }, [id, location]);
-
   const fetchEmployeeData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // ✅ PEHLE STATE CHECK KARO
       const employeeDataFromState = location.state?.employeeData;
       const source = location.state?.source;
-      
+
       if (employeeDataFromState) {
         console.log("🎯 Using data from state");
         setEmployee(employeeDataFromState);
@@ -39,22 +38,29 @@ const EmployeeDetails = () => {
         return;
       }
 
-      // ✅ AGAR STATE NAHI HAI TO API CALL KARO
       console.log("🔄 Fetching from API...");
-      
-      // Try different APIs based on possible sources
-      try {
-        await fetchFromHRAPI();
-      } catch (hrErr) {
-        console.log("❌ HR API failed, trying Telecaller API...");
+
+      // ✅ AGAR SOURCE "employee" HAI TO EMPLOYEE ROUTES SE FETCH KAREIN
+      if (source === "employee") {
+        await fetchFromEmployeeAPI();
+      } else {
+        // Pehle HR try karein, phir Telecaller
         try {
-          await fetchFromTelecallerAPI();
-        } catch (teleErr) {
-          console.log("❌ Telecaller API failed");
-          throw new Error("Employee not found in any system");
+          await fetchFromHRAPI();
+        } catch (hrErr) {
+          console.log("❌ HR API failed, trying Telecaller API...");
+          try {
+            await fetchFromTelecallerAPI();
+          } catch (teleErr) {
+            console.log("❌ Telecaller API failed, trying Employee API...");
+            try {
+              await fetchFromEmployeeAPI();
+            } catch (empErr) {
+              throw new Error("Employee not found in any system");
+            }
+          }
         }
       }
-      
     } catch (err) {
       console.error("❌ Final error:", err);
       setError("Failed to load employee details");
@@ -62,9 +68,78 @@ const EmployeeDetails = () => {
     }
   };
 
+  const fetchFromEmployeeAPI = async () => {
+    const response = await axiosInstance.get(
+      `/api/employee/getEmployeeById?employeeId=${id}`
+    );
+
+    if (response.data && response.data.success) {
+      console.log("✅ Employee data found from Employee API");
+      const empData = mapEmployeeToUI(response.data.data);
+      setEmployee(empData);
+    } else {
+      throw new Error("Employee not found");
+    }
+  };
+
+  const mapEmployeeToUI = (empData) => {
+    return {
+      // ✅ COMMON FIELDS
+      _id: empData._id,
+      name: empData.name,
+      emailId: empData.emailId,
+      mobileNo: empData.mobileNo,
+      role: empData.role,
+
+      // Personal Details
+      employeeCode: empData.employeeCode,
+      designation: empData.designation,
+      gender: empData.gender,
+      dob: empData.dob,
+      marriageDate: empData.marriageDate,
+
+      // Address Details
+      presentAddress: empData.presentAddress,
+      permanentAddress: empData.permanentAddress,
+      homeTown: empData.homeTown,
+
+      // Contact Details
+      familyContactPerson: empData.familyContactPerson,
+      familyContactMobile: empData.familyContactMobile,
+      emergencyContactPerson: empData.emergencyContactPerson,
+      emergencyContactMobile: empData.emergencyContactMobile,
+
+      // Office Details
+      officeMobile: empData.officeMobile,
+      officeEmail: empData.officeEmail,
+      allottedLoginId: empData.allottedLoginId,
+      allocatedWorkArea: empData.allocatedWorkArea,
+      dateOfJoining: empData.dateOfJoining,
+      dateOfTermination: empData.dateOfTermination,
+
+      // Financial Details
+      salaryOnJoining: empData.salaryOnJoining,
+      expenses: empData.expenses,
+      incentives: empData.incentives,
+
+      // Bank Details
+      bankName: empData.bankName,
+      accountNo: empData.accountNo,
+      ifscCode: empData.ifscCode,
+      micr: empData.micr,
+
+      // Identification
+      panNo: empData.panNo,
+      aadharNo: empData.aadharNo,
+
+      // Source identifier
+      source: "employee",
+    };
+  };
+
   const fetchFromHRAPI = async () => {
     const response = await axiosInstance.get(`/api/hr/${id}`);
-    
+
     if (response.data && response.data.success) {
       console.log("✅ HR data found from HR API");
       const hrData = mapHRToEmployee(response.data.HR);
@@ -76,7 +151,7 @@ const EmployeeDetails = () => {
 
   const fetchFromTelecallerAPI = async () => {
     const response = await axiosInstance.get(`/api/telecaller/${id}`);
-    
+
     if (response.data && response.data.success) {
       console.log("✅ Employee data found from Telecaller API");
       const telecallerData = mapTelecallerToEmployee(response.data.data);
@@ -94,25 +169,25 @@ const EmployeeDetails = () => {
       emailId: hrData.email,
       mobileNo: hrData.mobileno,
       role: "HR",
-      
+
       // Personal Details
       employeeCode: hrData.employeeCode,
       designation: hrData.designation,
       gender: hrData.gender,
       dob: hrData.dob,
       marriageDate: hrData.marriageDate,
-      
+
       // Address Details
       presentAddress: hrData.presentAddress,
       permanentAddress: hrData.permanentAddress,
       homeTown: hrData.homeTown,
-      
+
       // Contact Details
       familyContactPerson: hrData.familyContactPerson,
       familyContactMobile: hrData.familyContactMobile,
       emergencyContactPerson: hrData.emergencyContactPerson,
       emergencyContactMobile: hrData.emergencyContactMobile,
-      
+
       // Office Details
       officeMobile: hrData.officeMobile,
       officeEmail: hrData.officeEmail,
@@ -120,29 +195,29 @@ const EmployeeDetails = () => {
       allocatedWorkArea: hrData.allocatedWorkArea,
       dateOfJoining: hrData.dateOfJoining,
       dateOfTermination: hrData.dateOfTermination,
-      
+
       // Financial Details
       salaryOnJoining: hrData.salaryOnJoining,
       expenses: hrData.expenses,
       incentives: hrData.incentives,
-      
+
       // Bank Details
       bankName: hrData.bankName,
       accountNo: hrData.accountNo,
       ifscCode: hrData.ifscCode,
       micr: hrData.micr,
-      
+
       // Identification
       panNo: hrData.panNo,
       aadharNo: hrData.aadharNo,
-      
+
       // HR Specific
       hrResponsibilities: hrData.hrResponsibilities,
       managedEmployees: hrData.managedEmployees,
       recruitmentStats: hrData.recruitmentStats,
-      
+
       // Source identifier
-      source: "hr"
+      source: "hr",
     };
   };
 
@@ -154,25 +229,25 @@ const EmployeeDetails = () => {
       emailId: telecallerData.email,
       mobileNo: telecallerData.mobileno,
       role: "Telecaller",
-      
+
       // Personal Details
       employeeCode: telecallerData.employeeCode,
       designation: telecallerData.designation,
       gender: telecallerData.gender,
       dob: telecallerData.dob,
       marriageDate: telecallerData.marriageDate,
-      
+
       // Address Details
       presentAddress: telecallerData.presentAddress,
       permanentAddress: telecallerData.permanentAddress,
       homeTown: telecallerData.homeTown,
-      
+
       // Contact Details
       familyContactPerson: telecallerData.familyContactPerson,
       familyContactMobile: telecallerData.familyContactMobile,
       emergencyContactPerson: telecallerData.emergencyContactPerson,
       emergencyContactMobile: telecallerData.emergencyContactMobile,
-      
+
       // Office Details
       officeMobile: telecallerData.officeMobile,
       officeEmail: telecallerData.officeEmail,
@@ -180,33 +255,33 @@ const EmployeeDetails = () => {
       allocatedWorkArea: telecallerData.allocatedWorkArea,
       dateOfJoining: telecallerData.dateOfJoining,
       dateOfTermination: telecallerData.dateOfTermination,
-      
+
       // Financial Details
       salaryOnJoining: telecallerData.salaryOnJoining,
       expenses: telecallerData.expenses,
       incentives: telecallerData.incentives,
-      
+
       // Bank Details
       bankName: telecallerData.bankName,
       accountNo: telecallerData.accountNo,
       ifscCode: telecallerData.ifscCode,
       micr: telecallerData.micr,
-      
+
       // Identification
       panNo: telecallerData.panNo,
       aadharNo: telecallerData.aadharNo,
-      
+
       // Source identifier
-      source: "telecaller"
+      source: "telecaller",
     };
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not specified";
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -227,7 +302,7 @@ const EmployeeDetails = () => {
     { id: 0, label: "Personal Details", icon: FiUser },
     { id: 1, label: "Official Details", icon: FaUsers },
     { id: 2, label: "Address Details", icon: FiMapPin },
-    { id: 3, label: "Bank Details", icon: FaMoneyBillWave }
+    { id: 3, label: "Bank Details", icon: FaMoneyBillWave },
   ];
 
   // ✅ HR SPECIFIC TAB
@@ -266,15 +341,24 @@ const EmployeeDetails = () => {
       <div className="profile-header">
         <h1>
           Employee Profile
-          <Badge bg="primary" className="ms-2">{employee.role}</Badge>
+          <Badge bg="primary" className="ms-2">
+            {employee.role}
+          </Badge>
           {employee.source === "hr" && (
-            <Badge bg="info" className="ms-1">💼 HR</Badge>
+            <Badge bg="info" className="ms-1">
+              💼 HR
+            </Badge>
           )}
           {employee.source === "telecaller" && (
-            <Badge bg="success" className="ms-1">📞 Telecaller</Badge>
+            <Badge bg="success" className="ms-1">
+              📞 Telecaller
+            </Badge>
           )}
         </h1>
-        <Button variant="outline-secondary" onClick={() => navigate("/add-employee")}>
+        <Button
+          variant="outline-secondary"
+          onClick={() => navigate("/add-employee")}
+        >
           ← Back to List
         </Button>
       </div>
@@ -295,7 +379,9 @@ const EmployeeDetails = () => {
                 <FiUser className="detail-icon" />
                 <div>
                   <p className="detail-label">Designation</p>
-                  <p className="detail-value">{employee.designation || "N/A"}</p>
+                  <p className="detail-value">
+                    {employee.designation || "N/A"}
+                  </p>
                 </div>
               </div>
               <div className="detail-item">
@@ -316,7 +402,9 @@ const EmployeeDetails = () => {
                 <FaBusinessTime className="detail-icon" />
                 <div>
                   <p className="detail-label">Date of Joining</p>
-                  <p className="detail-value">{formatDate(employee.dateOfJoining)}</p>
+                  <p className="detail-value">
+                    {formatDate(employee.dateOfJoining)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -360,9 +448,11 @@ const EmployeeDetails = () => {
           <div className="tabs-container">
             <div className="custom-tablist">
               {tabs.map((tab) => (
-                <button 
+                <button
                   key={tab.id}
-                  className={`custom-tab ${tabIndex === tab.id ? "active" : ""}`}
+                  className={`custom-tab ${
+                    tabIndex === tab.id ? "active" : ""
+                  }`}
                   onClick={() => setTabIndex(tab.id)}
                 >
                   <tab.icon className="tab-icon" />
@@ -386,10 +476,14 @@ const EmployeeDetails = () => {
                         <strong>Gender:</strong> {employee.gender || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Date of Birth:</strong> {formatDate(employee.dob)}
+                        <strong>Date of Birth:</strong>{" "}
+                        {formatDate(employee.dob)}
                       </div>
                       <div className="detail-item">
-                        <strong>Age:</strong> {employee.dob ? calculateAge(employee.dob) + " years" : "N/A"}
+                        <strong>Age:</strong>{" "}
+                        {employee.dob
+                          ? calculateAge(employee.dob) + " years"
+                          : "N/A"}
                       </div>
                       <div className="detail-item">
                         <strong>Mobile No:</strong> {employee.mobileNo || "N/A"}
@@ -416,16 +510,20 @@ const EmployeeDetails = () => {
                     <div className="detail-section">
                       <h5>Emergency Contacts</h5>
                       <div className="detail-item">
-                        <strong>Emergency Contact Person:</strong> {employee.emergencyContactPerson || "N/A"}
+                        <strong>Emergency Contact Person:</strong>{" "}
+                        {employee.emergencyContactPerson || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Emergency Contact Mobile:</strong> {employee.emergencyContactMobile || "N/A"}
+                        <strong>Emergency Contact Mobile:</strong>{" "}
+                        {employee.emergencyContactMobile || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Family Contact Person:</strong> {employee.familyContactPerson || "N/A"}
+                        <strong>Family Contact Person:</strong>{" "}
+                        {employee.familyContactPerson || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Family Contact Mobile:</strong> {employee.familyContactMobile || "N/A"}
+                        <strong>Family Contact Mobile:</strong>{" "}
+                        {employee.familyContactMobile || "N/A"}
                       </div>
                     </div>
                   </Col>
@@ -442,22 +540,27 @@ const EmployeeDetails = () => {
                     <div className="detail-section">
                       <h5>Employment Details</h5>
                       <div className="detail-item">
-                        <strong>Employee Code:</strong> {employee.employeeCode || "N/A"}
+                        <strong>Employee Code:</strong>{" "}
+                        {employee.employeeCode || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Designation:</strong> {employee.designation || "N/A"}
+                        <strong>Designation:</strong>{" "}
+                        {employee.designation || "N/A"}
                       </div>
                       <div className="detail-item">
                         <strong>Role:</strong> {employee.role || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Date of Joining:</strong> {formatDate(employee.dateOfJoining)}
+                        <strong>Date of Joining:</strong>{" "}
+                        {formatDate(employee.dateOfJoining)}
                       </div>
                       <div className="detail-item">
-                        <strong>Date of Termination:</strong> {formatDate(employee.dateOfTermination)}
+                        <strong>Date of Termination:</strong>{" "}
+                        {formatDate(employee.dateOfTermination)}
                       </div>
                       <div className="detail-item">
-                        <strong>Allotted Login ID:</strong> {employee.allottedLoginId || "N/A"}
+                        <strong>Allotted Login ID:</strong>{" "}
+                        {employee.allottedLoginId || "N/A"}
                       </div>
                     </div>
                   </Col>
@@ -465,26 +568,31 @@ const EmployeeDetails = () => {
                     <div className="detail-section">
                       <h5>Contact Information</h5>
                       <div className="detail-item">
-                        <strong>Office Mobile:</strong> {employee.officeMobile || "N/A"}
+                        <strong>Office Mobile:</strong>{" "}
+                        {employee.officeMobile || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Office Email:</strong> {employee.officeEmail || "N/A"}
+                        <strong>Office Email:</strong>{" "}
+                        {employee.officeEmail || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Allocated Work Area:</strong> {employee.allocatedWorkArea || "N/A"}
+                        <strong>Allocated Work Area:</strong>{" "}
+                        {employee.allocatedWorkArea || "N/A"}
                       </div>
                     </div>
 
                     <div className="detail-section">
                       <h5>Compensation</h5>
                       <div className="detail-item">
-                        <strong>Salary on Joining:</strong> {employee.salaryOnJoining || "N/A"}
+                        <strong>Salary on Joining:</strong>{" "}
+                        {employee.salaryOnJoining || "N/A"}
                       </div>
                       <div className="detail-item">
                         <strong>Expenses:</strong> {employee.expenses || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Incentives:</strong> {employee.incentives || "N/A"}
+                        <strong>Incentives:</strong>{" "}
+                        {employee.incentives || "N/A"}
                       </div>
                     </div>
                   </Col>
@@ -529,7 +637,8 @@ const EmployeeDetails = () => {
                         <strong>Bank Name:</strong> {employee.bankName || "N/A"}
                       </div>
                       <div className="detail-item">
-                        <strong>Account Number:</strong> {employee.accountNo || "N/A"}
+                        <strong>Account Number:</strong>{" "}
+                        {employee.accountNo || "N/A"}
                       </div>
                       <div className="detail-item">
                         <strong>IFSC Code:</strong> {employee.ifscCode || "N/A"}
@@ -552,13 +661,16 @@ const EmployeeDetails = () => {
                     <div className="detail-section">
                       <h5>Recruitment Statistics</h5>
                       <div className="detail-item">
-                        <strong>Total Hired:</strong> {employee.recruitmentStats?.totalHired || 0}
+                        <strong>Total Hired:</strong>{" "}
+                        {employee.recruitmentStats?.totalHired || 0}
                       </div>
                       <div className="detail-item">
-                        <strong>Total Interviews:</strong> {employee.recruitmentStats?.totalInterviews || 0}
+                        <strong>Total Interviews:</strong>{" "}
+                        {employee.recruitmentStats?.totalInterviews || 0}
                       </div>
                       <div className="detail-item">
-                        <strong>Success Rate:</strong> {employee.recruitmentStats?.successRate || 0}%
+                        <strong>Success Rate:</strong>{" "}
+                        {employee.recruitmentStats?.successRate || 0}%
                       </div>
                     </div>
                   </Col>
@@ -566,13 +678,15 @@ const EmployeeDetails = () => {
                     <div className="detail-section">
                       <h5>Managed Employees</h5>
                       <div className="detail-item">
-                        <strong>Total Managed:</strong> {employee.managedEmployees?.length || 0}
+                        <strong>Total Managed:</strong>{" "}
+                        {employee.managedEmployees?.length || 0}
                       </div>
                     </div>
-                    
+
                     <div className="detail-section">
                       <h5>HR Responsibilities</h5>
-                      {employee.hrResponsibilities && employee.hrResponsibilities.length > 0 ? (
+                      {employee.hrResponsibilities &&
+                      employee.hrResponsibilities.length > 0 ? (
                         <ul>
                           {employee.hrResponsibilities.map((resp, index) => (
                             <li key={index}>{resp.responsibility}</li>
@@ -815,7 +929,7 @@ const EmployeeDetails = () => {
           .profile-grid {
             grid-template-columns: 1fr;
           }
-          
+
           .info-cards {
             grid-template-columns: 1fr;
           }
