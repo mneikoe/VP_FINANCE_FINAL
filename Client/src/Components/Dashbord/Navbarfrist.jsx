@@ -664,6 +664,9 @@ const Navbarfristn = () => {
                       <Dropdown.Item as={Link} to="/task-assign">
                         Assign Task
                       </Dropdown.Item>
+                      <Dropdown.Item as={Link} to="/appointment-assign">
+                        Assign Appointments
+                      </Dropdown.Item>
                     </div>
                   </div>
                 </Dropdown.Menu>

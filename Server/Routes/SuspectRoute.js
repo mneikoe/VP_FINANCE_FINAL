@@ -65,4 +65,8 @@ router.get("/:id/call-history", SuspectCtrl.getCallHistory);
 // routes/suspect.js में नया route add करो
 // Get Suspects by Call Task Status (NEW)
 router.get("/filter/by-call-status", SuspectCtrl.getSuspectsByCallStatus);
+router.get(
+  "/suspects/appointments",
+  SuspectCtrl.getSuspectsAppointmentScheduled
+);
 module.exports = router;

@@ -94,6 +94,7 @@ import ProspectAppointmentList from "../Components/Reports/ProspectAppointmentLi
 import RMDashboard from "../Components/RMDashboard/RMDashboard";
 import SuspectDetailsPage from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectDetailsPage";
 import StatusBasedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/StatusBasedLeadsPage";
+import RMAssignment from "../Components/Masters/RMAssignment";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -186,6 +187,7 @@ const AppRoutes = () => {
         <Route index element={<DashboardCards />} />
         {/* Masters - Only OA */}
         <Route path="/task-assign" element={<TaskAssign />} />
+        <Route path="/appointment-assign" element={<RMAssignment />} /> ✅
         <Route path="/area" element={<Area />} />
         <Route path="/sub-area" element={<SubArea />} />
         <Route path="/city" element={<City />} />

@@ -259,15 +259,46 @@ const TestShema = new mongoose.Schema({
   ],
   taskDetails: String,
   assignedAt: Date,
+  assignedAt: {
+    type: Date,
+    default: null,
+  },
+
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Telecaller",
     default: null,
   },
+
   assignedRole: {
     type: String,
-    enum: ["Telecaller", "HR", "Manager"],
+    enum: ["Telecaller", "RM", "Manager"],
     default: null,
+  },
+  assignedToRM: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee", // or "RM" model if you have
+    default: null,
+  },
+
+  assignedToRMName: {
+    type: String,
+    default: null,
+  },
+
+  assignedToRMCode: {
+    type: String,
+    default: null,
+  },
+
+  assignedToRMAt: {
+    type: Date,
+    default: null,
+  },
+
+  rmAssignmentNotes: {
+    type: String,
+    default: "",
   },
   createdAt: {
     type: Date,
