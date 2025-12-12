@@ -6,35 +6,28 @@ import {
   Container,
   Row,
   Col,
-  Card,
+  Form,
   Button,
+  Card,
   Spinner,
   Alert,
-  Tab,
-  Nav,
   Tabs,
+  Tab,
+  Table,
 } from "react-bootstrap";
 import {
-  FiUser,
-  FiUsers,
-  FiDollarSign,
+  FiArrowLeft,
+  FiPhone,
   FiCalendar,
-  FiFileText,
+  FiClock,
+  FiMessageSquare,
+  FiCheck,
+  FiUser,
   FiEdit,
   FiSave,
   FiX,
-  FiArrowLeft,
-  FiPhone,
-  FiMail,
-  FiMapPin,
-  FiBriefcase,
-  FiHome,
-  FiCheckCircle,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
-
-// Import AddSuspect component
-import AddSuspect from "./AddSuspect"; // Adjust path as needed
 
 const SuspectDetailsPage = () => {
   const { id } = useParams();
@@ -44,89 +37,251 @@ const SuspectDetailsPage = () => {
   const [suspect, setSuspect] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("personal");
-  const [editing, setEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState("editDetails");
+
+  // Personal Details form state
+  const [formData, setFormData] = useState({
+    salutation: "",
+    groupName: "",
+    gender: "",
+    organisation: "",
+    designation: "",
+    mobileNo: "",
+    contactNo: "",
+    whatsappNo: "",
+    emailId: "",
+    paName: "",
+    paMobileNo: "",
+    annualIncome: "",
+    grade: "",
+    preferredAddressType: "resi",
+    resiAddr: "",
+    resiLandmark: "",
+    resiPincode: "",
+    officeAddr: "",
+    officeLandmark: "",
+    officePincode: "",
+    preferredMeetingAddr: "",
+    preferredMeetingArea: "",
+    city: "",
+    bestTime: "",
+    adharNumber: "",
+    panCardNumber: "",
+    hobbies: "",
+    nativePlace: "",
+    socialLink: "",
+    habits: "",
+    leadSource: "",
+    leadName: "",
+    leadOccupation: "",
+    leadOccupationType: "",
+    callingPurpose: "",
+    name: "",
+    allocatedCRE: "",
+    remark: "",
+    dob: "",
+    dom: "",
+  });
+
+  // Call task form state
+  const [callTask, setCallTask] = useState({
+    taskDate: "",
+    taskTime: "",
+    taskRemarks: "",
+    taskStatus: "",
+    nextFollowUpDate: "",
+    nextFollowUpTime: "",
+    nextAppointmentDate: "",
+    nextAppointmentTime: "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [callHistory, setCallHistory] = useState([]);
-  const [familyMembers, setFamilyMembers] = useState([]);
-  const [financialInfo, setFinancialInfo] = useState(null);
-  const [needs, setNeeds] = useState(null);
-  const [futurePriorities, setFuturePriorities] = useState([]);
-  const [proposedPlan, setProposedPlan] = useState([]);
 
-  // Fetch all suspect details
-  const fetchSuspectDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await axios.get(`/api/suspect/${id}`);
-
-      if (response.data && response.data.success) {
-        const suspectData = response.data.suspect;
-        setSuspect(suspectData);
-
-        // Set all data from suspect
-        setFamilyMembers(suspectData.familyMembers || []);
-        setFinancialInfo(suspectData.financialInfo || null);
-        setNeeds(suspectData.needs || null);
-        setFuturePriorities(suspectData.futurePriorities || []);
-        setProposedPlan(suspectData.proposedPlan || []);
-
-        // Fetch call history
-        if (suspectData.callTasks && Array.isArray(suspectData.callTasks)) {
-          setCallHistory(suspectData.callTasks);
-        }
-      } else {
-        setError("Failed to fetch suspect details");
-      }
-    } catch (error) {
-      console.error("Error fetching suspect details:", error);
-      setError(
-        error.response?.data?.message || "Network error. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch suspect details
   useEffect(() => {
+    const fetchSuspectDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/suspect/${id}`);
+
+        if (response.data?.success) {
+          const suspectData = response.data.suspect;
+          setSuspect(suspectData);
+
+          // Set personal details in form
+          if (suspectData.personalDetails) {
+            setFormData((prev) => ({
+              ...prev,
+              ...suspectData.personalDetails,
+              dob: formatDateToYMD(suspectData.personalDetails.dob),
+              dom: formatDateToYMD(suspectData.personalDetails.dom),
+            }));
+          }
+
+          // Fetch call history
+          if (suspectData.callTasks) {
+            setCallHistory(suspectData.callTasks);
+          }
+        } else {
+          setError("Failed to fetch suspect details");
+        }
+      } catch (error) {
+        setError(error.response?.data?.message || "Network error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSuspectDetails();
   }, [id]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB");
+  // Format date for input field
+  const formatDateToYMD = (isoDate) => {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case "Appointment Scheduled":
-        return "badge-success";
-      case "Callback":
-        return "badge-warning";
-      case "Not Interested":
-      case "Not Reachable":
-      case "Wrong Number":
-        return "badge-danger";
-      case "Call Not Picked":
-      case "Busy on Another Call":
-      case "Call After Sometimes":
-      case "Others":
-        return "badge-info";
-      case "Not Contacted":
-        return "badge-secondary";
-      default:
-        return "badge-secondary";
+  // Get current date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
+  };
+
+  // Handle personal details form changes
+  const handlePersonalDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle call task form changes
+  const handleCallTaskChange = (e) => {
+    const { name, value } = e.target;
+    setCallTask((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Update personal details
+  const handleUpdatePersonalDetails = async (e) => {
+    e.preventDefault();
+
+    try {
+      setUpdating(true);
+
+      const response = await axios.put(
+        `/api/suspect/update/personaldetails/${id}`,
+        {
+          personalDetails: formData,
+        }
+      );
+
+      if (response.data?.success) {
+        toast.success("Personal details updated successfully!");
+
+        // Update local state
+        setSuspect((prev) => ({
+          ...prev,
+          personalDetails: formData,
+        }));
+      } else {
+        toast.error("Failed to update details");
+      }
+    } catch (error) {
+      console.error("Error updating details:", error);
+      toast.error(error.response?.data?.message || "Network error");
+    } finally {
+      setUpdating(false);
     }
   };
 
-  // Handle successful update from AddSuspect component
-  const handleSuspectUpdated = (updatedSuspectId) => {
-    toast.success("Suspect details updated successfully!");
-    setEditing(false);
-    // Refresh data
-    fetchSuspectDetails();
+  // Handle call task submission
+  const handleSubmitCallTask = async (e) => {
+    e.preventDefault();
+
+    if (!callTask.taskStatus) {
+      toast.error("Please select call status");
+      return;
+    }
+
+    if (!callTask.taskDate) {
+      toast.error("Please select call date");
+      return;
+    }
+
+    // Validation for forwarded calls
+    const forwardedStatuses = [
+      "Call Not Picked",
+      "Busy on Another Call",
+      "Call After Sometimes",
+      "Others",
+    ];
+
+    if (forwardedStatuses.includes(callTask.taskStatus)) {
+      if (!callTask.nextFollowUpDate || !callTask.nextFollowUpTime) {
+        toast.error("Next call date and time are required for forwarded calls");
+        return;
+      }
+    }
+
+    // Validation for Appointment Scheduled
+    if (callTask.taskStatus === "Appointment Scheduled") {
+      if (!callTask.nextAppointmentDate || !callTask.nextAppointmentTime) {
+        toast.error("Appointment date and time are required");
+        return;
+      }
+    }
+
+    try {
+      setSubmitting(true);
+
+      const response = await axios.post(
+        `/api/suspect/${id}/call-task`,
+        callTask
+      );
+
+      if (response.data.success) {
+        toast.success("Call task added successfully!");
+
+        // Reset form
+        setCallTask({
+          taskDate: "",
+          taskTime: "",
+          taskRemarks: "",
+          taskStatus: "",
+          nextFollowUpDate: "",
+          nextFollowUpTime: "",
+          nextAppointmentDate: "",
+          nextAppointmentTime: "",
+        });
+
+        // Refresh call history
+        const suspectResponse = await axios.get(`/api/suspect/${id}`);
+        if (suspectResponse.data?.success) {
+          setCallHistory(suspectResponse.data.suspect.callTasks || []);
+        }
+
+        // Navigate to suspects list after 1 second
+        setTimeout(() => {
+          navigate("/telecaller/dashboard");
+        }, 2000);
+      } else {
+        toast.error(response.data.message || "Failed to add call task");
+      }
+    } catch (error) {
+      console.error("Error adding call task:", error);
+      toast.error(error.response?.data?.message || "Network error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -144,8 +299,11 @@ const SuspectDetailsPage = () => {
         <Alert variant="danger">
           <h4>Error</h4>
           <p>{error}</p>
-          <Button variant="outline-danger" onClick={() => navigate(-1)}>
-            <FiArrowLeft /> Go Back
+          <Button
+            variant="outline-danger"
+            onClick={() => navigate("/suspects")}
+          >
+            <FiArrowLeft /> Back to List
           </Button>
         </Alert>
       </Container>
@@ -157,9 +315,12 @@ const SuspectDetailsPage = () => {
       <Container className="py-5">
         <Alert variant="warning">
           <h4>No Data Found</h4>
-          <p>Suspect not found or no data available.</p>
-          <Button variant="outline-warning" onClick={() => navigate(-1)}>
-            <FiArrowLeft /> Go Back
+          <p>Suspect not found</p>
+          <Button
+            variant="outline-warning"
+            onClick={() => navigate("/suspects")}
+          >
+            <FiArrowLeft /> Back to List
           </Button>
         </Alert>
       </Container>
@@ -169,772 +330,797 @@ const SuspectDetailsPage = () => {
   const personal = suspect.personalDetails || {};
 
   return (
-    <Container fluid className="suspect-details-page py-4">
+    <Container fluid className="py-4">
       {/* Header */}
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <Button
-                variant="outline-primary"
-                onClick={() => navigate(-1)}
-                className="mb-3"
-              >
-                <FiArrowLeft /> Back to Dashboard
-              </Button>
-              <h2 className="mb-0">
-                <FiUser className="me-2" />
-                {personal.name || "Unknown"} - Details
-              </h2>
-              <p className="text-muted mb-0">
-                Group Code: <strong>{personal.groupCode || "-"}</strong> |
-                Status:{" "}
-                <span
-                  className={`badge ${getStatusBadgeColor(
-                    suspect.status
-                  )} ms-2`}
-                >
-                  {suspect.status || "suspect"}
-                </span>
-              </p>
-            </div>
-            <div>
-              {!editing ? (
-                <Button
-                  variant="outline-primary"
-                  onClick={() => setEditing(true)}
-                >
-                  <FiEdit /> Edit Personal Details
-                </Button>
-              ) : (
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => setEditing(false)}
-                >
-                  <FiX /> Cancel Edit
-                </Button>
-              )}
-            </div>
-          </div>
-        </Col>
-      </Row>
+      <div className="mb-4">
+        <Button
+          variant="outline-primary"
+          onClick={() => navigate("/suspects")}
+          className="mb-3"
+        >
+          <FiArrowLeft /> Back to List
+        </Button>
 
-      {/* Main Content - Show AddSuspect form when editing, else show tabs */}
-      {editing ? (
-        <Card className="mb-4">
-          <Card.Header className="bg-primary text-white">
-            <h5 className="mb-0">
-              <FiEdit className="me-2" />
-              Edit Personal Details
-            </h5>
-          </Card.Header>
-          <Card.Body>
-            <AddSuspect
-              isEdit={true}
-              suspectData={suspect}
-              onSuspectCreated={handleSuspectUpdated}
-            />
-          </Card.Body>
-        </Card>
-      ) : (
-        <>
-          {/* Quick Info Card */}
-          <Row className="mb-4">
-            <Col md={3}>
-              <Card className="h-100">
-                <Card.Body className="text-center">
-                  <FiUser className="text-primary mb-2" size={30} />
-                  <h5>Basic Info</h5>
-                  <p className="mb-1">
-                    <strong>Name:</strong> {personal.name || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Group:</strong> {personal.groupName || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Gender:</strong> {personal.gender || "-"}
-                  </p>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="h-100">
-                <Card.Body className="text-center">
-                  <FiPhone className="text-success mb-2" size={30} />
-                  <h5>Contact</h5>
-                  <p className="mb-1">
-                    <strong>Mobile:</strong> {personal.mobileNo || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Email:</strong> {personal.emailId || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>City:</strong> {personal.city || "-"}
-                  </p>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="h-100">
-                <Card.Body className="text-center">
-                  <FiBriefcase className="text-warning mb-2" size={30} />
-                  <h5>Professional</h5>
-                  <p className="mb-1">
-                    <strong>Org:</strong> {personal.organisation || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Designation:</strong> {personal.designation || "-"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Income:</strong> {personal.annualIncome || "-"}
-                  </p>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="h-100">
-                <Card.Body className="text-center">
-                  <FiCheckCircle className="text-info mb-2" size={30} />
-                  <h5>Status</h5>
-                  <p className="mb-1">
-                    <strong>Assigned To:</strong>{" "}
-                    {suspect.assignedTo?.username || "Not Assigned"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Assigned Date:</strong>{" "}
-                    {formatDate(suspect.assignedAt)}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Call Tasks:</strong> {callHistory.length}
-                  </p>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+        <h4 className="mb-1">
+          <FiUser className="me-2" />
+          {personal.name || "Unknown"} - Edit & Call Task
+        </h4>
+        <p className="text-muted mb-0">
+          Mobile: {personal.mobileNo || "N/A"} | Group Code:{" "}
+          {personal.groupCode || "N/A"}
+        </p>
+      </div>
 
-          {/* Tabs Navigation */}
-          <Row className="mb-4">
-            <Col>
-              <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
-                <Nav variant="tabs" className="custom-tabs">
-                  <Nav.Item>
-                    <Nav.Link eventKey="personal">
-                      <FiUser className="me-2" />
-                      Personal Details
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="family">
-                      <FiUsers className="me-2" />
-                      Family Members ({familyMembers.length})
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="financial">
-                      <FiDollarSign className="me-2" />
-                      Financial Info
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="calls">
-                      <FiPhone className="me-2" />
-                      Call History ({callHistory.length})
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="additional">
-                      <FiFileText className="me-2" />
-                      Additional Info
-                    </Nav.Link>
-                  </Nav.Item>
-                </Nav>
-              </Tab.Container>
-            </Col>
-          </Row>
+      {/* Tabs for Edit Details and Call Task */}
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k)}
+        className="mb-4"
+      >
+        <Tab eventKey="editDetails" title="📝 Edit Personal Details">
+          <Card>
+            <Card.Header className="bg-primary text-white">
+              <h5 className="mb-0">
+                <FiEdit className="me-2" />
+                Edit Personal Details
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <Form onSubmit={handleUpdatePersonalDetails}>
+                {/* Salutation, Group Name, Gender */}
+                <Row className="mb-3">
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Salutation</Form.Label>
+                      <Form.Select
+                        name="salutation"
+                        value={formData.salutation}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">Select</option>
+                        <option>Mr.</option>
+                        <option>Mrs.</option>
+                        <option>Ms.</option>
+                        <option>Mast.</option>
+                        <option>Shri.</option>
+                        <option>Smt.</option>
+                        <option>Kum.</option>
+                        <option>Kr.</option>
+                        <option>Dr.</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={5}>
+                    <Form.Group>
+                      <Form.Label>Group Head</Form.Label>
+                      <Form.Control
+                        name="groupName"
+                        type="text"
+                        value={formData.groupName}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Gender</Form.Label>
+                      <Form.Select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">Select</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-          {/* Tab Content */}
-          <Tab.Container activeKey={activeTab}>
-            <Tab.Content>
-              {/* Personal Details Tab (Read-only) */}
-              <Tab.Pane eventKey="personal">
-                <Card>
-                  <Card.Header className="bg-primary text-white">
-                    <h5 className="mb-0">
-                      <FiUser className="me-2" />
-                      Personal Information
-                    </h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Name</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.name || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Group Name</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.groupName || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Organisation, Designation, Annual Income */}
+                <Row className="mb-3">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Organisation</Form.Label>
+                      <Form.Control
+                        name="organisation"
+                        type="text"
+                        value={formData.organisation}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Designation</Form.Label>
+                      <Form.Control
+                        name="designation"
+                        type="text"
+                        value={formData.designation}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Annual Income</Form.Label>
+                      <Form.Select
+                        name="annualIncome"
+                        value={formData.annualIncome}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">-- Select --</option>
+                        <option value="25 lakh to 1 Cr.">
+                          25 lakh to 1 Cr.
+                        </option>
+                        <option value="5 to 25 lakh">5 to 25 lakh</option>
+                        <option value="2.5 to 5 lakh">2.5 to 5 lakh</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={1}>
+                    <Form.Group>
+                      <Form.Label>Grade</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="grade"
+                        value={formData.grade}
+                        size="sm"
+                        readOnly
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={4}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Mobile No</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.mobileNo || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={4}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>WhatsApp No</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.whatsappNo || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={4}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Email</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.emailId || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Mobile, WhatsApp, Phone, Email */}
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Mobile No</Form.Label>
+                      <Form.Control
+                        name="mobileNo"
+                        type="text"
+                        value={formData.mobileNo}
+                        onChange={handlePersonalDetailsChange}
+                        maxLength={10}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>WhatsApp No</Form.Label>
+                      <Form.Control
+                        name="whatsappNo"
+                        type="text"
+                        value={formData.whatsappNo}
+                        maxLength={10}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Phone No</Form.Label>
+                      <Form.Control
+                        name="contactNo"
+                        type="text"
+                        maxLength={14}
+                        value={`0755${formData.contactNo ?? ""}`}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            contactNo: e.target.value.replace(/^0755/, ""),
+                          })
+                        }
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Email</Form.Label>
+                      <Form.Control
+                        name="emailId"
+                        type="email"
+                        value={formData.emailId}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Date of Birth</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {formatDate(personal.dob)}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Date of Marriage</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {formatDate(personal.dom)}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* DOB and DOM */}
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>DOB</Form.Label>
+                      <Form.Control
+                        name="dob"
+                        type="date"
+                        value={formData.dob}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>DOM</Form.Label>
+                      <Form.Control
+                        name="dom"
+                        type="date"
+                        value={formData.dom}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Organisation</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.organisation || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Designation</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.designation || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Residential Address */}
+                <Row className="mb-3">
+                  <Col md={1} className="mt-2">
+                    <Form.Check
+                      type="radio"
+                      label="Resi."
+                      name="preferredAddressType"
+                      checked={formData.preferredAddressType === "resi"}
+                      onChange={() =>
+                        setFormData({
+                          ...formData,
+                          preferredAddressType: "resi",
+                        })
+                      }
+                    />
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Address</Form.Label>
+                      <Form.Control
+                        name="resiAddr"
+                        type="text"
+                        value={formData.resiAddr}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Landmark</Form.Label>
+                      <Form.Control
+                        name="resiLandmark"
+                        type="text"
+                        value={formData.resiLandmark}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Pincode</Form.Label>
+                      <Form.Control
+                        name="resiPincode"
+                        type="text"
+                        value={formData.resiPincode}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Annual Income</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.annualIncome || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Grade</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.grade || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Office Address */}
+                <Row className="mb-3">
+                  <Col md={1} className="mt-2">
+                    <Form.Check
+                      type="radio"
+                      label="Office"
+                      name="preferredAddressType"
+                      checked={formData.preferredAddressType === "office"}
+                      onChange={() =>
+                        setFormData({
+                          ...formData,
+                          preferredAddressType: "office",
+                        })
+                      }
+                    />
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Address</Form.Label>
+                      <Form.Control
+                        name="officeAddr"
+                        type="text"
+                        value={formData.officeAddr}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Landmark</Form.Label>
+                      <Form.Control
+                        name="officeLandmark"
+                        type="text"
+                        value={formData.officeLandmark}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Pincode</Form.Label>
+                      <Form.Control
+                        name="officePincode"
+                        type="text"
+                        value={formData.officePincode}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Lead Source</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.leadSource || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Lead Name</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.leadName || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Preferred Meeting Address */}
+                <Row className="mb-3">
+                  <Col md={5}>
+                    <Form.Group>
+                      <Form.Label>Preferred Meeting Address</Form.Label>
+                      <Form.Control
+                        name="preferredMeetingAddr"
+                        type="text"
+                        value={formData.preferredMeetingAddr}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                        readOnly
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Preferred Meeting Area</Form.Label>
+                      <Form.Control
+                        name="preferredMeetingArea"
+                        type="text"
+                        value={formData.preferredMeetingArea}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                        readOnly
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>City</Form.Label>
+                      <Form.Control
+                        name="city"
+                        type="text"
+                        value={formData.city}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                        readOnly
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Best Time</Form.Label>
+                      <Form.Select
+                        name="bestTime"
+                        value={formData.bestTime}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">-- Select Time --</option>
+                        <option value="10 AM to 2 PM">10 AM to 2 PM</option>
+                        <option value="2 PM to 7 PM">2 PM to 7 PM</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={12}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Residential Address</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.resiAddr || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
+                {/* Lead Source, Lead Name */}
+                <Row className="mb-3">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Lead Source</Form.Label>
+                      <Form.Control
+                        name="leadSource"
+                        type="text"
+                        value={formData.leadSource}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Lead Name</Form.Label>
+                      <Form.Control
+                        name="leadName"
+                        type="text"
+                        value={formData.leadName}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Calling Purpose</Form.Label>
+                      <Form.Select
+                        name="callingPurpose"
+                        value={formData.callingPurpose}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">-- Select Purpose --</option>
+                        <option value="Follow-up">Follow-up</option>
+                        <option value="Meeting Schedule">
+                          Meeting Schedule
+                        </option>
+                        <option value="Query Resolution">
+                          Query Resolution
+                        </option>
+                        <option value="Proposal Discussion">
+                          Proposal Discussion
+                        </option>
+                        <option value="Other">Other</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                    <Row>
-                      <Col md={12}>
-                        <div className="mb-3">
-                          <label className="form-label">
-                            <strong>Remarks</strong>
-                          </label>
-                          <div className="form-control-static border rounded p-2 bg-light">
-                            {personal.remark || "-"}
-                          </div>
-                        </div>
-                      </Col>
-                    </Row>
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
+                {/* Remarks */}
+                <Row className="mb-3">
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Remarks</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        name="remark"
+                        value={formData.remark}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-              {/* Family Members Tab */}
-              <Tab.Pane eventKey="family">
-                <Card>
-                  <Card.Header className="bg-info text-white">
-                    <h5 className="mb-0">
-                      <FiUsers className="me-2" />
-                      Family Members ({familyMembers.length})
-                    </h5>
-                  </Card.Header>
-                  <Card.Body>
-                    {familyMembers.length === 0 ? (
-                      <Alert variant="info">No family members added yet.</Alert>
-                    ) : (
-                      <div className="table-responsive">
-                        <table className="table table-bordered">
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Relation</th>
-                              <th>Occupation</th>
-                              <th>Annual Income</th>
-                              <th>Date of Birth</th>
-                              <th>Contact</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {familyMembers.map((member, index) => (
-                              <tr key={index}>
-                                <td>{member.name || "-"}</td>
-                                <td>{member.relation || "-"}</td>
-                                <td>{member.occupation || "-"}</td>
-                                <td>{member.annualIncome || "-"}</td>
-                                <td>{formatDate(member.dobActual)}</td>
-                                <td>{member.contact || "-"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
-
-              {/* Financial Info Tab */}
-              <Tab.Pane eventKey="financial">
-                <Card>
-                  <Card.Header className="bg-success text-white">
-                    <h5 className="mb-0">
-                      <FiDollarSign className="me-2" />
-                      Financial Information
-                    </h5>
-                  </Card.Header>
-                  <Card.Body>
-                    {!financialInfo ? (
-                      <Alert variant="info">
-                        No financial information available.
-                      </Alert>
+                {/* Update Button */}
+                <div className="text-center">
+                  <Button variant="primary" type="submit" disabled={updating}>
+                    {updating ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Updating...
+                      </>
                     ) : (
                       <>
-                        {/* Insurance */}
-                        <h6 className="text-success mb-3">Insurance</h6>
-                        {financialInfo.insurance?.length > 0 ? (
-                          <div className="table-responsive mb-4">
-                            <table className="table table-sm table-bordered">
-                              <thead>
-                                <tr>
-                                  <th>Policy No</th>
-                                  <th>Company</th>
-                                  <th>Plan Name</th>
-                                  <th>Sum Assured</th>
-                                  <th>Premium</th>
-                                  <th>Start Date</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {financialInfo.insurance.map((ins, idx) => (
-                                  <tr key={idx}>
-                                    <td>{ins.policyNumber || "-"}</td>
-                                    <td>{ins.insuranceCompany || "-"}</td>
-                                    <td>{ins.planName || "-"}</td>
-                                    <td>{ins.sumAssured || "-"}</td>
-                                    <td>{ins.premium || "-"}</td>
-                                    <td>{formatDate(ins.startDate)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <Alert variant="secondary" className="mb-4">
-                            No insurance details available.
-                          </Alert>
-                        )}
-
-                        {/* Investments */}
-                        <h6 className="text-success mb-3">Investments</h6>
-                        {financialInfo.investments?.length > 0 ? (
-                          <div className="table-responsive mb-4">
-                            <table className="table table-sm table-bordered">
-                              <thead>
-                                <tr>
-                                  <th>Product</th>
-                                  <th>Company</th>
-                                  <th>Plan Name</th>
-                                  <th>Amount</th>
-                                  <th>Start Date</th>
-                                  <th>Maturity Date</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {financialInfo.investments.map((inv, idx) => (
-                                  <tr key={idx}>
-                                    <td>{inv.financialProduct || "-"}</td>
-                                    <td>{inv.companyName || "-"}</td>
-                                    <td>{inv.planName || "-"}</td>
-                                    <td>{inv.amount || "-"}</td>
-                                    <td>{formatDate(inv.startDate)}</td>
-                                    <td>{formatDate(inv.maturityDate)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <Alert variant="secondary" className="mb-4">
-                            No investment details available.
-                          </Alert>
-                        )}
-
-                        {/* Loans */}
-                        <h6 className="text-success mb-3">Loans</h6>
-                        {financialInfo.loans?.length > 0 ? (
-                          <div className="table-responsive">
-                            <table className="table table-sm table-bordered">
-                              <thead>
-                                <tr>
-                                  <th>Loan Type</th>
-                                  <th>Company</th>
-                                  <th>Account No</th>
-                                  <th>Outstanding Amount</th>
-                                  <th>Interest Rate</th>
-                                  <th>Start Date</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {financialInfo.loans.map((loan, idx) => (
-                                  <tr key={idx}>
-                                    <td>{loan.loanType || "-"}</td>
-                                    <td>{loan.companyName || "-"}</td>
-                                    <td>{loan.loanAccountNumber || "-"}</td>
-                                    <td>{loan.outstandingAmount || "-"}</td>
-                                    <td>{loan.interestRate || "-"}%</td>
-                                    <td>{formatDate(loan.startDate)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <Alert variant="secondary">
-                            No loan details available.
-                          </Alert>
-                        )}
+                        <FiSave className="me-2" />
+                        Update Personal Details
                       </>
                     )}
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
+                  </Button>
 
-              {/* Call History Tab */}
-              <Tab.Pane eventKey="calls">
-                <Card>
-                  <Card.Header className="bg-warning text-dark">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <h5 className="mb-0">
-                        <FiPhone className="me-2" />
-                        Call History ({callHistory.length})
-                      </h5>
-                    </div>
-                  </Card.Header>
-                  <Card.Body>
-                    {callHistory.length === 0 ? (
-                      <Alert variant="info">No call history available.</Alert>
-                    ) : (
-                      <div className="table-responsive">
-                        <table className="table table-bordered">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Time</th>
-                              <th>Status</th>
-                              <th>Remarks</th>
-                              <th>Next Follow-up</th>
-                              <th>Next Appointment</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {callHistory
-                              .sort(
-                                (a, b) =>
-                                  new Date(b.taskDate) - new Date(a.taskDate)
-                              )
-                              .map((call, index) => (
-                                <tr key={index}>
-                                  <td>{formatDate(call.taskDate)}</td>
-                                  <td>{call.taskTime || "-"}</td>
-                                  <td>
-                                    <span
-                                      className={`badge ${getStatusBadgeColor(
-                                        call.taskStatus
-                                      )}`}
-                                    >
-                                      {call.taskStatus}
-                                    </span>
-                                  </td>
-                                  <td>{call.taskRemarks || "-"}</td>
-                                  <td>
-                                    {call.nextFollowUpDate
-                                      ? `${formatDate(call.nextFollowUpDate)} ${
-                                          call.nextFollowUpTime || ""
-                                        }`
-                                      : "-"}
-                                  </td>
-                                  <td>
-                                    {call.nextAppointmentDate
-                                      ? `${formatDate(
-                                          call.nextAppointmentDate
-                                        )} ${call.nextAppointmentTime || ""}`
-                                      : "-"}
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
+                  <Button
+                    variant="outline-secondary"
+                    className="ms-2"
+                    onClick={() => setActiveTab("callTask")}
+                  >
+                    Next: Add Call Task →
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Tab>
 
-              {/* Additional Info Tab */}
-              <Tab.Pane eventKey="additional">
-                <Row>
-                  {/* Future Priorities */}
-                  <Col md={6}>
-                    <Card className="mb-4">
-                      <Card.Header>
-                        <h5 className="mb-0">Future Priorities</h5>
-                      </Card.Header>
-                      <Card.Body>
-                        {futurePriorities.length > 0 ? (
-                          <ul className="list-group">
-                            {futurePriorities.map((priority, idx) => (
-                              <li key={idx} className="list-group-item">
-                                <strong>{priority.priorityName}</strong>
-                                <br />
-                                Members: {priority.members?.join(", ") || "-"}
-                                <br />
-                                Amount: ₹{priority.approxAmount || "0"}
-                                <br />
-                                Duration: {priority.duration || "-"}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <Alert variant="info">
-                            No future priorities set.
-                          </Alert>
-                        )}
-                      </Card.Body>
-                    </Card>
+        <Tab eventKey="callTask" title="📞 Add Call Task">
+          <Card>
+            <Card.Header className="bg-primary text-white">
+              <h5 className="mb-0">
+                <FiPhone className="me-2" />
+                Add Call Task
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <Form onSubmit={handleSubmitCallTask}>
+                {/* Call Date, Time, Status */}
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>
+                        <FiCalendar className="me-1" />
+                        Call Date <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="taskDate"
+                        value={callTask.taskDate}
+                        onChange={handleCallTaskChange}
+                        min={getTodayDate()}
+                        required
+                      />
+                    </Form.Group>
                   </Col>
 
-                  {/* Proposed Plans */}
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>
+                        <FiClock className="me-1" />
+                        Call Time <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        type="time"
+                        name="taskTime"
+                        value={callTask.taskTime}
+                        onChange={handleCallTaskChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+
                   <Col md={6}>
-                    <Card className="mb-4">
-                      <Card.Header>
-                        <h5 className="mb-0">Proposed Plans</h5>
-                      </Card.Header>
-                      <Card.Body>
-                        {proposedPlan.length > 0 ? (
-                          <ul className="list-group">
-                            {proposedPlan.map((plan, idx) => (
-                              <li key={idx} className="list-group-item">
-                                <strong>{plan.financialProduct}</strong>
-                                <br />
-                                Company: {plan.financialCompany || "-"}
-                                <br />
-                                Plan: {plan.planName || "-"}
-                                <br />
-                                Status:{" "}
-                                <span className="badge bg-info">
-                                  {plan.status || "Pending"}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <Alert variant="info">
-                            No proposed plans available.
-                          </Alert>
-                        )}
-                      </Card.Body>
-                    </Card>
+                    <Form.Group>
+                      <Form.Label>
+                        Call Status <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Select
+                        name="taskStatus"
+                        value={callTask.taskStatus}
+                        onChange={handleCallTaskChange}
+                        required
+                      >
+                        <option value="">-- Select Status --</option>
+
+                        {/* FORWARDED STATUSES */}
+                        <optgroup label="Forwarded">
+                          <option value="Call Not Picked">
+                            Call Not Picked
+                          </option>
+                          <option value="Busy on Another Call">
+                            Busy on Another Call
+                          </option>
+                          <option value="Call After Sometimes">
+                            Call After Sometimes
+                          </option>
+                          <option value="Others">Others</option>
+                        </optgroup>
+
+                        {/* CLOSED STATUSES */}
+                        <optgroup label="Closed">
+                          <option value="Not Reachable">Not Reachable</option>
+                          <option value="Wrong Number">Wrong Number</option>
+                          <option value="Not Interested">Not Interested</option>
+                          <option value="Appointment Scheduled">
+                            Appointment Scheduled
+                          </option>
+                        </optgroup>
+
+                        {/* ACTIVE STATUSES */}
+                        <optgroup label="Active">
+                          <option value="Callback">Callback</option>
+                          <option value="Not Contacted">Not Contacted</option>
+                        </optgroup>
+                      </Form.Select>
+                    </Form.Group>
                   </Col>
                 </Row>
 
-                {/* Needs */}
-                <Row>
-                  <Col md={12}>
-                    <Card>
-                      <Card.Header>
-                        <h5 className="mb-0">Needs & Requirements</h5>
-                      </Card.Header>
-                      <Card.Body>
-                        {needs ? (
+                {/* Conditionally show Next Call Date/Time for forwarded calls */}
+                {[
+                  "Call Not Picked",
+                  "Busy on Another Call",
+                  "Call After Sometimes",
+                  "Others",
+                ].includes(callTask.taskStatus) && (
+                  <Row className="mb-3">
+                    <Col md={6}>
+                      <Card className="border-info">
+                        <Card.Header className="bg-info text-white py-2">
+                          <small>
+                            Next Follow-up Details (Required for forwarded
+                            calls)
+                          </small>
+                        </Card.Header>
+                        <Card.Body className="py-3">
                           <Row>
                             <Col md={6}>
-                              <p>
-                                <strong>Financial Products:</strong>{" "}
-                                {needs.financialProducts || "-"}
-                              </p>
-                              <p>
-                                <strong>Any Correction:</strong>{" "}
-                                {needs.anyCorrection || "-"}
-                              </p>
-                              <p>
-                                <strong>Any Updation:</strong>{" "}
-                                {needs.anyUpdation || "-"}
-                              </p>
+                              <Form.Group>
+                                <Form.Label>Next Call Date</Form.Label>
+                                <Form.Control
+                                  type="date"
+                                  name="nextFollowUpDate"
+                                  value={callTask.nextFollowUpDate}
+                                  onChange={handleCallTaskChange}
+                                  min={getTodayDate()}
+                                  required
+                                />
+                              </Form.Group>
                             </Col>
                             <Col md={6}>
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={needs.financialCalculation}
-                                  disabled
+                              <Form.Group>
+                                <Form.Label>Next Call Time</Form.Label>
+                                <Form.Control
+                                  type="time"
+                                  name="nextFollowUpTime"
+                                  value={callTask.nextFollowUpTime}
+                                  onChange={handleCallTaskChange}
+                                  required
                                 />
-                                <label className="form-check-label">
-                                  Financial Calculation Required
-                                </label>
-                              </div>
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={needs.assesmentOfNeed}
-                                  disabled
-                                />
-                                <label className="form-check-label">
-                                  Assessment of Need Required
-                                </label>
-                              </div>
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={needs.portfolioManagement}
-                                  disabled
-                                />
-                                <label className="form-check-label">
-                                  Portfolio Management Required
-                                </label>
-                              </div>
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={needs.doorStepServices}
-                                  disabled
-                                />
-                                <label className="form-check-label">
-                                  Door Step Services Required
-                                </label>
-                              </div>
+                              </Form.Group>
                             </Col>
                           </Row>
-                        ) : (
-                          <Alert variant="info">
-                            No needs information available.
-                          </Alert>
-                        )}
-                      </Card.Body>
-                    </Card>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+
+                {/* Conditionally show Appointment Date/Time for Appointment Scheduled */}
+                {callTask.taskStatus === "Appointment Scheduled" && (
+                  <Row className="mb-3">
+                    <Col md={6}>
+                      <Card className="border-success">
+                        <Card.Header className="bg-success text-white py-2">
+                          <small>
+                            Appointment Details (Required for appointment)
+                          </small>
+                        </Card.Header>
+                        <Card.Body className="py-3">
+                          <Row>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label>Appointment Date</Form.Label>
+                                <Form.Control
+                                  type="date"
+                                  name="nextAppointmentDate"
+                                  value={callTask.nextAppointmentDate}
+                                  onChange={handleCallTaskChange}
+                                  min={getTodayDate()}
+                                  required
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label>Appointment Time</Form.Label>
+                                <Form.Control
+                                  type="time"
+                                  name="nextAppointmentTime"
+                                  value={callTask.nextAppointmentTime}
+                                  onChange={handleCallTaskChange}
+                                  required
+                                />
+                              </Form.Group>
+                            </Col>
+                          </Row>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+
+                {/* Remarks */}
+                <Row className="mb-3">
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>
+                        <FiMessageSquare className="me-1" />
+                        Remarks
+                      </Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        name="taskRemarks"
+                        placeholder="Enter call remarks..."
+                        value={callTask.taskRemarks}
+                        onChange={handleCallTaskChange}
+                      />
+                    </Form.Group>
                   </Col>
                 </Row>
-              </Tab.Pane>
-            </Tab.Content>
-          </Tab.Container>
-        </>
-      )}
+
+                {/* Buttons */}
+                <div className="text-center">
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5"
+                  >
+                    {submitting ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <FiCheck className="me-2" />
+                        Add Call Task
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="outline-secondary"
+                    className="ms-2"
+                    onClick={() => setActiveTab("editDetails")}
+                  >
+                    ← Back to Edit Details
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
+
+          {/* Recent Call History */}
+          {callHistory.length > 0 && (
+            <div className="mt-4">
+              <h6>Call History ({callHistory.length})</h6>
+              <div className="table-responsive border rounded">
+                <table className="table table-sm table-striped mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Status</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {callHistory.map((call, index) => (
+                      <tr key={index}>
+                        <td>
+                          {new Date(call.taskDate).toLocaleDateString("en-GB")}
+                        </td>
+                        <td>{call.taskTime}</td>
+                        <td>
+                          <strong
+                            className={`${
+                              call.taskStatus === "Call Not Picked"
+                                ? "text-info"
+                                : call.taskStatus === "Appointment Scheduled"
+                                ? "text-success"
+                                : "text-primary"
+                            }`}
+                          >
+                            {call.taskStatus}
+                          </strong>
+                        </td>
+                        <td>{call.taskRemarks}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </Tab>
+      </Tabs>
     </Container>
   );
 };
