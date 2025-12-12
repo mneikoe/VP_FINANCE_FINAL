@@ -25,14 +25,31 @@ import {
   FiUser,
   FiEdit,
   FiSave,
-  FiX,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+
+// Import Redux actions
+import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
+import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
+import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
+import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
 
 const SuspectDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Redux selectors
+  const { leadsourceDetail } = useSelector((state) => state.leadsource);
+  const { alldetails: occupations } = useSelector(
+    (state) => state.leadOccupation
+  );
+  const { alldetailsForTypes: occupationTypes } = useSelector(
+    (state) => state.OccupationType
+  );
+  const { LeadType: leadTypes, loading: leadTypesLoading } = useSelector(
+    (state) => state.LeadType
+  );
 
   const [suspect, setSuspect] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +115,29 @@ const SuspectDetailsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [callHistory, setCallHistory] = useState([]);
+  const [whatsappEdited, setWhatsappEdited] = useState(false);
+
+  // Grade mapping for annual income
+  const gradeMap = {
+    "25 lakh to 1 Cr.": 1,
+    "5 to 25 lakh": 2,
+    "2.5 to 5 lakh": 3,
+  };
+
+  // Income options
+  const incomeOptions = [
+    { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
+    { value: "5 to 25 lakh", label: "5 to 25 lakh" },
+    { value: "2.5 to 5 lakh", label: "2.5 to 5 lakh" },
+  ];
+
+  // Fetch data on component mount
+  useEffect(() => {
+    dispatch(fetchLeadType());
+    dispatch(fetchDetails());
+    dispatch(getAllOccupationTypes());
+    dispatch(getAllOccupations());
+  }, [dispatch]);
 
   // Fetch suspect details
   useEffect(() => {
@@ -137,6 +177,49 @@ const SuspectDetailsPage = () => {
     fetchSuspectDetails();
   }, [id]);
 
+  // Function to get current date in YYYY-MM-DD format
+  const getCurrentDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Function to get current time in HH:MM format
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  // Function to set current date and time when switching to call task tab
+  const setCurrentDateTime = () => {
+    setCallTask((prev) => ({
+      ...prev,
+      taskDate: getCurrentDate(),
+      taskTime: getCurrentTime(),
+    }));
+  };
+
+  // Handle tab change
+  const handleTabChange = (tabKey) => {
+    if (tabKey === "callTask") {
+      // Set current date and time when switching to call task tab
+      setCurrentDateTime();
+    }
+    setActiveTab(tabKey);
+  };
+
+  // Update grade when annual income changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      grade: gradeMap[prev.annualIncome] || "",
+    }));
+  }, [formData.annualIncome]);
+
   // Format date for input field
   const formatDateToYMD = (isoDate) => {
     if (!isoDate) return "";
@@ -147,7 +230,7 @@ const SuspectDetailsPage = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Get current date in YYYY-MM-DD format
+  // Get current date in YYYY-MM-DD format for min attribute
   const getTodayDate = () => {
     return new Date().toISOString().split("T")[0];
   };
@@ -159,6 +242,21 @@ const SuspectDetailsPage = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Handle mobile and whatsapp change (sync functionality)
+  const handleMobileWhatsappChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      let updated = { ...prev, [name]: value };
+      if (name === "mobileNo" && value.length === 10 && !whatsappEdited) {
+        updated.whatsappNo = value;
+      }
+      return updated;
+    });
+    if (name === "whatsappNo") {
+      setWhatsappEdited(true);
+    }
   };
 
   // Handle call task form changes
@@ -251,23 +349,16 @@ const SuspectDetailsPage = () => {
       if (response.data.success) {
         toast.success("Call task added successfully!");
 
-        // Reset form
-        setCallTask({
-          taskDate: "",
-          taskTime: "",
+        // Reset form (but keep date/time for next entry)
+        setCallTask((prev) => ({
+          ...prev,
           taskRemarks: "",
           taskStatus: "",
           nextFollowUpDate: "",
           nextFollowUpTime: "",
           nextAppointmentDate: "",
           nextAppointmentTime: "",
-        });
-
-        // Refresh call history
-        const suspectResponse = await axios.get(`/api/suspect/${id}`);
-        if (suspectResponse.data?.success) {
-          setCallHistory(suspectResponse.data.suspect.callTasks || []);
-        }
+        }));
 
         // Navigate to suspects list after 1 second
         setTimeout(() => {
@@ -301,7 +392,7 @@ const SuspectDetailsPage = () => {
           <p>{error}</p>
           <Button
             variant="outline-danger"
-            onClick={() => navigate("/suspects")}
+            onClick={() => navigate("/telecaller/dashboard")}
           >
             <FiArrowLeft /> Back to List
           </Button>
@@ -318,7 +409,7 @@ const SuspectDetailsPage = () => {
           <p>Suspect not found</p>
           <Button
             variant="outline-warning"
-            onClick={() => navigate("/suspects")}
+            onClick={() => navigate("/telecaller/dashboard")}
           >
             <FiArrowLeft /> Back to List
           </Button>
@@ -335,7 +426,7 @@ const SuspectDetailsPage = () => {
       <div className="mb-4">
         <Button
           variant="outline-primary"
-          onClick={() => navigate("/suspects")}
+          onClick={() => navigate("/telecaller/dashboard")}
           className="mb-3"
         >
           <FiArrowLeft /> Back to List
@@ -352,11 +443,7 @@ const SuspectDetailsPage = () => {
       </div>
 
       {/* Tabs for Edit Details and Call Task */}
-      <Tabs
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k)}
-        className="mb-4"
-      >
+      <Tabs activeKey={activeTab} onSelect={handleTabChange} className="mb-4">
         <Tab eventKey="editDetails" title="📝 Edit Personal Details">
           <Card>
             <Card.Header className="bg-primary text-white">
@@ -456,11 +543,11 @@ const SuspectDetailsPage = () => {
                         size="sm"
                       >
                         <option value="">-- Select --</option>
-                        <option value="25 lakh to 1 Cr.">
-                          25 lakh to 1 Cr.
-                        </option>
-                        <option value="5 to 25 lakh">5 to 25 lakh</option>
-                        <option value="2.5 to 5 lakh">2.5 to 5 lakh</option>
+                        {incomeOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -487,7 +574,7 @@ const SuspectDetailsPage = () => {
                         name="mobileNo"
                         type="text"
                         value={formData.mobileNo}
-                        onChange={handlePersonalDetailsChange}
+                        onChange={handleMobileWhatsappChange}
                         maxLength={10}
                         size="sm"
                       />
@@ -501,7 +588,7 @@ const SuspectDetailsPage = () => {
                         type="text"
                         value={formData.whatsappNo}
                         maxLength={10}
-                        onChange={handlePersonalDetailsChange}
+                        onChange={handleMobileWhatsappChange}
                         size="sm"
                       />
                     </Form.Group>
@@ -732,32 +819,99 @@ const SuspectDetailsPage = () => {
                   </Col>
                 </Row>
 
-                {/* Lead Source, Lead Name */}
+                {/* LEAD SOURCE SECTION */}
                 <Row className="mb-3">
-                  <Col md={4}>
+                  <Col md={3}>
                     <Form.Group>
                       <Form.Label>Lead Source</Form.Label>
-                      <Form.Control
+                      <Form.Select
                         name="leadSource"
-                        type="text"
                         value={formData.leadSource}
                         onChange={handlePersonalDetailsChange}
                         size="sm"
-                      />
+                      >
+                        <option value="">Select Lead Source</option>
+                        {leadTypesLoading ? (
+                          <option disabled>Loading...</option>
+                        ) : (
+                          leadTypes?.map((type) => (
+                            <option
+                              key={type._id}
+                              value={type.leadType?.trim()}
+                            >
+                              {type.leadType?.trim()}
+                            </option>
+                          ))
+                        )}
+                      </Form.Select>
                     </Form.Group>
                   </Col>
-                  <Col md={4}>
+
+                  <Col md={3}>
                     <Form.Group>
                       <Form.Label>Lead Name</Form.Label>
-                      <Form.Control
+                      <Form.Select
                         name="leadName"
-                        type="text"
                         value={formData.leadName}
                         onChange={handlePersonalDetailsChange}
                         size="sm"
-                      />
+                      >
+                        <option value="">Select Lead Name</option>
+                        {leadsourceDetail?.map((src) => (
+                          <option key={src._id} value={src.sourceName}>
+                            {src.sourceName}
+                          </option>
+                        ))}
+                      </Form.Select>
                     </Form.Group>
                   </Col>
+
+                  {/* LEAD OCCUPATION */}
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Lead Occupation</Form.Label>
+                      <Form.Select
+                        name="leadOccupation"
+                        value={formData.leadOccupation}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">Select Lead Occupation</option>
+                        {occupations?.map((occupation) => (
+                          <option
+                            key={occupation._id}
+                            value={occupation.occupationName}
+                          >
+                            {occupation.occupationName}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  {/* LEAD OCCUPATION TYPE */}
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Lead Occupation Type</Form.Label>
+                      <Form.Select
+                        name="leadOccupationType"
+                        value={formData.leadOccupationType}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      >
+                        <option value="">Select Lead Occupation Type</option>
+                        {occupationTypes?.map((type) => (
+                          <option key={type._id} value={type.occupationType}>
+                            {type.occupationType}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                {/* Calling Purpose */}
+                <Row className="mb-3">
                   <Col md={4}>
                     <Form.Group>
                       <Form.Label>Calling Purpose</Form.Label>
@@ -780,6 +934,19 @@ const SuspectDetailsPage = () => {
                         </option>
                         <option value="Other">Other</option>
                       </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Name</Form.Label>
+                      <Form.Control
+                        name="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={handlePersonalDetailsChange}
+                        size="sm"
+                      />
                     </Form.Group>
                   </Col>
                 </Row>
@@ -824,7 +991,11 @@ const SuspectDetailsPage = () => {
                   <Button
                     variant="outline-secondary"
                     className="ms-2"
-                    onClick={() => setActiveTab("callTask")}
+                    onClick={() => {
+                      // Set current date and time before switching tab
+                      setCurrentDateTime();
+                      setActiveTab("callTask");
+                    }}
                   >
                     Next: Add Call Task →
                   </Button>
@@ -837,10 +1008,15 @@ const SuspectDetailsPage = () => {
         <Tab eventKey="callTask" title="📞 Add Call Task">
           <Card>
             <Card.Header className="bg-primary text-white">
-              <h5 className="mb-0">
-                <FiPhone className="me-2" />
-                Add Call Task
-              </h5>
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">
+                  <FiPhone className="me-2" />
+                  Add Call Task
+                </h5>
+                <small className="text-light">
+                  Auto-filled: {callTask.taskDate} {callTask.taskTime}
+                </small>
+              </div>
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleSubmitCallTask}>
@@ -860,6 +1036,9 @@ const SuspectDetailsPage = () => {
                         min={getTodayDate()}
                         required
                       />
+                      <small className="text-muted">
+                        Automatically set to today
+                      </small>
                     </Form.Group>
                   </Col>
 
@@ -876,6 +1055,9 @@ const SuspectDetailsPage = () => {
                         onChange={handleCallTaskChange}
                         required
                       />
+                      <small className="text-muted">
+                        Automatically set to current time
+                      </small>
                     </Form.Group>
                   </Col>
 
@@ -1077,7 +1259,6 @@ const SuspectDetailsPage = () => {
             </Card.Body>
           </Card>
 
-          {/* Recent Call History */}
           {callHistory.length > 0 && (
             <div className="mt-4">
               <h6>Call History ({callHistory.length})</h6>
