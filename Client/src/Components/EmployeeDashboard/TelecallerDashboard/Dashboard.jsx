@@ -808,14 +808,14 @@ const DashboardPage = () => {
           <p>Callbacks</p>
           <div className="card-subtitle">Today's Scheduled</div>
         </div>
-        <div
+        {/* <div
           className="card closed"
           onClick={() => navigate("/telecaller/closed-calls")}
         >
           <h3>{realTimeStats.notInterested}</h3>
           <p>Closed Calls</p>
           <div className="card-subtitle">All Time</div>
-        </div>
+        </div> */}
         <div
           className="card success"
           onClick={() =>
