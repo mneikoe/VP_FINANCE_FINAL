@@ -5,7 +5,7 @@ const LeadsTableLayout = ({ title, data, columns }) => {
   const [entries, setEntries] = useState(10);
   const [page, setPage] = useState(1);
 
-  // search filter 
+  // search filter
   const filteredData = data.filter((row) =>
     Object.values(row).some((val) =>
       String(val).toLowerCase().includes(search.toLowerCase())
@@ -126,6 +126,18 @@ const LeadsTableLayout = ({ title, data, columns }) => {
         }
         .task-table th {
           background: #f0f2f5;
+          /* YEH LINE ADD KARO: Column headers single line me rahenge */
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 200px; /* Adjust according to your needs */
+        }
+        /* YEH BHI ADD KARO: Table cells ke liye bhi */
+        .task-table td {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 200px;
         }
         .pagination {
           display: flex;

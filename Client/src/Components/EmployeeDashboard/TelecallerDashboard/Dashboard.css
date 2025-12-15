@@ -811,3 +811,79 @@ optgroup {
 .old-assigned:hover {
     background-color: #fff4d6 !important;
 }
+
+/* Contact number columns styling */
+.mobile-cell,
+.contact-cell-column {
+    min-width: 150px;
+}
+
+.contact-cell .contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.contact-cell .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.contact-cell .contact-number {
+    font-weight: 500;
+    color: #333;
+    flex-grow: 1;
+}
+
+.contact-cell .call-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid #007bff;
+    border-radius: 3px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.contact-cell .call-link:hover {
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+
+    .mobile-cell,
+    .contact-cell-column {
+        min-width: 130px;
+    }
+}
+
+/* Group Code clickable styling */
+.group-code-cell .clickable-name {
+    color: #007bff !important;
+    cursor: pointer !important;
+    text-decoration: underline !important;
+    font-weight: 500;
+    background: #eff6ff !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+    display: inline-block !important;
+    transition: all 0.2s ease !important;
+}
+
+.group-code-cell .clickable-name:hover {
+    color: #0056b3 !important;
+    text-decoration: none !important;
+    background: #dbeafe !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}

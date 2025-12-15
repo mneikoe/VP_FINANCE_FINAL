@@ -598,7 +598,6 @@ const DashboardPage = () => {
     );
   };
 
-  // Table rendering function - UPDATED AS PER REQUIREMENTS
   const renderTable = (
     suspectsData,
     showNextAction = false,
@@ -614,13 +613,13 @@ const DashboardPage = () => {
       <table className="task-table">
         <thead>
           <tr>
-            <th>Assigned Date</th>
+            <th>Task Date</th>
             <th>Group Code</th>
             <th>Group Name</th>
-            <th>Name</th>
-            <th>Contact Numbers</th>
+            <th>Mobile No</th>
+            <th>Contact No</th>
             <th>Lead Source</th>
-            <th>Lead Occupation</th> {/* Changed from Lead Name */}
+            <th>Lead Occupation</th>
             <th>Area</th>
             <th>Current Status</th>
             {showNextAction && <th>Next Action</th>}
@@ -644,9 +643,26 @@ const DashboardPage = () => {
                   </div>
                 </td>
 
-                {/* Group Code */}
+                {/* Group Code - NOW CLICKABLE */}
                 <td className="group-code-cell">
-                  <div className="cell-content">
+                  <div
+                    className="cell-content clickable-name"
+                    onClick={() =>
+                      navigate(`/telecaller/suspect/details/${suspect._id}`)
+                    }
+                    style={{
+                      color: "#007bff",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      fontWeight: 500,
+                      background: "#eff6ff",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      fontSize: "13px",
+                      display: "inline-block",
+                    }}
+                    title="Click to view full details"
+                  >
                     {personal.groupCode || "-"}
                   </div>
                 </td>
@@ -658,25 +674,52 @@ const DashboardPage = () => {
                   </div>
                 </td>
 
-                {/* Name (Clickable) */}
-                <td className="name-cell">
-                  <div
-                    className="cell-content clickable-name"
-                    onClick={() => handleSuspectNameClick(suspect._id)}
-                    style={{
-                      color: "#007bff",
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                    }}
-                    title="Click to view full details"
-                  >
-                    {personal.name || "-"}
+                {/* Mobile Number Column */}
+                <td className="mobile-cell">
+                  <div className="contact-cell">
+                    {personal.mobileNo && personal.mobileNo.trim() !== "" ? (
+                      <div className="contact-info">
+                        <div className="contact-item">
+                          <span className="contact-number">
+                            {personal.mobileNo}
+                          </span>
+                          <a
+                            href={`tel:${personal.mobileNo}`}
+                            className="call-link"
+                            title={`Call ${personal.mobileNo}`}
+                          >
+                            📞 Call
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="cell-content">-</div>
+                    )}
                   </div>
                 </td>
 
-                {/* Contact Numbers */}
-                <td className="contact-cell">
-                  <ContactInfo personal={personal} />
+                {/* Contact Number Column */}
+                <td className="contact-cell-column">
+                  <div className="contact-cell">
+                    {personal.contactNo && personal.contactNo.trim() !== "" ? (
+                      <div className="contact-info">
+                        <div className="contact-item">
+                          <span className="contact-number">
+                            {personal.contactNo}
+                          </span>
+                          <a
+                            href={`tel:${personal.contactNo}`}
+                            className="call-link"
+                            title={`Call ${personal.contactNo}`}
+                          >
+                            📞 Call
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="cell-content">-</div>
+                    )}
+                  </div>
                 </td>
 
                 {/* Lead Source */}
@@ -686,7 +729,7 @@ const DashboardPage = () => {
                   </div>
                 </td>
 
-                {/* Lead Occupation (Updated) */}
+                {/* Lead Occupation */}
                 <td className="lead-occupation-cell">
                   <div className="cell-content">
                     {personal.leadOccupation || "-"}
@@ -776,10 +819,7 @@ const DashboardPage = () => {
       </h2>
 
       <div className="today-call-cards">
-        <div
-          className="card total"
-          onClick={() => navigate("/telecaller/total-leads")}
-        >
+        <div className="card total">
           <h3>{realTimeStats.total}</h3>
           <p>Total Assigned</p>
           <div className="card-subtitle">All Leads</div>
