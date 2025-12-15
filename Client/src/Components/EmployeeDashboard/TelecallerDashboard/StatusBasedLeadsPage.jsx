@@ -502,7 +502,7 @@ const StatusBasedLeadsPage = () => {
     { header: "S.N", key: "sn", width: "60px", align: "center" },
     { header: "Task Date", key: "assignedDate", width: "100px" },
     { header: "Group Code", key: "groupCode", width: "120px" }, // Group Code is now clickable
-    { header: "Grade", key: "grade", width: "80px" },
+
     { header: "Group Name", key: "groupName", width: "120px" },
     // REMOVED: Name column
     { header: "Mobile No", key: "mobileNo", width: "150px" },
