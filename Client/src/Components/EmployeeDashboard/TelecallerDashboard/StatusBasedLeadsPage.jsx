@@ -296,7 +296,7 @@ const StatusBasedLeadsPage = () => {
     return sortedTasks[0].taskStatus;
   };
 
-  // Prepare table data
+  // Prepare table data with separate contact columns
   const tableData = useMemo(() => {
     return leads.map((lead, index) => {
       const personal = lead.personalDetails || {};
@@ -305,53 +305,134 @@ const StatusBasedLeadsPage = () => {
         key: lead._id,
         sn: index + 1,
         assignedDate: formatDate(lead.assignedAt),
-        groupCode: personal.groupCode || "-",
-        grade: personal.grade || "-",
-        groupName: personal.groupName || "-",
-        name: (
+        // Group Code - NOW CLICKABLE
+        groupCode: (
           <span
-            style={{ color: "#1890ff", cursor: "pointer", fontWeight: 500 }}
+            style={{
+              color: "#1890ff",
+              cursor: "pointer",
+              fontWeight: 600,
+              background: "#eff6ff",
+              padding: "4px 10px",
+              borderRadius: "4px",
+              fontSize: "13px",
+              display: "inline-block",
+              border: "1px solid #d1e9ff",
+              transition: "all 0.2s ease",
+            }}
             onClick={() => navigate(`/telecaller/suspect/details/${lead._id}`)}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#dbeafe";
+              e.target.style.color = "#0056b3";
+              e.target.style.transform = "translateY(-1px)";
+              e.target.style.boxShadow = "0 2px 4px rgba(59, 130, 246, 0.2)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "#eff6ff";
+              e.target.style.color = "#1890ff";
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "none";
+            }}
+            title="Click to view full details"
           >
-            {personal.name || "-"}
+            {personal.groupCode || "-"}
           </span>
         ),
-        contact: (
+        grade: personal.grade || "-",
+        groupName: personal.groupName || "-",
+        // REMOVED: Name column data
+        // Mobile Number Column
+        mobileNo: (
           <div>
-            {personal.mobileNo && (
+            {personal.mobileNo && personal.mobileNo.trim() !== "" ? (
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                  marginBottom: "2px",
+                  gap: "6px",
+                  padding: "4px 8px",
+                  background: "#f8f9fa",
+                  borderRadius: "4px",
+                  border: "1px solid #e9ecef",
                 }}
               >
                 <PhoneOutlined style={{ fontSize: "12px", color: "#52c41a" }} />
-                <span>{personal.mobileNo}</span>
+                <span style={{ fontWeight: 500, color: "#333" }}>
+                  {personal.mobileNo}
+                </span>
                 <a
                   href={`tel:${personal.mobileNo}`}
-                  style={{ fontSize: "11px", marginLeft: "4px" }}
+                  style={{
+                    fontSize: "11px",
+                    color: "#007bff",
+                    textDecoration: "none",
+                    padding: "2px 6px",
+                    border: "1px solid #007bff",
+                    borderRadius: "3px",
+                    background: "white",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "#007bff";
+                    e.target.style.color = "white";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "white";
+                    e.target.style.color = "#007bff";
+                  }}
                 >
                   Call
                 </a>
               </div>
+            ) : (
+              <span style={{ color: "#999" }}>-</span>
             )}
-            {personal.contactNo && (
+          </div>
+        ),
+        // Contact Number Column
+        contactNo: (
+          <div>
+            {personal.contactNo && personal.contactNo.trim() !== "" ? (
               <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "4px 8px",
+                  background: "#f8f9fa",
+                  borderRadius: "4px",
+                  border: "1px solid #e9ecef",
+                }}
               >
                 <PhoneOutlined style={{ fontSize: "12px", color: "#1890ff" }} />
-                <span>{personal.contactNo}</span>
+                <span style={{ fontWeight: 500, color: "#333" }}>
+                  {personal.contactNo}
+                </span>
                 <a
                   href={`tel:${personal.contactNo}`}
-                  style={{ fontSize: "11px", marginLeft: "4px" }}
+                  style={{
+                    fontSize: "11px",
+                    color: "#007bff",
+                    textDecoration: "none",
+                    padding: "2px 6px",
+                    border: "1px solid #007bff",
+                    borderRadius: "3px",
+                    background: "white",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "#007bff";
+                    e.target.style.color = "white";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "white";
+                    e.target.style.color = "#007bff";
+                  }}
                 >
                   Call
                 </a>
               </div>
+            ) : (
+              <span style={{ color: "#999" }}>-</span>
             )}
-            {!personal.mobileNo && !personal.contactNo && "-"}
           </div>
         ),
         leadSource: personal.leadSource || "-",
@@ -370,11 +451,32 @@ const StatusBasedLeadsPage = () => {
             {lead.callTasks && lead.callTasks.length > 0 && (
               <>
                 {lead.callTasks[0].nextFollowUpDate && (
-                  <div>📞 {formatDate(lead.callTasks[0].nextFollowUpDate)}</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    <PhoneOutlined style={{ fontSize: "10px" }} />
+                    {formatDate(lead.callTasks[0].nextFollowUpDate)}{" "}
+                    {lead.callTasks[0].nextFollowUpTime &&
+                      `at ${lead.callTasks[0].nextFollowUpTime}`}
+                  </div>
                 )}
                 {lead.callTasks[0].nextAppointmentDate && (
-                  <div>
-                    📅 {formatDate(lead.callTasks[0].nextAppointmentDate)}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <CalendarOutlined style={{ fontSize: "10px" }} />
+                    {formatDate(lead.callTasks[0].nextAppointmentDate)}{" "}
+                    {lead.callTasks[0].nextAppointmentTime &&
+                      `at ${lead.callTasks[0].nextAppointmentTime}`}
                   </div>
                 )}
               </>
@@ -386,28 +488,30 @@ const StatusBasedLeadsPage = () => {
             type="link"
             size="small"
             onClick={() => navigate(`/telecaller/dashboard`)}
-            style={{ padding: 0, fontSize: "12px" }}
+            style={{ padding: 0, fontSize: "12px", fontWeight: 500 }}
           >
-            Update
+            Update Status
           </Button>
         ),
       };
     });
   }, [leads, navigate, statusConfig.color]);
 
+  // Updated columns definition with separate contact columns and NO NAME COLUMN
   const columns = [
     { header: "S.N", key: "sn", width: "60px", align: "center" },
-    { header: "Assigned Date", key: "assignedDate", width: "100px" },
-    { header: "Group Code", key: "groupCode", width: "100px" },
+    { header: "Task Date", key: "assignedDate", width: "100px" },
+    { header: "Group Code", key: "groupCode", width: "120px" }, // Group Code is now clickable
     { header: "Grade", key: "grade", width: "80px" },
     { header: "Group Name", key: "groupName", width: "120px" },
-    { header: "Name", key: "name", width: "120px" },
-    { header: "Contact", key: "contact", width: "130px" },
+    // REMOVED: Name column
+    { header: "Mobile No", key: "mobileNo", width: "150px" },
+    { header: "Contact No", key: "contactNo", width: "150px" },
     { header: "Lead Source", key: "leadSource", width: "100px" },
     { header: "Lead Occupation", key: "leadOccupation", width: "120px" },
     { header: "Area", key: "area", width: "100px" },
     { header: "Current Status", key: "currentStatus", width: "120px" },
-    { header: "Next Action", key: "nextAction", width: "100px" },
+    { header: "Next Action", key: "nextAction", width: "130px" },
   ];
 
   return (
