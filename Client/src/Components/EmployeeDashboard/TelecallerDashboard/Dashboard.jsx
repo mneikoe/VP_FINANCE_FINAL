@@ -875,7 +875,7 @@ const DashboardPage = () => {
               {callModal.phoneNumber}
             </div>
             <p style={{ color: "#666", fontSize: "14px", marginBottom: 0 }}>
-              Kya aap is number par call lagana chahte hain?
+              Click ok to initiate the call.
             </p>
           </div>
         </Modal.Body>
