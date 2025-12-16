@@ -6,6 +6,7 @@ import { getAllSuspects } from "../../../redux/feature/SuspectRedux/SuspectThunx
 import { useLocation } from "react-router-dom";
 import axiosInstance from "../../../config/axios";
 import AssignmentAnalytics from "./AssignmentAnalytics";
+import { Modal } from "react-bootstrap";
 import "./Dashboard.css";
 
 const DashboardPage = () => {
@@ -28,7 +29,11 @@ const DashboardPage = () => {
     nextAppointmentDate: "",
     nextAppointmentTime: "",
   });
-
+  const [callModal, setCallModal] = useState({
+    visible: false,
+    phoneNumber: "",
+    type: "",
+  });
   const [assignedSuspects, setAssignedSuspects] = useState([]);
   const [assignedLoading, setAssignedLoading] = useState(false);
   const [assignedError, setAssignedError] = useState(null);
@@ -180,6 +185,24 @@ const DashboardPage = () => {
     } finally {
       setAssignedLoading(false);
     }
+  };
+
+  const handlePhoneClick = (phoneNumber, type = "mobile") => {
+    if (!phoneNumber || phoneNumber === "-") return;
+
+    setCallModal({
+      visible: true,
+      phoneNumber,
+      type: type === "mobile" ? "Mobile" : "Contact",
+    });
+  };
+
+  // Handle call confirmation
+  const handleCallConfirm = () => {
+    if (callModal.phoneNumber) {
+      window.location.href = `tel:${callModal.phoneNumber}`;
+    }
+    setCallModal({ visible: false, phoneNumber: "", type: "" });
   };
 
   const calculateRealTimeStats = (suspectsData) => {
@@ -431,7 +454,6 @@ const DashboardPage = () => {
     try {
       const endpoint = `/api/suspect/${suspectId}/call-task`;
 
-      // ✅ Prepare the request body
       let body = {
         taskDate: new Date().toISOString().split("T")[0],
         taskTime:
@@ -445,13 +467,11 @@ const DashboardPage = () => {
         taskStatus: status,
       };
 
-      // ✅ Add next follow-up date/time for forwarded calls
       if (forwardedStatuses.includes(status) || status === "Callback") {
         body.nextFollowUpDate = nextCallDate;
         body.nextFollowUpTime = time;
       }
 
-      // ✅ Add next appointment date/time for appointment scheduled
       if (status === "Appointment Scheduled") {
         body.nextAppointmentDate = nextAppointmentDate;
         body.nextAppointmentTime = nextAppointmentTime;
@@ -463,41 +483,33 @@ const DashboardPage = () => {
         body,
       });
 
-      // ✅ Send request to backend
       const response = await axiosInstance.post(endpoint, body);
 
       if (response.data && response.data.success === true) {
-        // ✅ CHECK IF SUSPECT WAS CONVERTED TO PROSPECT
         let conversionMessage = "";
         if (response.data.statusChanged) {
           conversionMessage = "\n✅ Suspect has been converted to Prospect!";
           console.log("🎯 Prospect conversion successful:", response.data);
         }
 
-        // ✅ Show success message
         alert(`✅ Status updated to: ${status}${conversionMessage}`);
 
-        // ✅ REFRESH ALL DATA
         await Promise.all([
-          fetchAssignedSuspects(), // Refresh assigned suspects
-          fetchTodaysActiveSuspects(), // Refresh today's calls
-          fetchTelecallerStats(), // Refresh stats
-          dispatch(getAllSuspects()), // Refresh all suspects
-          fetchScheduledCalls(selectedDate), // Refresh scheduled calls
+          fetchAssignedSuspects(),
+          fetchTodaysActiveSuspects(),
+          fetchTelecallerStats(),
+          dispatch(getAllSuspects()),
+          fetchScheduledCalls(selectedDate),
         ]);
 
-        // ✅ SPECIAL: If appointment done, fetch prospects too
         if (status === "Appointment Scheduled") {
           try {
-            // Optional: You can fetch prospects to verify
             console.log("🔄 Verifying prospect list after appointment...");
-            // You could add a prospects fetch here if needed
           } catch (err) {
             console.log("ℹ️ Prospect verification not critical:", err.message);
           }
         }
 
-        // ✅ Clear the form and close action panel
         setActionPanel(null);
         setFormData({
           status: "",
@@ -513,16 +525,13 @@ const DashboardPage = () => {
     } catch (error) {
       console.error("❌ Status Update Error:", error);
 
-      // ✅ User-friendly error messages
       let errorMessage = "Something went wrong";
 
       if (error.response) {
-        // Server responded with error
         errorMessage =
           error.response.data?.message ||
           `Server error: ${error.response.status}`;
 
-        // Specific handling for common errors
         if (error.response.status === 404) {
           errorMessage = "Suspect not found. Please refresh the page.";
         } else if (error.response.status === 400) {
@@ -531,16 +540,10 @@ const DashboardPage = () => {
           errorMessage = "Server error. Please try again later.";
         }
       } else if (error.request) {
-        // Request was made but no response
         errorMessage = "Network error. Please check your connection.";
       }
 
       alert(`❌ Status update failed: ${errorMessage}`);
-
-      // ✅ Don't close panel on error so user can fix and retry
-      if (error.response?.status !== 404) {
-        // Keep panel open for user to retry (except for 404)
-      }
     } finally {
       setIsAssigning(false);
     }
@@ -557,56 +560,22 @@ const DashboardPage = () => {
     }
   };
 
-  // Contact component with icons
-  const ContactInfo = ({ personal }) => {
-    const hasMobile = personal.mobileNo && personal.mobileNo.trim() !== "";
-    const hasContact = personal.contactNo && personal.contactNo.trim() !== "";
-
-    if (!hasMobile && !hasContact) {
-      return <div className="cell-content">-</div>;
-    }
-
-    return (
-      <div className="contact-info">
-        {hasMobile && (
-          <div className="contact-item">
-            <span className="contact-icon mobile-icon">📱</span>
-            <span className="contact-number">{personal.mobileNo}</span>
-            <a
-              href={`tel:${personal.mobileNo}`}
-              className="call-link"
-              title={`Call ${personal.mobileNo}`}
-            >
-              📞 Call
-            </a>
-          </div>
-        )}
-        {hasContact && (
-          <div className="contact-item">
-            <span className="contact-icon phone-icon">📞</span>
-            <span className="contact-number">{personal.contactNo}</span>
-            <a
-              href={`tel:${personal.contactNo}`}
-              className="call-link"
-              title={`Call ${personal.contactNo}`}
-            >
-              📞 Call
-            </a>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const renderTable = (
     suspectsData,
     showNextAction = false,
     showOnlyNotContacted = false
   ) => {
-    // Filter data based on requirement
     let filteredData = suspectsData;
     if (showOnlyNotContacted) {
       filteredData = getTodaysNotContactedSuspects(suspectsData);
+    }
+
+    if (!filteredData || filteredData.length === 0) {
+      return (
+        <div className="text-center mt-4">
+          <p>No data available.</p>
+        </div>
+      );
     }
 
     return (
@@ -621,7 +590,7 @@ const DashboardPage = () => {
             <th>Lead Source</th>
             <th>Lead Occupation</th>
             <th>Area</th>
-            <th>Current Status</th>
+            <th>Status</th>
             {showNextAction && <th>Next Action</th>}
             <th>Action</th>
           </tr>
@@ -674,50 +643,102 @@ const DashboardPage = () => {
                   </div>
                 </td>
 
-                {/* Mobile Number Column */}
+                {/* Mobile Number Column - CLICK TO CALL */}
                 <td className="mobile-cell">
                   <div className="contact-cell">
                     {personal.mobileNo && personal.mobileNo.trim() !== "" ? (
                       <div className="contact-info">
                         <div className="contact-item">
-                          <span className="contact-number">
+                          <span
+                            className="contact-number clickable-number"
+                            onClick={() =>
+                              handlePhoneClick(personal.mobileNo, "mobile")
+                            }
+                            style={{
+                              color: "#1890ff",
+                              cursor: "pointer",
+                              fontWeight: 500,
+                              fontSize: "13px",
+                              fontFamily: "monospace",
+                              display: "block",
+                              textAlign: "center",
+                              width: "100%",
+                              padding: "4px 0",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.textDecoration = "underline";
+                              e.target.style.color = "#096dd9";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.textDecoration = "none";
+                              e.target.style.color = "#1890ff";
+                            }}
+                          >
                             {personal.mobileNo}
                           </span>
-                          <a
-                            href={`tel:${personal.mobileNo}`}
-                            className="call-link"
-                            title={`Call ${personal.mobileNo}`}
-                          >
-                            📞 Call
-                          </a>
                         </div>
                       </div>
                     ) : (
-                      <div className="cell-content">-</div>
+                      <div
+                        className="cell-content"
+                        style={{
+                          textAlign: "center",
+                          color: "#bfbfbf",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        -
+                      </div>
                     )}
                   </div>
                 </td>
 
-                {/* Contact Number Column */}
+                {/* Contact Number Column - CLICK TO CALL */}
                 <td className="contact-cell-column">
                   <div className="contact-cell">
                     {personal.contactNo && personal.contactNo.trim() !== "" ? (
                       <div className="contact-info">
                         <div className="contact-item">
-                          <span className="contact-number">
+                          <span
+                            className="contact-number clickable-number"
+                            onClick={() =>
+                              handlePhoneClick(personal.contactNo, "contact")
+                            }
+                            style={{
+                              color: "#1890ff",
+                              cursor: "pointer",
+                              fontWeight: 500,
+                              fontSize: "13px",
+                              fontFamily: "monospace",
+                              display: "block",
+                              textAlign: "center",
+                              width: "100%",
+                              padding: "4px 0",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.textDecoration = "underline";
+                              e.target.style.color = "#096dd9";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.textDecoration = "none";
+                              e.target.style.color = "#1890ff";
+                            }}
+                          >
                             {personal.contactNo}
                           </span>
-                          <a
-                            href={`tel:${personal.contactNo}`}
-                            className="call-link"
-                            title={`Call ${personal.contactNo}`}
-                          >
-                            📞 Call
-                          </a>
                         </div>
                       </div>
                     ) : (
-                      <div className="cell-content">-</div>
+                      <div
+                        className="cell-content"
+                        style={{
+                          textAlign: "center",
+                          color: "#bfbfbf",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        -
+                      </div>
                     )}
                   </div>
                 </td>
@@ -806,17 +827,76 @@ const DashboardPage = () => {
     );
   };
 
-  // Rest of the component remains exactly the same...
   return (
     <div className="dashboard-page">
       <h2 className="table-title">
-        Today's Calls -{" "}
+        Today's Calls{" "}
         {new Date().toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
         })}
       </h2>
+
+      {/* Stylish Call Confirmation Modal (same feel as clean popup) */}
+      <Modal
+        show={callModal.visible}
+        onHide={() =>
+          setCallModal({ visible: false, phoneNumber: "", type: "" })
+        }
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Call Confirmation</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ padding: "10px 0", textAlign: "center" }}>
+            <div
+              style={{
+                fontSize: "40px",
+                color: "#1890ff",
+                marginBottom: "10px",
+              }}
+            >
+              📞
+            </div>
+            <h4 style={{ color: "#1f1f1f", marginBottom: "6px" }}>
+              {callModal.type} Number
+            </h4>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 600,
+                color: "#1890ff",
+                marginBottom: "6px",
+                fontFamily: "monospace",
+              }}
+            >
+              {callModal.phoneNumber}
+            </div>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: 0 }}>
+              Kya aap is number par call lagana chahte hain?
+            </p>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            className="btn btn-secondary"
+            onClick={() =>
+              setCallModal({ visible: false, phoneNumber: "", type: "" })
+            }
+          >
+            Cancel
+          </button>
+          <button
+            className="btn btn-success"
+            onClick={handleCallConfirm}
+            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+          >
+            Call Now
+          </button>
+        </Modal.Footer>
+      </Modal>
 
       <div className="today-call-cards">
         <div className="card total">
@@ -848,14 +928,6 @@ const DashboardPage = () => {
           <p>Callbacks</p>
           <div className="card-subtitle">Today's Scheduled</div>
         </div>
-        {/* <div
-          className="card closed"
-          onClick={() => navigate("/telecaller/closed-calls")}
-        >
-          <h3>{realTimeStats.notInterested}</h3>
-          <p>Closed Calls</p>
-          <div className="card-subtitle">All Time</div>
-        </div> */}
         <div
           className="card success"
           onClick={() =>
@@ -905,7 +977,7 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {/* TODAY'S TAB - Show only Not Contacted */}
+      {/* TODAY'S TAB */}
       {activeTab === "today" && (
         <div className="todays-calls">
           <div className="d-flex justify-content-between align-items-center">
@@ -941,7 +1013,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* ALL ASSIGNED TAB - Show all with old assigned highlighting */}
+      {/* ALL ASSIGNED TAB */}
       {activeTab === "all" && (
         <div className="assigned-suspects">
           <div className="d-flex justify-content-between align-items-center">

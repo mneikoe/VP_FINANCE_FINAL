@@ -13,6 +13,7 @@ import {
   Spin,
   Select,
   DatePicker,
+  Modal,
 } from "antd";
 import {
   CalendarOutlined,
@@ -50,6 +51,72 @@ const ForwardedLeadsPage = () => {
     icon: "↪️",
     description:
       "Leads with forwarded call status (Call Not Picked, Busy, etc.)",
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  // Format time in AM/PM format
+  const formatTimeAMPM = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "-";
+    }
+  };
+
+  // Get latest call status and time
+  const getLatestCallInfo = (lead) => {
+    if (!lead.callTasks || lead.callTasks.length === 0) {
+      return {
+        currentStatus: "Not Contacted",
+        callTime: "-",
+        lastStatus: "-",
+        updatedAt: "-",
+      };
+    }
+
+    // Sort tasks by date (newest first)
+    const sortedTasks = [...lead.callTasks].sort(
+      (a, b) =>
+        new Date(b.createdAt || b.taskDate || 0) -
+        new Date(a.createdAt || a.taskDate || 0)
+    );
+
+    // Current status (latest task status)
+    const currentStatus = sortedTasks[0].taskStatus || "Not Contacted";
+
+    // Call time - status update ka time (createdAt)
+    const callTime = sortedTasks[0].createdAt || sortedTasks[0].taskDate;
+
+    // Last status (previous task status if exists)
+    let lastStatus = "-";
+    if (sortedTasks.length > 1) {
+      lastStatus = sortedTasks[1].taskStatus || "-";
+    }
+
+    return {
+      currentStatus,
+      callTime,
+      lastStatus,
+      latestTask: sortedTasks[0],
+      previousTask: sortedTasks[1] || null,
+    };
   };
 
   // OLD FILTERING LOGIC (Same as before)
@@ -138,42 +205,24 @@ const ForwardedLeadsPage = () => {
       total: filteredLeads.length,
       today: filteredLeads.filter((lead) => {
         if (!lead.callTasks || lead.callTasks.length === 0) return false;
-        const latestTask = lead.callTasks.reduce((latest, task) => {
-          if (!task.taskDate) return latest;
-          const taskDate = new Date(task.taskDate);
-          if (!latest) return task;
-          const latestDate = new Date(latest.taskDate);
-          return taskDate > latestDate ? task : latest;
-        }, null);
-        if (!latestTask || !latestTask.taskDate) return false;
-        const taskDate = new Date(latestTask.taskDate);
+        const callInfo = getLatestCallInfo(lead);
+        if (!callInfo.callTime || callInfo.callTime === "-") return false;
+        const taskDate = new Date(callInfo.callTime);
         taskDate.setHours(0, 0, 0, 0);
         return taskDate.getTime() === today.getTime();
       }).length,
       thisWeek: filteredLeads.filter((lead) => {
         if (!lead.callTasks || lead.callTasks.length === 0) return false;
-        const latestTask = lead.callTasks.reduce((latest, task) => {
-          if (!task.taskDate) return latest;
-          const taskDate = new Date(task.taskDate);
-          if (!latest) return task;
-          const latestDate = new Date(latest.taskDate);
-          return taskDate > latestDate ? task : latest;
-        }, null);
-        if (!latestTask || !latestTask.taskDate) return false;
-        const taskDate = new Date(latestTask.taskDate);
+        const callInfo = getLatestCallInfo(lead);
+        if (!callInfo.callTime || callInfo.callTime === "-") return false;
+        const taskDate = new Date(callInfo.callTime);
         return taskDate >= weekStart && taskDate <= today;
       }).length,
       thisMonth: filteredLeads.filter((lead) => {
         if (!lead.callTasks || lead.callTasks.length === 0) return false;
-        const latestTask = lead.callTasks.reduce((latest, task) => {
-          if (!task.taskDate) return latest;
-          const taskDate = new Date(task.taskDate);
-          if (!latest) return task;
-          const latestDate = new Date(latest.taskDate);
-          return taskDate > latestDate ? task : latest;
-        }, null);
-        if (!latestTask || !latestTask.taskDate) return false;
-        const taskDate = new Date(latestTask.taskDate);
+        const callInfo = getLatestCallInfo(lead);
+        if (!callInfo.callTime || callInfo.callTime === "-") return false;
+        const taskDate = new Date(callInfo.callTime);
         return taskDate >= monthStart && taskDate <= today;
       }).length,
     };
@@ -209,140 +258,124 @@ const ForwardedLeadsPage = () => {
     }, 500);
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+  // Handle group code click - navigate to suspect details page
+  const handleGroupCodeClick = (leadId) => {
+    if (leadId) {
+      navigate(`/telecaller/suspect/details/${leadId}`);
+    }
   };
 
-  // Get latest call task
-  const getLatestCallTask = (lead) => {
-    if (!lead.callTasks || lead.callTasks.length === 0) {
-      return null;
-    }
-    return lead.callTasks.reduce((latest, task) => {
-      if (!task.taskDate) return latest;
-      const taskDate = new Date(task.taskDate);
-      if (!latest) return task;
-      const latestDate = new Date(latest.taskDate);
-      return taskDate > latestDate ? task : latest;
-    }, null);
+  // Handle phone call click
+  const handleCallClick = (phone) => {
+    if (!phone) return;
+    Modal.confirm({
+      title: "Call Confirmation",
+      icon: <PhoneOutlined />,
+      content: `Kya aap ${phone} par call lagana chahte hain?`,
+      okText: "OK",
+      cancelText: "Cancel",
+      onOk: () => {
+        window.location.href = `tel:${phone}`;
+      },
+    });
   };
 
   // Prepare table data - NEW UI but same data structure
   const tableData = useMemo(() => {
-    return filteredLeads.map((lead, index) => {
+    return filteredLeads.map((lead) => {
       const personal = lead.personalDetails || {};
-      const latestTask = getLatestCallTask(lead);
+      const callInfo = getLatestCallInfo(lead);
+      const latestTask = callInfo.latestTask;
+
+      // Status Updated At - Task Date + Time
+      const statusUpdatedAt = latestTask
+        ? `${formatDate(
+            latestTask.taskDate || latestTask.createdAt
+          )} ${formatTimeAMPM(latestTask.createdAt || latestTask.taskDate)}`
+        : "-";
+
+      let nextActionText = "-";
+      if (latestTask?.nextFollowUpDate) {
+        nextActionText = formatDate(latestTask.nextFollowUpDate);
+      } else if (latestTask?.nextAppointmentDate) {
+        nextActionText = formatDate(latestTask.nextAppointmentDate);
+      }
 
       return {
         key: lead._id,
-        sn: index + 1,
-        assignedDate: formatDate(lead.assignedAt),
-        groupCode: personal.groupCode || "-",
-        grade: personal.grade || "-",
-        groupName: personal.groupName || "-",
-        name: (
+        taskDate: formatDate(lead.assignedAt), // ✅ Assigned date
+        groupCode: (
           <span
-            style={{ color: "#1890ff", cursor: "pointer", fontWeight: 500 }}
-            onClick={() => navigate(`/telecaller/suspect/edit/${lead._id}`)}
+            style={{
+              color: "#1890ff",
+              cursor: "pointer",
+              fontWeight: 500,
+              textDecoration: "underline",
+            }}
+            onClick={() => handleGroupCodeClick(lead._id)}
           >
-            {personal.name || personal.groupName || "-"}
+            {personal.groupCode || "-"}
           </span>
         ),
-        contact: (
-          <div>
-            {personal.mobileNo && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  marginBottom: "2px",
-                }}
-              >
-                <PhoneOutlined style={{ fontSize: "12px", color: "#52c41a" }} />
-                <span>{personal.mobileNo}</span>
-                <a
-                  href={`tel:${personal.mobileNo}`}
-                  style={{
-                    fontSize: "11px",
-                    marginLeft: "4px",
-                    color: "#1890ff",
-                  }}
-                >
-                  Call
-                </a>
-              </div>
-            )}
-            {(!personal.mobileNo || personal.mobileNo === "-") && "-"}
-          </div>
-        ),
+        groupName: personal.groupName || "-",
+
+        mobileNo:
+          personal.mobileNo && personal.mobileNo.trim() !== "" ? (
+            <span
+              style={{
+                color: "#1677ff",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+              onClick={() => handleCallClick(personal.mobileNo)}
+            >
+              {personal.mobileNo}
+            </span>
+          ) : (
+            <span style={{ color: "#999" }}>-</span>
+          ),
+
+        contactNo:
+          personal.contactNo && personal.contactNo.trim() !== "" ? (
+            <span
+              style={{
+                color: "#1677ff",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+              onClick={() => handleCallClick(personal.contactNo)}
+            >
+              {personal.contactNo}
+            </span>
+          ) : (
+            <span style={{ color: "#999" }}>-</span>
+          ),
+
         leadSource: personal.leadSource || "-",
         leadOccupation: personal.leadOccupation || "-",
-        area: personal.city || personal.preferredMeetingArea || "-",
-        currentStatus: (
-          <Tag
-            color={statusConfig.color}
-            style={{ fontWeight: 500, fontSize: "11px" }}
-          >
-            {latestTask?.taskStatus || "Not Contacted"}
-          </Tag>
-        ),
-        nextAction: latestTask?.nextFollowUpDate ? (
-          <div
-            style={{
-              fontSize: "11px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <CalendarOutlined style={{ fontSize: "10px" }} />
-            <span>{formatDate(latestTask.nextFollowUpDate)}</span>
-          </div>
-        ) : (
-          "-"
-        ),
-        taskDate: latestTask?.taskDate ? formatDate(latestTask.taskDate) : "-",
-        taskTime: latestTask?.taskTime || "-",
-        remarks: latestTask?.taskRemarks ? (
-          <div style={{ maxWidth: "150px" }}>
-            {latestTask.taskRemarks.length > 30
-              ? `${latestTask.taskRemarks.substring(0, 30)}...`
-              : latestTask.taskRemarks}
-          </div>
-        ) : (
-          "-"
-        ),
-        organisation: personal.organisation || "-",
+        area: personal.city || "-",
+        currentStatus: callInfo.currentStatus,
+        nextAction: nextActionText, // SIRF DATE
+        statusUpdatedAt: statusUpdatedAt, // ✅ Task Date + Time (both)
+        lastStatus: callInfo.lastStatus, // ✅ Previous status
       };
     });
-  }, [filteredLeads, navigate, statusConfig.color]);
+  }, [filteredLeads]);
 
-  // Columns - Same as before but with new UI
+  // Columns - Updated with new requirements
   const columns = [
-    { header: "S.N", key: "sn", width: "60px", align: "center" },
-    { header: "Assigned Date", key: "assignedDate", width: "100px" },
-    { header: "Group Code", key: "groupCode", width: "100px" },
-    { header: "Grade", key: "grade", width: "80px" },
-    { header: "Group Name", key: "groupName", width: "120px" },
-    { header: "Name", key: "name", width: "120px" },
-    { header: "Contact", key: "contact", width: "130px" },
-    { header: "Lead Source", key: "leadSource", width: "100px" },
-    { header: "Lead Occupation", key: "leadOccupation", width: "120px" },
+    { header: "Task Date", key: "taskDate", width: "100px" }, // Assigned date
+    { header: "Group Code", key: "groupCode", width: "120px" },
+    { header: "Group Name", key: "groupName", width: "140px" },
+    { header: "Mobile No", key: "mobileNo", width: "130px" },
+    { header: "Contact No", key: "contactNo", width: "130px" },
+    { header: "Lead Source", key: "leadSource", width: "110px" },
+    { header: "Lead Occupation", key: "leadOccupation", width: "130px" },
     { header: "Area", key: "area", width: "100px" },
-    { header: "Current Status", key: "currentStatus", width: "120px" },
+    { header: "Status", key: "currentStatus", width: "120px" },
     { header: "Next Action", key: "nextAction", width: "100px" },
-    { header: "Task Date", key: "taskDate", width: "100px" },
-    { header: "Task Time", key: "taskTime", width: "80px" },
-    { header: "Remarks", key: "remarks", width: "150px" },
-    { header: "Organisation", key: "organisation", width: "120px" },
+    { header: "Call Time", key: "statusUpdatedAt", width: "150px" }, // Task Date + Time
+    { header: "Last Status", key: "lastStatus", width: "120px" },
   ];
 
   return (

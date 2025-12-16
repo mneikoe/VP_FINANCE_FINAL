@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const LeadsTableLayout = ({ title, data, columns }) => {
+const LeadsTableLayout = ({ title, data, columns, onActionClick }) => {
   const [search, setSearch] = useState("");
   const [entries, setEntries] = useState(10);
   const [page, setPage] = useState(1);
@@ -63,9 +63,34 @@ const LeadsTableLayout = ({ title, data, columns }) => {
           {paginatedData.length > 0 ? (
             paginatedData.map((row, idx) => (
               <tr key={idx}>
-                {columns.map((col, ci) => (
-                  <td key={ci}>{row[col.key] || "-"}</td>
-                ))}
+                {columns.map((col, ci) => {
+                  const cellValue = row[col.key];
+
+                  // Action column ke liye special rendering
+                  if (col.key === "action" && cellValue) {
+                    return (
+                      <td key={ci}>
+                        <button
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "12px",
+                            borderRadius: "4px",
+                            border: "1px solid #1677ff",
+                            background: "#1677ff",
+                            color: "#fff",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => onActionClick && onActionClick(row)}
+                        >
+                          Update Status
+                        </button>
+                      </td>
+                    );
+                  }
+
+                  // Normal cells
+                  return <td key={ci}>{cellValue || "-"}</td>;
+                })}
               </tr>
             ))
           ) : (
@@ -126,13 +151,11 @@ const LeadsTableLayout = ({ title, data, columns }) => {
         }
         .task-table th {
           background: #f0f2f5;
-          /* YEH LINE ADD KARO: Column headers single line me rahenge */
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 200px; /* Adjust according to your needs */
+          max-width: 200px;
         }
-        /* YEH BHI ADD KARO: Table cells ke liye bhi */
         .task-table td {
           white-space: nowrap;
           overflow: hidden;
