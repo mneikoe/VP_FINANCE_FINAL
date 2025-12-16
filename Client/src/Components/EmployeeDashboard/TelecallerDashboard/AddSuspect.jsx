@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col, Button, Tabs, Tab } from "react-bootstrap";
-import { createSuspect, updateSuspectPersonalDetails } from "../../../redux/feature/SuspectRedux/SuspectThunx";
+import {
+  createSuspect,
+  updateSuspectPersonalDetails,
+} from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
 import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
@@ -21,7 +24,7 @@ const gradeMap = {
   "2.5 to 5 lakh": 3,
 };
 
- const telecaller = JSON.parse(localStorage.getItem("user"));
+const telecaller = JSON.parse(localStorage.getItem("user"));
 
 // Utility function to format ISO date to yyyy-MM-dd
 const formatDateToYMD = (isoDate) => {
@@ -60,6 +63,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
     preferredMeetingArea: "",
     city: "",
     bestTime: "",
+    bestTimeExact: "", // NEW: dummy time field near Best Time (frontend only)
     adharNumber: "",
     panCardNumber: "",
     hobbies: "",
@@ -88,7 +92,9 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
   const { leadsourceDetail } = useSelector((state) => state.leadsource);
   const { alldetails } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
-  const { LeadType: leadTypes, loading } = useSelector((state) => state.LeadType);
+  const { LeadType: leadTypes, loading } = useSelector(
+    (state) => state.LeadType
+  );
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [occupations, setOccupations] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
@@ -101,6 +107,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
         ...suspectData.personalDetails,
         dob: formatDateToYMD(suspectData.personalDetails?.dob),
         dom: formatDateToYMD(suspectData.personalDetails?.dom),
+        bestTimeExact: suspectData.personalDetails?.bestTimeExact || "",
       });
       setFormData2({
         NextCallDate: formatDateToYMD(suspectData.NextCallDate),
@@ -120,12 +127,16 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
   const fetchCallHistory = async () => {
     if (!isEdit || !suspectData?._id) return;
     try {
-      const response = await axiosInstance.get(`/api/suspect/${suspectData._id}/call-history`);
-      console.log("Call history: ", response.data);
+      const response = await axiosInstance.get(
+        `/api/suspect/${suspectData._id}/call-history`
+      );
       setCallHistory(response.data.callHistory || []);
     } catch (error) {
       console.error("Error fetching call history:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch call history. Please try again.");
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to fetch call history. Please try again."
+      );
     }
   };
 
@@ -136,31 +147,44 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
   }, [isEdit, suspectData]);
 
   const handleSubmit2 = async (e) => {
-    e.preventDefault(); // Ensure page doesn't reload
+    e.preventDefault();
     e.stopPropagation();
     if (!suspectData?._id) {
       toast.error("No suspect ID available for call task submission.");
       return;
     }
     try {
-      const response = await axiosInstance.post(`/api/suspect/${suspectData._id}/call-task`, {
-        taskDate: formData2.NextCallDate,
-        taskTime: formData2.Time,
-        taskRemarks: formData2.callRemarks,
-        taskStatus: formData2.callStatus,
-      });
+      const response = await axiosInstance.post(
+        `/api/suspect/${suspectData._id}/call-task`,
+        {
+          taskDate: formData2.NextCallDate,
+          taskTime: formData2.Time,
+          taskRemarks: formData2.callRemarks,
+          taskStatus: formData2.callStatus,
+        }
+      );
 
       if (response.data.success) {
         toast.success("Call task added successfully!");
         fetchCallHistory();
-        setFormData2({ NextCallDate: "", callStatus: "", Time: "", callRemarks: "" });
+        setFormData2({
+          NextCallDate: "",
+          callStatus: "",
+          Time: "",
+          callRemarks: "",
+        });
       } else {
         console.error("Failed to add call task:", response.data.message);
-        toast.error(`Failed to add call task: ${response.data.message || "Unknown error"}`);
+        toast.error(
+          `Failed to add call task: ${response.data.message || "Unknown error"}`
+        );
       }
     } catch (error) {
       console.error("Error adding call task:", error);
-      toast.error(error.response?.data?.message || "Failed to add call task due to a network error. Please try again.");
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to add call task due to a network error. Please try again."
+      );
     }
   };
 
@@ -173,6 +197,9 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
 
   const handleMobileWhatsappChange = (e) => {
     const { name, value } = e.target;
+    // basic numeric validation for phone-like fields
+    if (value && !/^\d*$/.test(value)) return;
+
     setFormData((prev) => {
       let updated = { ...prev, [name]: value };
       if (name === "mobileNo" && value.length === 10 && !whatsappEdited) {
@@ -208,7 +235,10 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
         if (response.data.success) {
           setOccupationTypes(response.data.data);
         } else {
-          console.error("Failed to fetch occupation types:", response.data.message);
+          console.error(
+            "Failed to fetch occupation types:",
+            response.data.message
+          );
         }
       } catch (error) {
         console.error("Error fetching occupation types:", error);
@@ -240,10 +270,14 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
 
   const fetchAreaData = async (pincode) => {
     try {
-      const response = await axiosInstance.get(`/api/leadarea?pincode=${pincode}`);
+      const response = await axiosInstance.get(
+        `/api/leadarea?pincode=${pincode}`
+      );
       const data = response.data;
       if (data && Array.isArray(data)) {
-        const area = data.find((item) => String(item.pincode) === String(pincode));
+        const area = data.find(
+          (item) => String(item.pincode) === String(pincode)
+        );
         return area || { name: "Area not found", city: "" };
       } else {
         return { name: "No data received", city: "" };
@@ -256,7 +290,10 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
 
   useEffect(() => {
     const updatePreferredData = async () => {
-      if (formData.preferredAddressType === "resi" && formData.resiPincode.length === 6) {
+      if (
+        formData.preferredAddressType === "resi" &&
+        formData.resiPincode.length === 6
+      ) {
         const areaData = await fetchAreaData(formData.resiPincode);
         setFormData((prev) => ({
           ...prev,
@@ -264,7 +301,10 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
           preferredMeetingArea: areaData.name,
           city: areaData.city,
         }));
-      } else if (formData.preferredAddressType === "office" && formData.officePincode.length === 6) {
+      } else if (
+        formData.preferredAddressType === "office" &&
+        formData.officePincode.length === 6
+      ) {
         const areaData = await fetchAreaData(formData.officePincode);
         setFormData((prev) => ({
           ...prev,
@@ -275,20 +315,45 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
       }
     };
     updatePreferredData();
-  }, [formData.preferredAddressType, formData.resiPincode, formData.officePincode, formData.resiAddr, formData.officeAddr]);
+  }, [
+    formData.preferredAddressType,
+    formData.resiPincode,
+    formData.officePincode,
+    formData.resiAddr,
+    formData.officeAddr,
+  ]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // simple numeric validation for pincode/aadhar/pan-number-like fields
+    if (
+      ["resiPincode", "officePincode", "adharNumber"].includes(name) &&
+      value &&
+      !/^\d*$/.test(value)
+    ) {
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if ((name === "resiPincode" || name === "officePincode") && value.length === 6) {
+    if (
+      (name === "resiPincode" || name === "officePincode") &&
+      value.length === 6
+    ) {
       fetchAreaData(value).then((areaData) => {
-        if (name === "resiPincode" && formData.preferredAddressType === "resi") {
+        if (
+          name === "resiPincode" &&
+          formData.preferredAddressType === "resi"
+        ) {
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
             city: areaData.city,
           }));
-        } else if (name === "officePincode" && formData.preferredAddressType === "office") {
+        } else if (
+          name === "officePincode" &&
+          formData.preferredAddressType === "office"
+        ) {
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
@@ -308,16 +373,16 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
       };
       if (type === "resi" && prev.resiPincode.length === 6) {
         fetchAreaData(prev.resiPincode).then((areaData) => {
-          setFormData((prev) => ({
-            ...prev,
+          setFormData((prevInner) => ({
+            ...prevInner,
             preferredMeetingArea: areaData.name,
             city: areaData.city,
           }));
         });
       } else if (type === "office" && prev.officePincode.length === 6) {
         fetchAreaData(prev.officePincode).then((areaData) => {
-          setFormData((prev) => ({
-            ...prev,
+          setFormData((prevInner) => ({
+            ...prevInner,
             preferredMeetingArea: areaData.name,
             city: areaData.city,
           }));
@@ -329,15 +394,52 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic front-end required validations
+    if (!formData.groupName.trim()) {
+      toast.error("Group Head is required");
+      return;
+    }
+    if (!formData.mobileNo || formData.mobileNo.length !== 10) {
+      toast.error("Valid 10 digit Mobile No is required");
+      return;
+    }
+    if (
+      formData.emailId &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailId)
+    ) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+    if (!formData.leadSource) {
+      toast.error("Lead Source is required");
+      return;
+    }
+
     if (isEdit && suspectData?._id) {
-      const result = await dispatch(updateSuspectPersonalDetails({ id: suspectData._id, personalDetails: formData }));
+      const result = await dispatch(
+        updateSuspectPersonalDetails({
+          id: suspectData._id,
+          personalDetails: {
+            ...formData,
+            // bestTimeExact only in frontend, optionally send later if needed
+          },
+        })
+      );
       if (result) {
         setFormData(initialFormState);
         toast.info("Suspect details updated successfully");
         if (onSuspectCreated) onSuspectCreated(suspectData._id);
       }
     } else {
-      const resultAction = await dispatch(createSuspect({ personalDetails: formData }));
+      const resultAction = await dispatch(
+        createSuspect({
+          personalDetails: {
+            ...formData,
+            // bestTimeExact not required in backend payload as per requirement
+          },
+        })
+      );
       if (resultAction) {
         toast.success("Suspect Created Successfully");
         setFormData(initialFormState);
@@ -358,7 +460,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="salutation"
                 value={formData.salutation ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">Select</option>
                 <option>Mr.</option>
@@ -382,7 +484,8 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Group Head"
                 value={formData.groupName ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
+                required
               />
             </Form.Group>
           </Col>
@@ -393,7 +496,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="gender"
                 value={formData.gender ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">Select</option>
                 <option>Male</option>
@@ -402,6 +505,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={4}>
             <Form.Group controlId="organisation">
@@ -412,7 +516,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Organisation"
                 value={formData.organisation ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -425,7 +529,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Designation"
                 value={formData.designation ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -438,7 +542,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="annualIncome"
                 value={formData.annualIncome ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">-- Select --</option>
                 {incomeOptions.map((opt) => (
@@ -458,12 +562,13 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 type="text"
                 name="grade"
                 value={formData.grade ?? ""}
-                size="sm"
+                size="xs"
                 readOnly
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={3}>
             <Form.Group controlId="mobileNo">
@@ -475,7 +580,8 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 value={formData.mobileNo ?? ""}
                 onChange={handleMobileWhatsappChange}
                 maxLength={10}
-                size="sm"
+                size="xs"
+                required
               />
             </Form.Group>
           </Col>
@@ -489,7 +595,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 value={formData.whatsappNo ?? ""}
                 maxLength={10}
                 onChange={handleMobileWhatsappChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -508,7 +614,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                     contactNo: e.target.value.replace(/^0755/, ""),
                   })
                 }
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -521,11 +627,12 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Email"
                 value={formData.emailId ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={3}>
             <Form.Group controlId="dob">
@@ -536,7 +643,8 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="dd-mm-yyyy"
                 value={formData.dob ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
+                max={new Date().toISOString().split("T")[0]}
               />
             </Form.Group>
           </Col>
@@ -549,11 +657,12 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="dd-mm-yyyy"
                 value={formData.dom ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={1} className="mt-2">
             <Form.Check
@@ -573,7 +682,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Residential Address"
                 value={formData.resiAddr ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -586,7 +695,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Residential Landmark"
                 value={formData.resiLandmark ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -599,11 +708,13 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Residential Pincode"
                 value={formData.resiPincode ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
+                maxLength={6}
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={1} className="mt-2">
             <Form.Check
@@ -623,7 +734,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Office Address"
                 value={formData.officeAddr ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -636,7 +747,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Office Landmark"
                 value={formData.officeLandmark ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
@@ -649,11 +760,13 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Office Pincode"
                 value={formData.officePincode ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
+                maxLength={6}
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={5}>
             <Form.Group controlId="preferredMeetingAddr">
@@ -664,7 +777,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Preferred Meeting Address"
                 value={formData.preferredMeetingAddr ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
                 readOnly
               />
             </Form.Group>
@@ -678,7 +791,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Preferred Meeting Area"
                 value={formData.preferredMeetingArea ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
                 readOnly
               />
             </Form.Group>
@@ -692,19 +805,19 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="City"
                 value={formData.city ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
                 readOnly
               />
             </Form.Group>
           </Col>
-          <Col md={2}>
+          <Col md={1}>
             <Form.Group controlId="bestTime">
               <Form.Label>Best Time</Form.Label>
               <Form.Select
                 name="bestTime"
                 value={formData.bestTime ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">-- Select Time --</option>
                 <option value="10 AM to 2 PM">10 AM to 2 PM</option>
@@ -712,7 +825,21 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
               </Form.Select>
             </Form.Group>
           </Col>
+          <Col md={2}>
+            {/* NEW: Time field next to Best Time (frontend only) */}
+            <Form.Group controlId="bestTimeExact">
+              <Form.Label>Time</Form.Label>
+              <Form.Control
+                name="bestTimeExact"
+                type="time"
+                value={formData.bestTimeExact ?? ""}
+                onChange={handleChange}
+                size="xs"
+              />
+            </Form.Group>
+          </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={3}>
             <Form.Group controlId="leadSource">
@@ -721,7 +848,8 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="leadSource"
                 value={formData.leadSource ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
+                required
               >
                 <option value="">Select Lead Source</option>
                 {loading ? (
@@ -743,7 +871,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="leadName"
                 value={formData.leadName ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">Select Lead Name</option>
                 {loading ? (
@@ -765,11 +893,14 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="leadOccupation"
                 value={formData.leadOccupation ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">Select Lead Occupation</option>
                 {occupations.map((occupation) => (
-                  <option key={occupation._id} value={occupation.occupationName}>
+                  <option
+                    key={occupation._id}
+                    value={occupation.occupationName}
+                  >
                     {occupation.occupationName}
                   </option>
                 ))}
@@ -783,7 +914,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="leadOccupationType"
                 value={formData.leadOccupationType ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">Select Lead Occupation Type</option>
                 {occupationTypes.map((type) => (
@@ -795,6 +926,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
             </Form.Group>
           </Col>
         </Row>
+
         <Row className="mb-4">
           <Col md={4}>
             <Form.Group controlId="callingPurpose">
@@ -803,7 +935,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 name="callingPurpose"
                 value={formData.callingPurpose ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               >
                 <option value="">-- Select Purpose --</option>
                 <option value="Follow-up">Follow-up</option>
@@ -823,11 +955,12 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                 placeholder="Name"
                 value={formData.name ?? ""}
                 onChange={handleChange}
-                size="sm"
+                size="xs"
               />
             </Form.Group>
           </Col>
         </Row>
+
         <Button type="submit" className="btn btn-primary">
           {isEdit && suspectData?._id ? "Update" : "Submit Lead"}
         </Button>
@@ -847,7 +980,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                       name="NextCallDate"
                       value={formData2.NextCallDate ?? ""}
                       onChange={handleChange2}
-                      size="sm"
+                      size="xs"
                       required
                     />
                   </Form.Group>
@@ -859,7 +992,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                       name="callStatus"
                       value={formData2.callStatus ?? ""}
                       onChange={handleChange2}
-                      size="sm"
+                      size="xs"
                       required
                     >
                       <option value="">-- Select --</option>
@@ -867,22 +1000,26 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                       <option value="Wrong Number">Wrong Number</option>
                       <option value="Not Interested">Not Interested</option>
                       <option value="Call Not Picked">Call Not Picked</option>
-                      <option value="Busy on Another Call">Busy on Another Call</option>
-                      <option value="Call After Sometimes">Call After Sometimes</option>
+                      <option value="Busy on Another Call">
+                        Busy on Another Call
+                      </option>
+                      <option value="Call After Sometimes">
+                        Call After Sometimes
+                      </option>
                       <option value="Appointment Done">Appointment Done</option>
                       <option value="Others">Others</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
-                  <Form.Group controlId="lastCallDate">
+                  <Form.Group controlId="lastCallTime">
                     <Form.Label>Time</Form.Label>
                     <Form.Control
                       type="time"
                       name="Time"
                       value={formData2.Time ?? ""}
                       onChange={handleChange2}
-                      size="sm"
+                      size="xs"
                       required
                     />
                   </Form.Group>
@@ -899,14 +1036,14 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                       placeholder="Enter call remarks..."
                       value={formData2.callRemarks ?? ""}
                       onChange={handleChange2}
-                      size="sm"
+                      size="xs"
                       required
                     />
                   </Form.Group>
                 </Col>
               </Row>
               <div className="text-end">
-                <Button variant="success" size="sm" type="submit">
+                <Button variant="success" size="xs" type="submit">
                   Submit
                 </Button>
               </div>
@@ -919,26 +1056,29 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
                   <table className="table table-bordered table-striped">
                     <thead className="table-light">
                       <tr>
-                            <th>Mobile</th>
+                        <th>Mobile</th>
                         <th>Date</th>
                         <th>time </th>
                         <th>Remark</th>
                         <th>Status</th>
-                          <th>Call By</th>
+                        <th>Call By</th>
                       </tr>
                     </thead>
                     <tbody>
-                     {callHistory.map((call, idx) => (
-  <tr key={idx}>
-    <td>{suspectData.personalDetails?.
-mobileNo}</td>
-    <td>{call.taskDate ? formatDateToYMD(call.taskDate) : ''}</td>
-    <td>{call.taskTime ? call.taskTime : ''}</td>
-    <td>{call.taskRemarks ? call.taskRemarks : ''}</td>
-    <td>{call.taskStatus ? call.taskStatus : ''}</td>
-    <td>{telecaller?.username}</td>
-  </tr>
-))}
+                      {callHistory.map((call, idx) => (
+                        <tr key={idx}>
+                          <td>{suspectData.personalDetails?.mobileNo}</td>
+                          <td>
+                            {call.taskDate
+                              ? formatDateToYMD(call.taskDate)
+                              : ""}
+                          </td>
+                          <td>{call.taskTime ? call.taskTime : ""}</td>
+                          <td>{call.taskRemarks ? call.taskRemarks : ""}</td>
+                          <td>{call.taskStatus ? call.taskStatus : ""}</td>
+                          <td>{telecaller?.username}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

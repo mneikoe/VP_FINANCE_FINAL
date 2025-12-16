@@ -11,15 +11,11 @@ import {
   Col,
   Statistic,
   Space,
+  Modal,
 } from "antd";
 import {
   CalendarOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
   PhoneOutlined,
-  EnvironmentOutlined,
-  BankOutlined,
-  FilterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -33,56 +29,56 @@ const { Option } = Select;
 const STATUS_CONFIG = {
   "busy-on-another-call": {
     title: "Busy on Another Call Leads",
-    status: "Busy on Another Call", // ✅ Backend expects this exact string
+    status: "Busy on Another Call",
     color: "#fa8c16",
     icon: "📞",
     description: "Leads who were busy on another call",
   },
   "call-after-some-time": {
     title: "Call After Some Time Leads",
-    status: "Call After Sometimes", // ✅ Note: "Sometimes" not "Some time"
+    status: "Call After Sometimes", // backend string
     color: "#1890ff",
     icon: "⏰",
     description: "Leads who asked to call after some time",
   },
   "call-not-picked": {
     title: "Call Not Picked Leads",
-    status: "Call Not Picked", // ✅
+    status: "Call Not Picked",
     color: "#722ed1",
     icon: "❌",
     description: "Leads who didn't pick up the call",
   },
   others: {
     title: "Other Status Leads",
-    status: "Others", // ✅
+    status: "Others",
     color: "#13c2c2",
     icon: "📋",
     description: "Leads with other forwarded statuses",
   },
   "not-interested": {
     title: "Not Interested Leads",
-    status: "Not Interested", // ✅
+    status: "Not Interested",
     color: "#f5222d",
     icon: "👎",
     description: "Leads who are not interested",
   },
   "not-reachable": {
     title: "Not Reachable Leads",
-    status: "Not Reachable", // ✅
+    status: "Not Reachable",
     color: "#fa541c",
     icon: "📵",
     description: "Leads who are not reachable",
   },
   "wrong-number": {
     title: "Wrong Number Leads",
-    status: "Wrong Number", // ✅
+    status: "Wrong Number",
     color: "#a0d911",
     icon: "❌",
     description: "Leads with wrong contact numbers",
   },
   callback: {
     title: "Callback Leads",
-    status: "Callback", // ✅
+    status: "Callback",
     color: "#52c41a",
     icon: "↪️",
     description: "Leads scheduled for callback",
@@ -90,12 +86,10 @@ const STATUS_CONFIG = {
 };
 
 const StatusBasedLeadsPage = () => {
-  const location = useLocation(); // Get status type from URL
+  const location = useLocation();
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
-  console.log("User from localStorage:", user);
-  // Try multiple possible ID fields
   let telecallerId = null;
   if (user) {
     telecallerId =
@@ -109,10 +103,6 @@ const StatusBasedLeadsPage = () => {
   const path = location.pathname;
   const statusType = path.substring(path.lastIndexOf("/") + 1);
 
-  console.log("📌 URL Status Type:", statusType);
-  console.log("📌 Available STATUS_CONFIG keys:", Object.keys(STATUS_CONFIG));
-
-  // Also check if user is stored in a different key
   if (!telecallerId) {
     const authData = JSON.parse(
       localStorage.getItem("authData") || localStorage.getItem("auth")
@@ -122,11 +112,8 @@ const StatusBasedLeadsPage = () => {
     }
   }
 
-  // If still not found, check the token
   if (!telecallerId && localStorage.getItem("token")) {
-    // Try to extract from token or use a fallback
     const token = localStorage.getItem("token");
-    // You might need to decode JWT token if user ID is stored there
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       telecallerId = payload._id || payload.id || payload.userId;
@@ -134,8 +121,6 @@ const StatusBasedLeadsPage = () => {
       console.log("Could not decode token:", e);
     }
   }
-
-  console.log("Final telecallerId:", telecallerId);
 
   // State
   const [dateFilter, setDateFilter] = useState("all");
@@ -159,12 +144,71 @@ const StatusBasedLeadsPage = () => {
     description: "Leads list",
   };
 
-  console.log("📌 Status Config found:", statusConfig);
-
   if (!statusConfig) {
-    console.error("❌ No status config found for:", statusType);
     return <div>Invalid status type: {statusType}</div>;
   }
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB");
+  };
+
+  // Format time in AM/PM format
+  const formatTimeAMPM = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "-";
+    }
+  };
+
+  // Get latest call status and time
+  const getLatestCallInfo = (lead) => {
+    if (!lead.callTasks || lead.callTasks.length === 0) {
+      return {
+        currentStatus: "Not Contacted",
+        callTime: "-",
+        lastStatus: "-",
+        updatedAt: "-",
+      };
+    }
+
+    // Sort tasks by date (newest first)
+    const sortedTasks = [...lead.callTasks].sort(
+      (a, b) =>
+        new Date(b.createdAt || b.taskDate || 0) -
+        new Date(a.createdAt || a.taskDate || 0)
+    );
+
+    // Current status (latest task status)
+    const currentStatus = sortedTasks[0].taskStatus || "Not Contacted";
+
+    // Call time - status update ka time (createdAt)
+    const callTime = sortedTasks[0].createdAt || sortedTasks[0].taskDate;
+
+    // Last status (previous task status if exists)
+    let lastStatus = "-";
+    if (sortedTasks.length > 1) {
+      lastStatus = sortedTasks[1].taskStatus || "-";
+    }
+
+    return {
+      currentStatus,
+      callTime,
+      lastStatus,
+      latestTask: sortedTasks[0],
+      previousTask: sortedTasks[1] || null,
+    };
+  };
 
   // Fetch leads by status
   const fetchLeads = useCallback(async () => {
@@ -184,7 +228,6 @@ const StatusBasedLeadsPage = () => {
         dateFilter,
       };
 
-      // Add date range for custom filter
       if (dateFilter === "custom" && dateRange.length === 2) {
         params.startDate = dateRange[0].toISOString().split("T")[0];
         params.endDate = dateRange[1].toISOString().split("T")[0];
@@ -198,7 +241,6 @@ const StatusBasedLeadsPage = () => {
         const leadsData = response.data.suspects || [];
         setLeads(leadsData);
 
-        // Calculate stats
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const weekStart = new Date(today);
@@ -209,27 +251,39 @@ const StatusBasedLeadsPage = () => {
           total: leadsData.length,
           today: leadsData.filter((lead) => {
             if (!lead.callTasks || lead.callTasks.length === 0) return false;
-            const latestTask = lead.callTasks.sort(
-              (a, b) => new Date(b.taskDate) - new Date(a.taskDate)
+            const latestTask = [...lead.callTasks].sort(
+              (a, b) =>
+                new Date(b.createdAt || b.taskDate || 0) -
+                new Date(a.createdAt || a.taskDate || 0)
             )[0];
-            const taskDate = new Date(latestTask.taskDate);
+            const taskDate = new Date(
+              latestTask.createdAt || latestTask.taskDate
+            );
             taskDate.setHours(0, 0, 0, 0);
             return taskDate.getTime() === today.getTime();
           }).length,
           thisWeek: leadsData.filter((lead) => {
             if (!lead.callTasks || lead.callTasks.length === 0) return false;
-            const latestTask = lead.callTasks.sort(
-              (a, b) => new Date(b.taskDate) - new Date(a.taskDate)
+            const latestTask = [...lead.callTasks].sort(
+              (a, b) =>
+                new Date(b.createdAt || b.taskDate || 0) -
+                new Date(a.createdAt || a.taskDate || 0)
             )[0];
-            const taskDate = new Date(latestTask.taskDate);
+            const taskDate = new Date(
+              latestTask.createdAt || latestTask.taskDate
+            );
             return taskDate >= weekStart && taskDate <= today;
           }).length,
           thisMonth: leadsData.filter((lead) => {
             if (!lead.callTasks || lead.callTasks.length === 0) return false;
-            const latestTask = lead.callTasks.sort(
-              (a, b) => new Date(b.taskDate) - new Date(a.taskDate)
+            const latestTask = [...lead.callTasks].sort(
+              (a, b) =>
+                new Date(b.createdAt || b.taskDate || 0) -
+                new Date(a.createdAt || a.taskDate || 0)
             )[0];
-            const taskDate = new Date(latestTask.taskDate);
+            const taskDate = new Date(
+              latestTask.createdAt || latestTask.taskDate
+            );
             return taskDate >= monthStart && taskDate <= today;
           }).length,
         };
@@ -278,240 +332,134 @@ const StatusBasedLeadsPage = () => {
     setDateRange([]);
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB");
-  };
-  console.log("📌 Status from config:", statusConfig.status);
-  // Get latest call status
-  const getLatestCallStatus = (lead) => {
-    if (!lead.callTasks || lead.callTasks.length === 0) {
-      return "Not Contacted";
+  // Handle group code click - navigate to suspect details page
+  const handleGroupCodeClick = (leadId) => {
+    if (leadId) {
+      navigate(`/telecaller/suspect/details/${leadId}`);
     }
-    const sortedTasks = lead.callTasks.sort(
-      (a, b) => new Date(b.taskDate) - new Date(a.taskDate)
-    );
-    return sortedTasks[0].taskStatus;
   };
 
-  // Prepare table data with separate contact columns
+  // Clean table data + confirmation popup on numbers
   const tableData = useMemo(() => {
-    return leads.map((lead, index) => {
+    const handleCallClick = (phone) => {
+      if (!phone) return;
+      Modal.confirm({
+        title: "Call Confirmation",
+        icon: <PhoneOutlined />,
+        content: `Kya aap ${phone} par call lagana chahte hain?`,
+        okText: "OK",
+        cancelText: "Cancel",
+        onOk: () => {
+          window.location.href = `tel:${phone}`;
+        },
+      });
+    };
+
+    return leads.map((lead) => {
       const personal = lead.personalDetails || {};
+
+      // Get latest call info
+      const callInfo = getLatestCallInfo(lead);
+      const latestTask = callInfo.latestTask;
+
+      const statusUpdatedAt = latestTask
+        ? `${formatDate(
+            latestTask.taskDate || latestTask.createdAt
+          )} ${formatTimeAMPM(latestTask.createdAt || latestTask.taskDate)}`
+        : "-";
+
+      // Next action text - SIRF DATE dikhana hai
+      let nextActionText = "-";
+      if (lead.callTasks && lead.callTasks.length > 0) {
+        const latestTask = [...lead.callTasks].sort(
+          (a, b) =>
+            new Date(b.createdAt || b.taskDate || 0) -
+            new Date(a.createdAt || a.taskDate || 0)
+        )[0];
+
+        // Sirf date check karo, time nahi
+        if (latestTask.nextFollowUpDate) {
+          nextActionText = formatDate(latestTask.nextFollowUpDate);
+        } else if (latestTask.nextAppointmentDate) {
+          nextActionText = formatDate(latestTask.nextAppointmentDate);
+        }
+      }
 
       return {
         key: lead._id,
-        sn: index + 1,
         assignedDate: formatDate(lead.assignedAt),
-        // Group Code - NOW CLICKABLE
         groupCode: (
           <span
             style={{
               color: "#1890ff",
               cursor: "pointer",
-              fontWeight: 600,
-              background: "#eff6ff",
-              padding: "4px 10px",
-              borderRadius: "4px",
-              fontSize: "13px",
-              display: "inline-block",
-              border: "1px solid #d1e9ff",
-              transition: "all 0.2s ease",
+              fontWeight: 500,
+              textDecoration: "underline",
             }}
-            onClick={() => navigate(`/telecaller/suspect/details/${lead._id}`)}
-            onMouseEnter={(e) => {
-              e.target.style.background = "#dbeafe";
-              e.target.style.color = "#0056b3";
-              e.target.style.transform = "translateY(-1px)";
-              e.target.style.boxShadow = "0 2px 4px rgba(59, 130, 246, 0.2)";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = "#eff6ff";
-              e.target.style.color = "#1890ff";
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = "none";
-            }}
-            title="Click to view full details"
+            onClick={() => handleGroupCodeClick(lead._id)}
           >
             {personal.groupCode || "-"}
           </span>
         ),
-        grade: personal.grade || "-",
         groupName: personal.groupName || "-",
-        // REMOVED: Name column data
-        // Mobile Number Column
-        mobileNo: (
-          <div>
-            {personal.mobileNo && personal.mobileNo.trim() !== "" ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  background: "#f8f9fa",
-                  borderRadius: "4px",
-                  border: "1px solid #e9ecef",
-                }}
-              >
-                <PhoneOutlined style={{ fontSize: "12px", color: "#52c41a" }} />
-                <span style={{ fontWeight: 500, color: "#333" }}>
-                  {personal.mobileNo}
-                </span>
-                <a
-                  href={`tel:${personal.mobileNo}`}
-                  style={{
-                    fontSize: "11px",
-                    color: "#007bff",
-                    textDecoration: "none",
-                    padding: "2px 6px",
-                    border: "1px solid #007bff",
-                    borderRadius: "3px",
-                    background: "white",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "#007bff";
-                    e.target.style.color = "white";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "white";
-                    e.target.style.color = "#007bff";
-                  }}
-                >
-                  Call
-                </a>
-              </div>
-            ) : (
-              <span style={{ color: "#999" }}>-</span>
-            )}
-          </div>
-        ),
-        // Contact Number Column
-        contactNo: (
-          <div>
-            {personal.contactNo && personal.contactNo.trim() !== "" ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  background: "#f8f9fa",
-                  borderRadius: "4px",
-                  border: "1px solid #e9ecef",
-                }}
-              >
-                <PhoneOutlined style={{ fontSize: "12px", color: "#1890ff" }} />
-                <span style={{ fontWeight: 500, color: "#333" }}>
-                  {personal.contactNo}
-                </span>
-                <a
-                  href={`tel:${personal.contactNo}`}
-                  style={{
-                    fontSize: "11px",
-                    color: "#007bff",
-                    textDecoration: "none",
-                    padding: "2px 6px",
-                    border: "1px solid #007bff",
-                    borderRadius: "3px",
-                    background: "white",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "#007bff";
-                    e.target.style.color = "white";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "white";
-                    e.target.style.color = "#007bff";
-                  }}
-                >
-                  Call
-                </a>
-              </div>
-            ) : (
-              <span style={{ color: "#999" }}>-</span>
-            )}
-          </div>
-        ),
+
+        mobileNo:
+          personal.mobileNo && personal.mobileNo.trim() !== "" ? (
+            <span
+              style={{
+                color: "#1677ff",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+              onClick={() => handleCallClick(personal.mobileNo)}
+            >
+              {personal.mobileNo}
+            </span>
+          ) : (
+            <span style={{ color: "#999" }}>-</span>
+          ),
+
+        contactNo:
+          personal.contactNo && personal.contactNo.trim() !== "" ? (
+            <span
+              style={{
+                color: "#1677ff",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+              onClick={() => handleCallClick(personal.contactNo)}
+            >
+              {personal.contactNo}
+            </span>
+          ) : (
+            <span style={{ color: "#999" }}>-</span>
+          ),
+
         leadSource: personal.leadSource || "-",
         leadOccupation: personal.leadOccupation || "-",
         area: personal.city || "-",
-        currentStatus: (
-          <Tag
-            color={statusConfig.color}
-            style={{ fontWeight: 500, fontSize: "11px" }}
-          >
-            {getLatestCallStatus(lead)}
-          </Tag>
-        ),
-        nextAction: (
-          <div style={{ fontSize: "11px" }}>
-            {lead.callTasks && lead.callTasks.length > 0 && (
-              <>
-                {lead.callTasks[0].nextFollowUpDate && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    <PhoneOutlined style={{ fontSize: "10px" }} />
-                    {formatDate(lead.callTasks[0].nextFollowUpDate)}{" "}
-                    {lead.callTasks[0].nextFollowUpTime &&
-                      `at ${lead.callTasks[0].nextFollowUpTime}`}
-                  </div>
-                )}
-                {lead.callTasks[0].nextAppointmentDate && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <CalendarOutlined style={{ fontSize: "10px" }} />
-                    {formatDate(lead.callTasks[0].nextAppointmentDate)}{" "}
-                    {lead.callTasks[0].nextAppointmentTime &&
-                      `at ${lead.callTasks[0].nextAppointmentTime}`}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ),
-        actions: (
-          <Button
-            type="link"
-            size="small"
-            onClick={() => navigate(`/telecaller/dashboard`)}
-            style={{ padding: 0, fontSize: "12px", fontWeight: 500 }}
-          >
-            Update Status
-          </Button>
-        ),
+        currentStatus: callInfo.currentStatus,
+        nextAction: nextActionText, // SIRF DATE
+        callTime: statusUpdatedAt, // ✅ AM/PM format
+        lastStatus: callInfo.lastStatus, // ✅ Update se pehle wala status
       };
     });
-  }, [leads, navigate, statusConfig.color]);
+  }, [leads, navigate]);
 
-  // Updated columns definition with separate contact columns and NO NAME COLUMN
+  // Clean columns - SN number remove kiya
   const columns = [
-    { header: "S.N", key: "sn", width: "60px", align: "center" },
     { header: "Task Date", key: "assignedDate", width: "100px" },
-    { header: "Group Code", key: "groupCode", width: "120px" }, // Group Code is now clickable
-
-    { header: "Group Name", key: "groupName", width: "120px" },
-    // REMOVED: Name column
-    { header: "Mobile No", key: "mobileNo", width: "150px" },
-    { header: "Contact No", key: "contactNo", width: "150px" },
-    { header: "Lead Source", key: "leadSource", width: "100px" },
-    { header: "Lead Occupation", key: "leadOccupation", width: "120px" },
+    { header: "Group Code", key: "groupCode", width: "120px" },
+    { header: "Group Name", key: "groupName", width: "140px" },
+    { header: "Mobile No", key: "mobileNo", width: "130px" },
+    { header: "Contact No", key: "contactNo", width: "130px" },
+    { header: "Lead Source", key: "leadSource", width: "110px" },
+    { header: "Lead Occupation", key: "leadOccupation", width: "130px" },
     { header: "Area", key: "area", width: "100px" },
-    { header: "Current Status", key: "currentStatus", width: "120px" },
-    { header: "Next Action", key: "nextAction", width: "130px" },
+    { header: "Status", key: "currentStatus", width: "120px" },
+    { header: "Next Action", key: "nextAction", width: "100px" }, // Sirf date - width adjust
+    { header: "Call Time", key: "callTime", width: "120px" },
+    { header: "Last Status", key: "lastStatus", width: "120px" },
   ];
 
   return (

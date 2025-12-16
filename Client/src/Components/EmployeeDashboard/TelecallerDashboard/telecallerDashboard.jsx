@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { logoutUser } from "../../../redux/feature/auth/authThunx";
 import { useDispatch } from "react-redux";
-import { useNavigate, Outlet } from "react-router-dom";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import {
   FaChartBar,
   FaUserPlus,
@@ -14,15 +14,6 @@ import {
   FaUserCheck,
   FaSignOutAlt,
   FaChevronDown,
-  FaChevronUp,
-  FaBars,
-  FaTimes as FaTimesIcon,
-  FaHome,
-  FaUser,
-  FaBell,
-  FaCog,
-  FaFileAlt,
-  FaHistory,
   FaUserTimes,
   FaBan,
   FaThumbsDown,
@@ -30,22 +21,21 @@ import {
 
 const TelecallerPanel = () => {
   const [active, setActive] = useState("Dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userMenu, setUserMenu] = useState(false);
   const [activeLeadsOpen, setActiveLeadsOpen] = useState(false);
   const [rejectedLeadsOpen, setRejectedLeadsOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const menu = [
     { name: "Dashboard", path: "/telecaller/dashboard", icon: <FaChartBar /> },
     {
-      name: "Add New Suspect",
+      name: "Add Suspect",
       path: "/telecaller/suspect/add",
       icon: <FaUserPlus />,
     },
     {
-      name: "Monthly Appointments",
+      name: "Appointments",
       path: "/telecaller/appointments-scheduled",
       icon: <FaCalendarAlt />,
     },
@@ -53,20 +43,19 @@ const TelecallerPanel = () => {
       name: "Active Leads",
       icon: <FaUserCheck />,
       hasDropdown: true,
-      path: "/telecaller",
       subItems: [
         {
-          name: "Busy On Another Call",
+          name: "Busy On Call",
           icon: <FaPhone />,
           path: "/telecaller/busy-on-another-call",
         },
         {
-          name: "Call After Some Time",
+          name: "Call Later",
           icon: <FaClock />,
           path: "/telecaller/call-after-some-time",
         },
         {
-          name: "Call Not Picked",
+          name: "Not Picked",
           icon: <FaPhoneSlash />,
           path: "/telecaller/call-not-picked",
         },
@@ -97,20 +86,41 @@ const TelecallerPanel = () => {
     },
   ];
 
+  // Update active state based on current route
+  useEffect(() => {
+    const currentPath = location.pathname;
+    let foundActive = menu.find((item) => item.path === currentPath);
+
+    if (!foundActive) {
+      // Check subItems
+      for (const item of menu) {
+        if (item.subItems) {
+          const subItem = item.subItems.find((sub) => sub.path === currentPath);
+          if (subItem) {
+            setActive(subItem.name);
+            return;
+          }
+        }
+      }
+    } else {
+      setActive(foundActive.name);
+    }
+  }, [location.pathname]);
+
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/auth/login");
   };
 
-  const handleUserMenuClick = () => {
-    setUserMenu(!userMenu);
-  };
-
-  // Close user menu when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userMenu && !event.target.closest(".user-menu-wrapper")) {
-        setUserMenu(false);
+      if (
+        (activeLeadsOpen || rejectedLeadsOpen) &&
+        !event.target.closest(".nav-dropdown-wrapper")
+      ) {
+        setActiveLeadsOpen(false);
+        setRejectedLeadsOpen(false);
       }
     };
 
@@ -118,225 +128,123 @@ const TelecallerPanel = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [userMenu]);
-
-  // Close sidebar on mobile when clicking outside
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [activeLeadsOpen, rejectedLeadsOpen]);
 
   return (
     <div className="layout">
-      {/* Mobile Sidebar Backdrop */}
-      {sidebarOpen && window.innerWidth < 768 && (
-        <div
-          className="sidebar-backdrop"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Enhanced Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? "" : "collapsed"}`}>
-        <div className="sidebar-header">
+      {/* Top Navigation Bar */}
+      <nav className="top-nav">
+        <div className="nav-left">
           <div className="logo">
             <div className="logo-icon">
-              <div className="logo-gradient">VP</div>
+              <div className="logo-gradient">FN</div>
             </div>
-            {sidebarOpen && (
-              <div className="logo-content">
-                <span className="logo-text">Financial Nest</span>
-                <span className="logo-subtitle">Telecaller Portal</span>
-              </div>
-            )}
+            <div className="logo-content">
+              <span className="logo-text">Financial Nest</span>
+              <span className="logo-subtitle">Telecaller</span>
+            </div>
           </div>
-          <button
-            className="toggle-btn"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? (
-              <span className="toggle-icon">‹</span>
-            ) : (
-              <span className="toggle-icon">›</span>
-            )}
-          </button>
         </div>
 
-        {/* Mobile Close Button */}
-        {sidebarOpen && window.innerWidth < 768 && (
-          <div className="mobile-close-btn">
-            <button onClick={() => setSidebarOpen(false)}>
-              <FaTimesIcon />
-            </button>
-          </div>
-        )}
-
-        <nav className="sidebar-nav">
-          <ul className="menu">
+        <div className="nav-center">
+          <ul className="nav-menu">
             {menu.map((item) => (
-              <li key={item.name} className="menu-li">
-                <div
-                  className={`menu-item ${
-                    active === item.name ? "active" : ""
-                  } ${item.hasDropdown ? "has-dropdown" : ""}`}
-                  onClick={() => {
-                    if (item.hasDropdown) {
-                      if (item.name === "Active Leads") {
-                        setActiveLeadsOpen(!activeLeadsOpen);
-                        navigate(item.path);
-                      } else if (item.name === "Rejected Leads") {
-                        setRejectedLeadsOpen(!rejectedLeadsOpen);
-                      }
-                      setActive(item.name);
-                    } else {
-                      setActive(item.name);
-                      if (item.path) navigate(item.path);
-                      if (window.innerWidth < 768) setSidebarOpen(false);
-                    }
-                  }}
-                >
-                  <div className="menu-item-content">
-                    <span className="menu-icon">{item.icon}</span>
-                    {sidebarOpen && (
-                      <span className="menu-text">{item.name}</span>
-                    )}
-                    {sidebarOpen && item.hasDropdown && (
-                      <span
-                        className={`dropdown-arrow ${
-                          (item.name === "Active Leads" && activeLeadsOpen) ||
-                          (item.name === "Rejected Leads" && rejectedLeadsOpen)
-                            ? "open"
-                            : ""
-                        }`}
-                      >
+              <li key={item.name} className="nav-menu-item">
+                {item.hasDropdown ? (
+                  <div className="nav-dropdown-wrapper">
+                    <button
+                      className={`nav-link ${
+                        active === item.name ? "active" : ""
+                      } ${
+                        (item.name === "Active Leads" && activeLeadsOpen) ||
+                        (item.name === "Rejected Leads" && rejectedLeadsOpen)
+                          ? "dropdown-open"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (item.name === "Active Leads") {
+                          setActiveLeadsOpen(!activeLeadsOpen);
+                          setRejectedLeadsOpen(false);
+                        } else if (item.name === "Rejected Leads") {
+                          setRejectedLeadsOpen(!rejectedLeadsOpen);
+                          setActiveLeadsOpen(false);
+                        }
+                        setActive(item.name);
+                      }}
+                    >
+                      <span className="nav-icon">{item.icon}</span>
+                      <span className="nav-text">{item.name}</span>
+                      <span className="dropdown-arrow">
                         <FaChevronDown />
                       </span>
-                    )}
-                  </div>
-                  {!sidebarOpen && <div className="tooltip">{item.name}</div>}
-                </div>
+                    </button>
 
-                {item.hasDropdown && sidebarOpen && (
-                  <ul
-                    className={`submenu ${
-                      (item.name === "Active Leads" && activeLeadsOpen) ||
-                      (item.name === "Rejected Leads" && rejectedLeadsOpen)
-                        ? "open"
-                        : ""
+                    <div
+                      className={`nav-dropdown ${
+                        (item.name === "Active Leads" && activeLeadsOpen) ||
+                        (item.name === "Rejected Leads" && rejectedLeadsOpen)
+                          ? "open"
+                          : ""
+                      }`}
+                    >
+                      {item.subItems.map((subItem) => (
+                        <button
+                          key={subItem.name}
+                          className={`dropdown-item ${
+                            active === subItem.name ? "active" : ""
+                          }`}
+                          onClick={() => {
+                            setActive(subItem.name);
+                            navigate(subItem.path);
+                            if (item.name === "Active Leads")
+                              setActiveLeadsOpen(false);
+                            if (item.name === "Rejected Leads")
+                              setRejectedLeadsOpen(false);
+                          }}
+                        >
+                          <span className="dropdown-icon">{subItem.icon}</span>
+                          <span className="dropdown-text">{subItem.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    className={`nav-link ${
+                      active === item.name ? "active" : ""
                     }`}
+                    onClick={() => {
+                      setActive(item.name);
+                      navigate(item.path);
+                      setActiveLeadsOpen(false);
+                      setRejectedLeadsOpen(false);
+                    }}
                   >
-                    {item.subItems.map((subItem) => (
-                      <li
-                        key={subItem.name}
-                        className={`submenu-item ${
-                          active === subItem.name ? "active" : ""
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActive(subItem.name);
-                          if (subItem.path) navigate(subItem.path);
-                          if (window.innerWidth < 768) setSidebarOpen(false);
-                        }}
-                      >
-                        <div className="submenu-content">
-                          <span className="submenu-icon">{subItem.icon}</span>
-                          <span className="submenu-text">{subItem.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="nav-text">{item.name}</span>
+                  </button>
                 )}
               </li>
             ))}
           </ul>
-        </nav>
+        </div>
 
-        {sidebarOpen && (
-          <div className="sidebar-footer">
-            {/* Logout Button */}
-            <button onClick={handleLogout} className="logout-btn">
-              <span className="logout-icon">
-                <FaSignOutAlt />
-              </span>
-              {sidebarOpen && <span className="logout-text">Logout</span>}
-            </button>
+        <div className="nav-right">
+          {/* Direct Logout Button */}
+          <button className="logout-btn" onClick={handleLogout}>
+            <span className="logout-icon">
+              <FaSignOutAlt />
+            </span>
+            <span className="logout-text">Logout</span>
+          </button>
+        </div>
+      </nav>
 
-            <div className="user-card">
-              <div className="user-avatar">
-                <div className="avatar-gradient">TA</div>
-              </div>
-              <div className="user-details">
-                <div className="user-name">Telecaller Agent</div>
-                <div className="user-role">Premium Member</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </aside>
-
-      {/* Enhanced Main Content */}
+      {/* Main Content */}
       <main className="main">
-        <div className="topbar">
-          <div className="topbar-left">
-            <button
-              className="mobile-menu-btn"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars />
-            </button>
-            <div>
-              <h1 className="page-title">{active}</h1>
-              <div className="breadcrumb">Telecaller Panel / {active}</div>
-            </div>
-          </div>
-          <div className="topbar-right">
-            <div className="user-menu-wrapper">
-              <div
-                className={`user-profile ${userMenu ? "active" : ""}`}
-                onClick={handleUserMenuClick}
-              >
-                <div className="profile-avatar">TA</div>
-                <div className="profile-info">
-                  <span className="profile-name">Telecaller</span>
-                  <span className="profile-role">Agent</span>
-                </div>
-                <span className={`profile-arrow ${userMenu ? "open" : ""}`}>
-                  <FaChevronDown />
-                </span>
-              </div>
-
-              {/* User Dropdown Menu */}
-              {userMenu && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-header">
-                    <div className="dropdown-avatar">TA</div>
-                    <div className="dropdown-user-info">
-                      <div className="dropdown-name">Telecaller Agent</div>
-                      <div className="dropdown-email">
-                        agent@financialnest.com
-                      </div>
-                    </div>
-                  </div>
-                  <div className="dropdown-divider"></div>
-                  <div className="dropdown-item" onClick={handleLogout}>
-                    <span className="dropdown-item-icon">
-                      <FaSignOutAlt />
-                    </span>
-                    <span className="dropdown-item-text">Sign Out</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="page-header">
+          <h1 className="page-title">{active}</h1>
+          <div className="breadcrumb">Telecaller Panel / {active}</div>
         </div>
 
         <div className="content-area">
@@ -347,6 +255,7 @@ const TelecallerPanel = () => {
       <style jsx>{`
         .layout {
           display: flex;
+          flex-direction: column;
           height: 100vh;
           font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
             Roboto, sans-serif;
@@ -354,735 +263,388 @@ const TelecallerPanel = () => {
           overflow: hidden;
         }
 
-        /* Sidebar Backdrop for Mobile */
-        .sidebar-backdrop {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 999;
-          display: block;
-        }
-
-        /* Enhanced Sidebar - Business Style */
-        .sidebar {
-          width: 280px;
-          background: white;
-          color: #1e293b;
-          display: flex;
-          flex-direction: column;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
-          position: relative;
-          overflow: hidden;
-          border-right: 1px solid #e5e7eb;
-          z-index: 1000;
-        }
-
-        .sidebar.collapsed {
-          width: 70px;
-        }
-
-        @media (max-width: 768px) {
-          .sidebar {
-            position: fixed;
-            z-index: 1000;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-          }
-
-          .sidebar:not(.collapsed) {
-            transform: translateX(0);
-          }
-
-          .sidebar.collapsed {
-            width: 280px;
-            transform: translateX(-100%);
-          }
-        }
-
-        .sidebar-header {
-          padding: 20px;
-          border-bottom: 1px solid #e5e7eb;
+        /* Top Navigation Bar */
+        .top-nav {
           display: flex;
           align-items: center;
           justify-content: space-between;
           background: white;
+          padding: 8px 16px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          border-bottom: 1px solid #e2e8f0;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          min-height: 56px;
+        }
+
+        .nav-left {
+          flex: 0 0 auto;
         }
 
         .logo {
           display: flex;
           align-items: center;
-          gap: 12px;
-          flex: 1;
+          gap: 8px;
         }
 
         .logo-icon {
-          width: 40px;
-          height: 40px;
+          width: 32px;
+          height: 32px;
           background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          border-radius: 10px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
         }
 
         .logo-gradient {
           font-weight: 700;
-          font-size: 16px;
+          font-size: 12px;
           color: white;
         }
 
         .logo-content {
           display: flex;
           flex-direction: column;
-          overflow: hidden;
         }
 
         .logo-text {
-          font-size: 16px;
+          font-size: 13px;
           font-weight: 700;
           color: #1e293b;
-          line-height: 1.2;
+          line-height: 1;
         }
 
         .logo-subtitle {
-          font-size: 11px;
+          font-size: 10px;
           color: #64748b;
           font-weight: 500;
-          margin-top: 2px;
+          margin-top: 1px;
         }
 
-        .toggle-btn {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          color: #64748b;
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          cursor: pointer;
+        .nav-center {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+        }
+
+        .nav-menu {
+          display: flex;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          gap: 2px;
+        }
+
+        .nav-menu-item {
+          position: relative;
+        }
+
+        .nav-link {
           display: flex;
           align-items: center;
-          justify-content: center;
-          transition: all 0.3s;
-          font-size: 12px;
-          flex-shrink: 0;
-        }
-
-        .toggle-btn:hover {
-          background: #e2e8f0;
-          border-color: #cbd5e1;
-        }
-
-        .mobile-close-btn {
-          display: none;
-          padding: 10px 20px;
-          text-align: right;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .mobile-close-btn button {
+          gap: 6px;
+          padding: 6px 12px;
           background: none;
           border: none;
-          color: #64748b;
-          font-size: 20px;
+          border-radius: 4px;
           cursor: pointer;
-          padding: 5px;
-          border-radius: 5px;
+          font-size: 11px;
+          font-weight: 500;
+          color: #475569;
+          transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
-        .mobile-close-btn button:hover {
+        .nav-link:hover {
+          background: #f1f5f9;
+          color: #334155;
+        }
+
+        .nav-link.active {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .nav-link.dropdown-open {
           background: #f1f5f9;
         }
 
-        @media (max-width: 768px) {
-          .mobile-close-btn {
-            display: block;
-          }
-        }
-
-        .sidebar-nav {
-          flex: 1;
-          padding: 16px 0;
-          overflow-y: auto;
-        }
-
-        .menu {
-          list-style: none;
-          padding: 0 16px;
-          margin: 0;
-        }
-
-        .menu-li {
-          margin-bottom: 4px;
-        }
-
-        .menu-item {
-          position: relative;
-          padding: 12px 16px;
-          cursor: pointer;
-          border-radius: 8px;
-          transition: all 0.2s ease;
+        .nav-icon {
+          font-size: 12px;
           display: flex;
           align-items: center;
-          color: #475569;
-          font-weight: 500;
-          margin: 2px 0;
+          justify-content: center;
         }
 
-        .menu-item-content {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex: 1;
+        .nav-text {
+          font-size: 11px;
         }
 
         .dropdown-arrow {
-          margin-left: auto;
-          font-size: 12px;
-          transition: transform 0.3s ease;
-          color: #94a3b8;
+          font-size: 9px;
+          margin-left: 2px;
+          transition: transform 0.2s ease;
           display: flex;
           align-items: center;
         }
 
-        .dropdown-arrow.open {
+        .nav-link.active .dropdown-arrow {
+          color: white;
+        }
+
+        .nav-link.dropdown-open .dropdown-arrow {
           transform: rotate(180deg);
         }
 
-        .submenu {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          margin: 0;
-          padding: 0;
-          list-style: none;
-          background: #f8fafc;
+        .nav-dropdown-wrapper {
+          position: relative;
+        }
+
+        .nav-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          background: white;
+          border: 1px solid #e2e8f0;
           border-radius: 6px;
-          margin-top: 2px;
-          border-left: 2px solid #e2e8f0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          min-width: 160px;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(-5px);
+          transition: all 0.2s ease;
+          z-index: 1000;
+          margin-top: 4px;
         }
 
-        .submenu.open {
-          max-height: 400px;
+        .nav-dropdown.open {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
         }
 
-        .submenu-item {
-          padding: 10px 16px 10px 52px;
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          width: 100%;
+          background: none;
+          border: none;
           cursor: pointer;
-          border-radius: 6px;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
+          font-size: 11px;
           color: #64748b;
-          font-size: 13px;
-          font-weight: 400;
-          margin: 1px 0;
+          transition: all 0.2s ease;
+          border-radius: 4px;
+          margin: 2px;
         }
 
-        .submenu-content {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1;
-        }
-
-        .submenu-item:hover {
+        .dropdown-item:hover {
           background: #f1f5f9;
           color: #334155;
         }
 
-        .submenu-item.active {
+        .dropdown-item.active {
           background: #3b82f6;
           color: white;
-          font-weight: 500;
         }
 
-        .submenu-icon {
-          font-size: 12px;
-          min-width: 16px;
-          opacity: 0.8;
-          display: flex;
-          align-items: center;
-        }
-
-        .submenu-item.active .submenu-icon {
-          opacity: 1;
-        }
-
-        .submenu-text {
-          flex: 1;
-          font-size: 13px;
-        }
-
-        .menu-icon {
-          font-size: 16px;
-          min-width: 20px;
-          text-align: center;
-          color: #64748b;
+        .dropdown-icon {
+          font-size: 10px;
+          width: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .menu-text {
+        .dropdown-text {
+          font-size: 11px;
+          text-align: left;
           flex: 1;
-          font-size: 14px;
-          font-weight: 500;
         }
 
-        .menu-item:hover {
-          background: #f1f5f9;
-          color: #334155;
-        }
-
-        .menu-item.active {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .menu-item.active .menu-icon {
-          color: white;
-        }
-
-        .menu-item.active::before {
-          content: "";
-          position: absolute;
-          left: -16px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 3px;
-          height: 24px;
-          background: #3b82f6;
-          border-radius: 0 2px 2px 0;
-        }
-
-        .tooltip {
-          position: absolute;
-          left: calc(100% + 10px);
-          top: 50%;
-          transform: translateY(-50%);
-          background: #1e293b;
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          white-space: nowrap;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s;
-          z-index: 1000;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border: 1px solid #334155;
-        }
-
-        .menu-item:hover .tooltip {
-          opacity: 1;
-          visibility: visible;
-          transform: translateY(-50%) translateX(5px);
-        }
-
-        .tooltip::before {
-          content: "";
-          position: absolute;
-          left: -4px;
-          top: 50%;
-          transform: translateY(-50%);
-          border: 4px solid transparent;
-          border-right-color: #1e293b;
-        }
-
-        .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid #e5e7eb;
-          margin-top: auto;
+        .nav-right {
+          flex: 0 0 auto;
           display: flex;
-          flex-direction: column;
-          gap: 12px;
+          align-items: center;
         }
 
-        /* Logout Button */
+        /* Direct Logout Button */
         .logout-btn {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
+          gap: 6px;
+          padding: 6px 12px;
           background: #fef2f2;
           color: #dc2626;
           border: 1px solid #fecaca;
-          border-radius: 8px;
+          border-radius: 4px;
           cursor: pointer;
-          font-weight: 500;
-          font-size: 14px;
+          font-weight: 600;
+          font-size: 11px;
           transition: all 0.2s ease;
-          width: 100%;
+          white-space: nowrap;
         }
 
         .logout-btn:hover {
           background: #fecaca;
           transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
         }
 
         .logout-icon {
-          font-size: 16px;
+          font-size: 12px;
           display: flex;
           align-items: center;
+          justify-content: center;
         }
 
         .logout-text {
-          flex: 1;
-          text-align: left;
-        }
-
-        .user-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          background: #f8fafc;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .user-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .avatar-gradient {
-          background: linear-gradient(135deg, #10b981, #059669);
-          width: 100%;
-          height: 100%;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          color: white;
-        }
-
-        .user-details {
-          flex: 1;
-          overflow: hidden;
-        }
-
-        .user-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 2px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .user-role {
           font-size: 11px;
-          color: #64748b;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          font-weight: 600;
         }
 
-        /* Enhanced Main Content */
+        /* Main Content */
         .main {
-          flex-grow: 1;
+          flex: 1;
           display: flex;
           flex-direction: column;
-          background: #f8fafc;
           overflow: hidden;
-          width: 100%;
         }
 
-        .topbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+        .page-header {
+          padding: 12px 16px;
           background: white;
-          padding: 16px 24px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
           border-bottom: 1px solid #e2e8f0;
-          position: sticky;
-          top: 0;
-          z-index: 100;
-        }
-
-        .topbar-left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex: 1;
-        }
-
-        .mobile-menu-btn {
-          display: none;
-          background: none;
-          border: none;
-          color: #64748b;
-          font-size: 20px;
-          cursor: pointer;
-          padding: 8px;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-        }
-
-        .mobile-menu-btn:hover {
-          background: #f1f5f9;
-        }
-
-        @media (max-width: 768px) {
-          .mobile-menu-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
         }
 
         .page-title {
-          font-size: 24px;
-          font-weight: 700;
+          font-size: 18px;
+          font-weight: 600;
           color: #1e293b;
           margin: 0;
           line-height: 1.2;
         }
 
         .breadcrumb {
-          font-size: 12px;
+          font-size: 11px;
           color: #64748b;
           font-weight: 500;
           margin-top: 2px;
         }
 
-        .topbar-right {
-          display: flex;
-          align-items: center;
-        }
-
-        .user-menu-wrapper {
-          position: relative;
-        }
-
-        .user-profile {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 8px 16px;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          background: white;
-          border: 1px solid #e2e8f0;
-          user-select: none;
-        }
-
-        .user-profile:hover {
-          background: #f1f5f9;
-          border-color: #cbd5e1;
-        }
-
-        .user-profile.active {
-          background: #e2e8f0;
-          border-color: #94a3b8;
-        }
-
-        .profile-avatar {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 12px;
-        }
-
-        .profile-info {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .profile-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-        }
-
-        .profile-role {
-          font-size: 11px;
-          color: #64748b;
-        }
-
-        .profile-arrow {
-          font-size: 12px;
-          color: #64748b;
-          transition: transform 0.3s ease;
-          display: flex;
-          align-items: center;
-        }
-
-        .profile-arrow.open {
-          transform: rotate(180deg);
-        }
-
-        .dropdown-menu {
-          position: absolute;
-          right: 0;
-          top: calc(100% + 8px);
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          padding: 8px;
-          z-index: 1000;
-          min-width: 200px;
-          animation: dropdownFadeIn 0.2s ease-out;
-        }
-
-        @keyframes dropdownFadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .dropdown-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          border-radius: 6px;
-          background: #f8fafc;
-          margin-bottom: 4px;
-        }
-
-        .dropdown-avatar {
-          width: 36px;
-          height: 36px;
-          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 13px;
-        }
-
-        .dropdown-user-info {
-          flex: 1;
-        }
-
-        .dropdown-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 2px;
-        }
-
-        .dropdown-email {
-          font-size: 11px;
-          color: #64748b;
-        }
-
-        .dropdown-divider {
-          height: 1px;
-          background: #e2e8f0;
-          margin: 8px 0;
-        }
-
-        .dropdown-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          cursor: pointer;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-          color: #64748b;
-        }
-
-        .dropdown-item:hover {
-          background: #f1f5f9;
-          color: #1e293b;
-        }
-
-        .dropdown-item-icon {
-          font-size: 14px;
-          width: 16px;
-          text-align: center;
-          display: flex;
-          align-items: center;
-        }
-
-        .dropdown-item-text {
-          font-size: 13px;
-          font-weight: 500;
-        }
-
         .content-area {
           flex: 1;
-          padding: 24px;
+          padding: 16px;
           overflow-y: auto;
           background: #f8fafc;
         }
 
         @media (max-width: 1024px) {
           .content-area {
-            padding: 20px;
+            padding: 12px;
           }
 
-          .topbar {
-            padding: 16px 20px;
+          .nav-menu {
+            gap: 1px;
+          }
+
+          .nav-link {
+            padding: 6px 8px;
+            font-size: 10px;
+          }
+
+          .nav-text {
+            font-size: 10px;
+          }
+
+          .logout-btn {
+            padding: 6px 10px;
+            font-size: 10px;
           }
         }
 
         @media (max-width: 768px) {
-          .content-area {
-            padding: 16px;
+          .top-nav {
+            flex-wrap: wrap;
+            min-height: auto;
+            padding: 6px 12px;
           }
 
-          .topbar {
-            padding: 12px 16px;
+          .nav-center {
+            order: 3;
+            flex: 1 0 100%;
+            margin-top: 6px;
           }
 
-          .page-title {
-            font-size: 20px;
+          .nav-menu {
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding-bottom: 4px;
+          }
+
+          .nav-link {
+            padding: 4px 8px;
+          }
+
+          .logo-text {
+            font-size: 12px;
+          }
+
+          .logout-text {
+            display: none;
+          }
+
+          .logout-btn {
+            padding: 6px;
           }
         }
 
         @media (max-width: 480px) {
-          .user-profile .profile-info {
+          .nav-link .nav-text {
             display: none;
           }
 
-          .topbar-left {
-            flex: 1;
+          .nav-link {
+            padding: 6px;
+          }
+
+          .logo-content {
+            display: none;
           }
 
           .content-area {
-            padding: 12px;
+            padding: 8px;
           }
+
+          .page-title {
+            font-size: 16px;
+          }
+
+          .logout-btn {
+            padding: 5px;
+          }
+        }
+
+        /* Custom scrollbar */
+        .content-area::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 3px;
+        }
+
+        .content-area::-webkit-scrollbar-thumb:hover {
+          background: #a1a1a1;
         }
       `}</style>
     </div>

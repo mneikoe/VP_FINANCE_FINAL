@@ -12,20 +12,16 @@ import {
   Row,
   Col,
   Statistic,
+  Modal,
 } from "antd";
 import {
   CalendarOutlined,
-  ClockCircleOutlined,
   UserOutlined,
-  CheckCircleOutlined,
   TeamOutlined,
-  PhoneOutlined,
   EnvironmentOutlined,
-  BankOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axiosInstance from "../../../config/axios";
-import LeadsTableLayout from "./LeadsTableLayout";
 import { setappointmentdoneCount } from "../../../redux/feature/showdashboarddata/dashboarddataSlice";
 import "./AppointmentsPage.css";
 
@@ -51,6 +47,11 @@ const AppointmentsScheduledPage = () => {
     prospects: 0,
   });
   const [error, setError] = useState("");
+  const [callModal, setCallModal] = useState({
+    visible: false,
+    phoneNumber: "",
+    type: "",
+  });
 
   // Fetch appointments from API
   const fetchAppointments = useCallback(async () => {
@@ -150,11 +151,39 @@ const AppointmentsScheduledPage = () => {
     });
   };
 
-  // Format time for display
-  const formatTime = (timeString) => {
+  // Format time for display in AM/PM
+  const formatTimeAMPM = (timeString) => {
     if (!timeString) return "-";
-    // Remove seconds if present
-    return timeString.split(":").slice(0, 2).join(":");
+
+    // Split time string
+    const timeParts = timeString.split(":");
+    const hours = parseInt(timeParts[0]);
+    const minutes = timeParts[1];
+
+    // Convert to 12-hour format
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+
+    return `${hours12}:${minutes} ${ampm}`;
+  };
+
+  // Handle phone number click
+  const handlePhoneClick = (phoneNumber, type = "mobile") => {
+    if (!phoneNumber || phoneNumber === "-") return;
+
+    setCallModal({
+      visible: true,
+      phoneNumber,
+      type: type === "mobile" ? "Mobile" : "Contact",
+    });
+  };
+
+  // Handle call confirmation
+  const handleCallConfirm = () => {
+    if (callModal.phoneNumber) {
+      window.location.href = `tel:${callModal.phoneNumber}`;
+    }
+    setCallModal({ visible: false, phoneNumber: "", type: "" });
   };
 
   // Prepare table data
@@ -165,149 +194,62 @@ const AppointmentsScheduledPage = () => {
       return {
         key: appointment._id,
         sn: index + 1,
-        scheduledOn: formatDate(appointment.scheduledOn),
+        taskDate: formatDate(appointment.createdAt || appointment.scheduledOn),
+        groupCode: personalDetails.groupCode || "-",
+        groupName: personalDetails.groupName || personalDetails.name || "-",
+        mobileNo: personalDetails.mobileNo || "-",
+        contactNo: personalDetails.contactNo || "-",
+        leadSource: personalDetails.leadSource || "-",
+        leadOccupation: personalDetails.leadOccupation || "-",
+        area: personalDetails.city || "-",
         appointmentDate: formatDate(appointment.appointmentDate),
-        appointmentTime: formatTime(appointment.appointmentTime),
-        suspectName: (
-          <div>
-            <div
-              style={{ fontWeight: 500, color: "#1890ff", cursor: "pointer" }}
-              onClick={() => navigate(`/suspect/details/${appointment._id}`)}
-            >
-              {personalDetails.name || personalDetails.groupName || "Unknown"}
-            </div>
-            {personalDetails.groupCode && (
-              <div
-                style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}
-              >
-                Code: {personalDetails.groupCode}
-              </div>
-            )}
-          </div>
-        ),
-        organisation: (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <BankOutlined style={{ color: "#8c8c8c", fontSize: "12px" }} />
-            <span>{personalDetails.organisation || "-"}</span>
-          </div>
-        ),
-        area: (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <EnvironmentOutlined
-              style={{ color: "#8c8c8c", fontSize: "12px" }}
-            />
-            <span>{personalDetails.city || "-"}</span>
-          </div>
-        ),
-        contact: (
-          <div className="contact-info">
-            {personalDetails.mobileNo ? (
-              <div className="contact-item" style={{ marginBottom: "4px" }}>
-                <PhoneOutlined
-                  style={{ marginRight: "4px", color: "#52c41a" }}
-                />
-                <span style={{ fontFamily: "monospace", fontWeight: 500 }}>
-                  {personalDetails.mobileNo}
-                </span>
-                <a
-                  href={`tel:${personalDetails.mobileNo}`}
-                  className="call-link"
-                  title="Call"
-                  style={{
-                    marginLeft: "8px",
-                    fontSize: "11px",
-                    color: "#1890ff",
-                  }}
-                >
-                  Call
-                </a>
-              </div>
-            ) : null}
-
-            {personalDetails.contactNo ? (
-              <div className="contact-item">
-                <PhoneOutlined
-                  style={{ marginRight: "4px", color: "#1890ff" }}
-                />
-                <span style={{ fontFamily: "monospace" }}>
-                  {personalDetails.contactNo}
-                </span>
-                <a
-                  href={`tel:${personalDetails.contactNo}`}
-                  className="call-link"
-                  title="Call"
-                  style={{
-                    marginLeft: "8px",
-                    fontSize: "11px",
-                    color: "#1890ff",
-                  }}
-                >
-                  Call
-                </a>
-              </div>
-            ) : null}
-
-            {!personalDetails.mobileNo && !personalDetails.contactNo && (
-              <span style={{ color: "#bfbfbf" }}>No contact</span>
-            )}
-          </div>
-        ),
-        status: (
-          <Tag
-            color="processing"
-            style={{
-              fontWeight: 500,
-              fontSize: "11px",
-              padding: "2px 8px",
-              borderRadius: "12px",
-            }}
-          >
-            SUSPECT
-          </Tag>
-        ),
-        appointmentStatus: (
-          <Tag
-            color="blue"
-            style={{
-              fontWeight: 500,
-              fontSize: "11px",
-              padding: "2px 8px",
-              background: "linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%)",
-              borderColor: "#91d5ff",
-              borderRadius: "12px",
-            }}
-          >
-            <ClockCircleOutlined style={{ marginRight: "4px" }} />
-            SCHEDULED
-          </Tag>
-        ),
-        remark: (
-          <div
-            style={{
-              maxWidth: "150px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {appointment.appointmentRemarks || "-"}
-          </div>
-        ),
+        appointmentTime: formatTimeAMPM(appointment.appointmentTime),
+        status: personalDetails.status || "SUSPECT",
+        remark: appointment.appointmentRemarks || "-",
       };
     });
-  }, [appointments, navigate]);
+  }, [appointments]);
 
   const columns = [
     {
-      header: "S.N",
-      key: "sn",
-      width: "60px",
-      align: "center",
+      header: "Task Date",
+      key: "taskDate",
+      width: "110px",
     },
     {
-      header: "Scheduled On",
-      key: "scheduledOn",
+      header: "Group Code",
+      key: "groupCode",
+      width: "100px",
+    },
+    {
+      header: "Group Name",
+      key: "groupName",
+      width: "150px",
+    },
+    {
+      header: "Mobile No",
+      key: "mobileNo",
       width: "110px",
+    },
+    {
+      header: "Contact No",
+      key: "contactNo",
+      width: "120px",
+    },
+    {
+      header: "Lead Source",
+      key: "leadSource",
+      width: "120px",
+    },
+    {
+      header: "Lead Occupation",
+      key: "leadOccupation",
+      width: "130px",
+    },
+    {
+      header: "Area",
+      key: "area",
+      width: "100px",
     },
     {
       header: "Appointment Date",
@@ -317,39 +259,13 @@ const AppointmentsScheduledPage = () => {
     {
       header: "Time",
       key: "appointmentTime",
-      width: "80px",
+      width: "130px",
       align: "center",
-    },
-    {
-      header: "Name",
-      key: "suspectName",
-      width: "180px",
-    },
-    {
-      header: "Organisation",
-      key: "organisation",
-      width: "140px",
-    },
-    {
-      header: "Area",
-      key: "area",
-      width: "100px",
-    },
-    {
-      header: "Contact",
-      key: "contact",
-      width: "150px",
     },
     {
       header: "Status",
       key: "status",
       width: "90px",
-      align: "center",
-    },
-    {
-      header: "Appointment",
-      key: "appointmentStatus",
-      width: "110px",
       align: "center",
     },
     {
@@ -382,6 +298,48 @@ const AppointmentsScheduledPage = () => {
       className="appointments-page"
       style={{ padding: "24px", backgroundColor: "#f0f2f5" }}
     >
+      {/* Call Confirmation Modal */}
+      <Modal
+        title="Confirm Call"
+        open={callModal.visible}
+        onOk={handleCallConfirm}
+        onCancel={() =>
+          setCallModal({ visible: false, phoneNumber: "", type: "" })
+        }
+        okText="Call"
+        cancelText="Cancel"
+        okButtonProps={{
+          style: {
+            backgroundColor: "#52c41a",
+            borderColor: "#52c41a",
+          },
+        }}
+      >
+        <div style={{ padding: "20px 0", textAlign: "center" }}>
+          <div
+            style={{ fontSize: "48px", color: "#1890ff", marginBottom: "16px" }}
+          >
+            📞
+          </div>
+          <h3 style={{ color: "#1f1f1f", marginBottom: "8px" }}>
+            Call on this number?
+          </h3>
+          <div
+            style={{
+              fontSize: "24px",
+              fontWeight: "600",
+              color: "#1890ff",
+              marginBottom: "8px",
+            }}
+          >
+            {callModal.phoneNumber}
+          </div>
+          <div style={{ color: "#666", fontSize: "14px" }}>
+            {callModal.type} Number
+          </div>
+        </div>
+      </Modal>
+
       {/* Header */}
       <Card
         style={{
@@ -501,7 +459,6 @@ const AppointmentsScheduledPage = () => {
             <Statistic
               title="Today"
               value={stats.today}
-              prefix={<CalendarOutlined style={{ color: "#52c41a" }} />}
               valueStyle={{
                 color: "#52c41a",
                 fontSize: "28px",
@@ -532,7 +489,6 @@ const AppointmentsScheduledPage = () => {
             <Statistic
               title="Tomorrow"
               value={stats.tomorrow}
-              prefix={<CalendarOutlined style={{ color: "#1890ff" }} />}
               valueStyle={{
                 color: "#1890ff",
                 fontSize: "28px",
@@ -563,7 +519,6 @@ const AppointmentsScheduledPage = () => {
             <Statistic
               title="Total"
               value={stats.total}
-              prefix={<TeamOutlined style={{ color: "#722ed1" }} />}
               valueStyle={{
                 color: "#722ed1",
                 fontSize: "28px",
@@ -594,7 +549,6 @@ const AppointmentsScheduledPage = () => {
             <Statistic
               title="Suspects"
               value={stats.suspects}
-              prefix={<UserOutlined style={{ color: "#fa8c16" }} />}
               valueStyle={{
                 color: "#fa8c16",
                 fontSize: "28px",
@@ -609,60 +563,6 @@ const AppointmentsScheduledPage = () => {
               }}
             >
               Total suspects
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-          <Card
-            size="small"
-            style={{
-              borderRadius: "12px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              borderLeft: "4px solid #f5222d",
-            }}
-            bodyStyle={{ padding: "16px" }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#666",
-                  marginBottom: "8px",
-                  fontWeight: 500,
-                }}
-              >
-                Telecaller
-              </div>
-              <div
-                style={{
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  color: "#1f1f1f",
-                  marginBottom: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                }}
-              >
-                <UserOutlined style={{ color: "#1890ff" }} />
-                {user?.username || "Unknown"}
-              </div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#999",
-                  marginTop: "4px",
-                  fontFamily: "monospace",
-                  backgroundColor: "#f5f5f5",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  display: "inline-block",
-                }}
-              >
-                ID: {telecallerId?.substring(0, 6)}...
-              </div>
             </div>
           </Card>
         </Col>
@@ -758,61 +658,54 @@ const AppointmentsScheduledPage = () => {
         style={{
           borderRadius: "12px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          overflow: "hidden",
         }}
-        bodyStyle={{ padding: "24px" }}
+        bodyStyle={{ padding: "0" }}
       >
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "20px",
+            padding: "20px 24px",
+            backgroundColor: "#fff",
+            borderBottom: "1px solid #f0f0f0",
           }}
         >
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                color: "#1f1f1f",
-                fontSize: "20px",
-                fontWeight: 600,
-              }}
-            >
-              {getFilterTitle()}
-            </h2>
-            <p
-              style={{
-                margin: "4px 0 0 0",
-                color: "#666",
-                fontSize: "14px",
-              }}
-            >
-              Manage your appointment schedule
-            </p>
-          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  color: "#1f1f1f",
+                  fontSize: "20px",
+                  fontWeight: 600,
+                }}
+              >
+                {getFilterTitle()}
+              </h2>
+              <p
+                style={{
+                  margin: "4px 0 0 0",
+                  color: "#666",
+                  fontSize: "14px",
+                }}
+              >
+                Showing <strong>{appointments.length}</strong> appointment(s)
+              </p>
+            </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span
-              style={{
-                color: "#666",
-                fontSize: "14px",
-                backgroundColor: "#f5f5f5",
-                padding: "6px 12px",
-                borderRadius: "6px",
-              }}
-            >
-              Showing{" "}
-              <strong style={{ color: "#1890ff", margin: "0 4px" }}>
-                {appointments.length}
-              </strong>{" "}
-              appointment(s)
-            </span>
-            <Button
-              onClick={() => navigate("/telecaller/dashboard")}
-              style={{ borderRadius: "6px" }}
-            >
-              Back to Dashboard
-            </Button>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <Button
+                onClick={() => navigate("/telecaller/dashboard")}
+                style={{ borderRadius: "6px" }}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -826,6 +719,7 @@ const AppointmentsScheduledPage = () => {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: "#fff",
             }}
           >
             <div
@@ -859,15 +753,242 @@ const AppointmentsScheduledPage = () => {
             </p>
           </div>
         ) : appointments.length > 0 ? (
-          <LeadsTableLayout
-            data={tableData}
-            columns={columns}
-            showSearch={true}
-            showPagination={true}
-            pageSize={10}
-            searchPlaceholder="Search by name, organisation, area, or contact..."
-            style={{ borderRadius: "8px" }}
-          />
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontFamily:
+                  "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: "#fafafa" }}>
+                  {columns.map((col) => (
+                    <th
+                      key={col.key}
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: col.align || "center",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        color: "#666",
+                        borderBottom: "1px solid #f0f0f0",
+                        whiteSpace: "nowrap",
+                        minWidth: col.width,
+                      }}
+                    >
+                      {col.header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.map((row) => (
+                  <tr
+                    key={row.key}
+                    style={{
+                      borderBottom: "1px solid #f0f0f0",
+                      backgroundColor: "#fff",
+                      transition: "background-color 0.2s",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#1f1f1f",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {row.taskDate}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#1f1f1f",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'Courier New', monospace",
+                          fontWeight: 600,
+                          color: "#1890ff",
+                          backgroundColor: "#e6f7ff",
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          display: "inline-block",
+                        }}
+                      >
+                        {row.groupCode}
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#1f1f1f",
+                        fontWeight: 500,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <UserOutlined
+                          style={{ color: "#52c41a", fontSize: "12px" }}
+                        />
+                        <span>{row.groupName}</span>
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: row.mobileNo !== "-" ? "#1890ff" : "#bfbfbf",
+                        fontWeight: 500,
+                        cursor: row.mobileNo !== "-" ? "pointer" : "default",
+                        fontFamily: "monospace",
+                      }}
+                      onClick={() =>
+                        row.mobileNo !== "-" &&
+                        handlePhoneClick(row.mobileNo, "mobile")
+                      }
+                    >
+                      {row.mobileNo}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: row.contactNo !== "-" ? "#1890ff" : "#bfbfbf",
+                        fontWeight: 500,
+                        cursor: row.contactNo !== "-" ? "pointer" : "default",
+                        fontFamily: "monospace",
+                      }}
+                      onClick={() =>
+                        row.contactNo !== "-" &&
+                        handlePhoneClick(row.contactNo, "contact")
+                      }
+                    >
+                      {row.contactNo}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#666",
+                      }}
+                    >
+                      {row.leadSource}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#666",
+                      }}
+                    >
+                      {row.leadOccupation}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#666",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <EnvironmentOutlined
+                          style={{ color: "#fa8c16", fontSize: "12px" }}
+                        />
+                        <span>{row.area}</span>
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#1f1f1f",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {row.appointmentDate}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "center",
+                        fontSize: "13px",
+                        color: "#1f1f1f",
+                        fontWeight: 500,
+                      }}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: "#f6ffed",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          border: "1px solid #b7eb8f",
+                        }}
+                      >
+                        {row.appointmentTime}
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "2px 8px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          borderRadius: "12px",
+                          backgroundColor: "#e6f7ff",
+                          color: "#1890ff",
+                          border: "1px solid #91d5ff",
+                        }}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "#666",
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: "150px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {row.remark}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div
             style={{
@@ -878,6 +999,7 @@ const AppointmentsScheduledPage = () => {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: "#fff",
             }}
           >
             <div
@@ -933,6 +1055,33 @@ const AppointmentsScheduledPage = () => {
             </Space>
           </div>
         )}
+
+        {/* Pagination for large data */}
+        {appointments.length > 0 && (
+          <div
+            style={{
+              padding: "16px 24px",
+              backgroundColor: "#fafafa",
+              borderTop: "1px solid #f0f0f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ fontSize: "13px", color: "#666" }}>
+              Showing {appointments.length} of {stats.total} appointments
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Button size="small" disabled>
+                Previous
+              </Button>
+              <Button type="primary" size="small">
+                1
+              </Button>
+              <Button size="small">Next</Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Add some CSS for animation */}
@@ -950,20 +1099,25 @@ const AppointmentsScheduledPage = () => {
           min-height: 100vh;
         }
 
-        .contact-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
+        table tr:hover {
+          background-color: #fafafa !important;
         }
 
-        .contact-item:hover {
-          background-color: #f5f5f5;
-          border-radius: 4px;
-          padding: 2px 4px;
-        }
+        @media (max-width: 768px) {
+          .appointments-page {
+            padding: 16px !important;
+          }
 
-        .call-link:hover {
-          text-decoration: underline;
+          table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+
+          th,
+          td {
+            min-width: 100px !important;
+          }
         }
       `}</style>
     </div>
