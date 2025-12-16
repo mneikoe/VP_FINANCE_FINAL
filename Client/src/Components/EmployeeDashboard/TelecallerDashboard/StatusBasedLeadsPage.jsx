@@ -346,7 +346,7 @@ const StatusBasedLeadsPage = () => {
       Modal.confirm({
         title: "Call Confirmation",
         icon: <PhoneOutlined />,
-        content: `Kya aap ${phone} par call lagana chahte hain?`,
+        content: `Cick ok to confirm the call on ${phone} `,
         okText: "OK",
         cancelText: "Cancel",
         onOk: () => {
