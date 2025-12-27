@@ -1,6 +1,6 @@
 const suspectModel = require("../Models/SusProsClientSchema");
 const generateAndStoreGroupCode = require("../utils/generateGroupCode");
-
+const mongoose = require("mongoose");
 // Create a new suspect
 exports.createSuspect = async (req, res) => {
   try {
@@ -81,26 +81,119 @@ exports.getAllSuspectsAppointmentScheduled = async (req, res) => {
 };
 
 // Get a single suspect by ID
+// Controller/SuspectCtrl.js में getSuspectById function update करो:
 exports.getSuspectById = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Suspect ID is required" });
+
+    console.log("🔍 GET SUSPECT BY ID - Request received");
+    console.log("ID parameter:", id);
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({
+        success: false,
+        message: "Suspect ID is required",
+      });
     }
-    const suspect = await suspectModel.findById(id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid suspect ID format",
+      });
+    }
+
+    // ✅ COMPLETE DATA FETCH WITH ALL RELATED DATA
+    const suspect = await suspectModel
+      .findById(id)
+      .populate("personalDetails")
+      .populate({
+        path: "familyMembers",
+        populate: {
+          path: "healthHistory",
+        },
+      })
+      .populate("financialInfo.insurance")
+      .populate("financialInfo.investments")
+      .populate("financialInfo.loans")
+      .populate("futurePriorities")
+      .populate("proposedPlan")
+      .populate("needs")
+      .populate("customerDoc")
+      .populate("kycs")
+      .populate("callTasks")
+      .populate("callHistory")
+      .lean(); // Use lean for better performance
+
     if (!suspect) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Suspect not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
     }
-    res.status(200).json({ success: true, suspect });
+
+    console.log("✅ Suspect found with complete data");
+
+    // Format response
+    const responseData = {
+      _id: suspect._id,
+      status: suspect.status,
+
+      // Personal Details
+      personalDetails: suspect.personalDetails || {},
+
+      // Family Members
+      familyMembers: suspect.familyMembers || [],
+
+      // Financial Info
+      financialInfo: {
+        insurance: suspect.financialInfo?.insurance || [],
+        investments: suspect.financialInfo?.investments || [],
+        loans: suspect.financialInfo?.loans || [],
+      },
+
+      // Future Priorities
+      futurePriorities: suspect.futurePriorities || [],
+
+      // Needs
+      needs: suspect.needs || {},
+
+      // Proposed Plan
+      proposedPlan: suspect.proposedPlan || [],
+
+      // Customer Documents
+      customerDoc: suspect.customerDoc || [],
+
+      // KYC
+      kycs: suspect.kycs || [],
+
+      // Call Tasks & History
+      callTasks: suspect.callTasks || [],
+      callHistory: suspect.callHistory || [],
+
+      // Assignment Info
+      assignedTo: suspect.assignedTo,
+      assignedToRM: suspect.assignedToRM,
+      assignedToRMName: suspect.assignedToRMName,
+      assignedToRMCode: suspect.assignedToRMCode,
+      assignedToRMAt: suspect.assignedToRMAt,
+      rmAssignmentNotes: suspect.rmAssignmentNotes,
+
+      // Timestamps
+      createdAt: suspect.createdAt,
+      updatedAt: suspect.updatedAt,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Suspect details fetched successfully",
+      suspect: responseData,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error fetching suspect by ID:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while fetching suspects",
+      message: "Failed to fetch suspect details",
       error: error.message,
     });
   }
@@ -1172,6 +1265,142 @@ exports.getSuspectsAppointmentScheduled = async (req, res) => {
         "Server error while fetching suspects appointment scheduled records",
       error: error.message,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+// SuspectCtrl.js में ये functions add करो:
+
+// Update family members
+exports.updateFamilyMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { familyMembers } = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { familyMembers },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Family members updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update family members",
+      error: error.message,
+    });
+  }
+};
+
+// Update financial info
+exports.updateFinancialInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const financialInfo = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { financialInfo },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Financial information updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update financial information",
+      error: error.message,
+    });
+  }
+};
+
+// Update future priorities and needs
+exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { futurePriorities, needs } = req.body;
+
+    const updateData = {};
+    if (futurePriorities) updateData.futurePriorities = futurePriorities;
+    if (needs) updateData.needs = needs;
+
+    const suspect = await suspectModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Future priorities and needs updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update future priorities and needs",
+      error: error.message,
+    });
+  }
+};
+
+// Update proposed financial plan
+exports.updateProposedFinancialPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { proposedPlan } = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { proposedPlan },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Proposed financial plan updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update proposed financial plan",
+      error: error.message,
     });
   }
 };

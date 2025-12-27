@@ -7,7 +7,7 @@ export const createSuspect = createAsyncThunk(
   async (SuspectData, { rejectWithValue }) => {
     try {
       const response = await axios.post("/api/suspect/create", SuspectData);
-      console.log("Suspect client successfully", response?.data?._id);
+      console.log("Suspect created successfully", response?.data?._id);
       return response?.data?._id;
     } catch (error) {
       return rejectWithValue(
@@ -60,7 +60,7 @@ export const addFinancialInfo = createAsyncThunk(
 
 // 4. Add Future Priorities and Needs
 export const addFuturePrioritiesAndNeeds = createAsyncThunk(
-  "prospect/addFuturePrioritiesAndNeeds",
+  "suspect/addFuturePrioritiesAndNeeds",
   async ({ suspectId, futurePriorities, needs }, { rejectWithValue }) => {
     try {
       console.log("Received id from future priorities", suspectId);
@@ -84,7 +84,7 @@ export const addFuturePrioritiesAndNeeds = createAsyncThunk(
 
 // 5. Add Proposed Financial Plan
 export const addProposedFinancialPlan = createAsyncThunk(
-  "prospect/addProposedFinancialPlan",
+  "suspect/addProposedFinancialPlan",
   async ({ suspectId, formData }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
@@ -119,23 +119,24 @@ export const getAllSuspects = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding the proposed financial plan."
+          "An error occurred while fetching suspects."
       );
     }
   }
 );
 
+// Get all appointment done suspects
 export const getAllSuspectsOnlyAppointMentDone = createAsyncThunk(
   "suspect/appointmentDone",
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get(`/api/suspect/allappointmentdone`);
-      console.log("Get all suspect", response?.data);
+      console.log("Get all appointment done suspects", response?.data);
       return response?.data?.suspects;
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding the proposed financial plan."
+          "An error occurred while fetching appointment done suspects."
       );
     }
   }
@@ -152,7 +153,7 @@ export const getSuspectById = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding the proposed financial plan."
+          "An error occurred while fetching suspect details."
       );
     }
   }
@@ -171,13 +172,13 @@ export const updateSuspectStatus = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding the proposed financial plan."
+          "An error occurred while updating suspect status."
       );
     }
   }
 );
 
-// 9.update Suspect personal Details
+// 9. Update Suspect personal Details
 export const updateSuspectPersonalDetails = createAsyncThunk(
   "suspect/update/personal/details",
   async ({ id, personalDetails }, { rejectWithValue }) => {
@@ -194,7 +195,7 @@ export const updateSuspectPersonalDetails = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occured while updating the personal Details of the suspect."
+          "An error occurred while updating the personal details of the suspect."
       );
     }
   }
@@ -211,13 +212,13 @@ export const deleteSuspectById = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occured while deleting a suspect."
+          "An error occurred while deleting a suspect."
       );
     }
   }
 );
 
-// 11 getAllFamilyMembers
+// 11. GetAll Family Members
 export const getAllFamilyMembers = createAsyncThunk(
   "family/getAllFamilyMembers",
   async (id, { rejectWithValue }) => {
@@ -229,6 +230,228 @@ export const getAllFamilyMembers = createAsyncThunk(
       return rejectWithValue(
         error?.response?.data?.message ||
           "An error occurred while fetching family members."
+      );
+    }
+  }
+);
+
+// 🔄 🔄 🔄 NEW UPDATE FUNCTIONS FOR MODALS 🔄 🔄 🔄
+
+// 12. Update Family Members
+export const updateFamilyMembers = createAsyncThunk(
+  "suspect/update/familyMembers",
+  async ({ id, familyMembers }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/suspect/${id}/family`, {
+        familyMembers,
+      });
+      console.log("Update Family Members successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while updating family members."
+      );
+    }
+  }
+);
+
+// 13. Update Financial Information
+export const updateFinancialInfo = createAsyncThunk(
+  "suspect/update/financialInfo",
+  async ({ id, financialInfo }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/suspect/${id}/financial`, {
+        financialInfo,
+      });
+      console.log("Update Financial Info successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while updating financial information."
+      );
+    }
+  }
+);
+
+// 14. Update Future Priorities and Needs
+export const updateFuturePrioritiesAndNeeds = createAsyncThunk(
+  "suspect/update/futurePriorities",
+  async ({ id, futurePriorities, needs }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/suspect/${id}/priorities`, {
+        futurePriorities,
+        needs,
+      });
+      console.log("Update Future Priorities successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while updating future priorities."
+      );
+    }
+  }
+);
+
+// 15. Update Proposed Financial Plan
+export const updateProposedFinancialPlan = createAsyncThunk(
+  "suspect/update/proposedPlan",
+  async ({ id, proposedPlan }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/suspect/${id}/proposed-plan`, {
+        proposedPlan,
+      });
+      console.log("Update Proposed Plan successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while updating proposed financial plan."
+      );
+    }
+  }
+);
+
+// 16. Add Call Task for Suspect
+export const addCallTask = createAsyncThunk(
+  "suspect/addCallTask",
+  async ({ id, taskData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `/api/suspect/${id}/call-task`,
+        taskData
+      );
+      console.log("Add Call Task successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while adding call task."
+      );
+    }
+  }
+);
+
+// 17. Get Call History
+export const getCallHistory = createAsyncThunk(
+  "suspect/getCallHistory",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/suspect/${id}/call-history`);
+      console.log("Get Call History successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while fetching call history."
+      );
+    }
+  }
+);
+
+// 18. Get Suspects by Call Status
+export const getSuspectsByCallStatus = createAsyncThunk(
+  "suspect/getByCallStatus",
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/suspect/filter/by-call-status`, {
+        params,
+      });
+      console.log("Get Suspects by Call Status successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while fetching suspects by call status."
+      );
+    }
+  }
+);
+
+// 19. Get All Appointment Scheduled
+export const getAllAppointmentScheduled = createAsyncThunk(
+  "suspect/getAllAppointmentScheduled",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/suspect/appointments/scheduled`);
+      console.log("Get All Appointment Scheduled successfully", response?.data);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while fetching appointment scheduled."
+      );
+    }
+  }
+);
+
+// 20. Get Suspects Appointment Scheduled
+export const getSuspectsAppointmentScheduled = createAsyncThunk(
+  "suspect/getSuspectsAppointmentScheduled",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/suspect/suspects/appointments`);
+      console.log(
+        "Get Suspects Appointment Scheduled successfully",
+        response?.data
+      );
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          "An error occurred while fetching suspects appointment scheduled."
+      );
+    }
+  }
+);
+
+// 🔄 🔄 🔄 CONSOLIDATED UPDATE FUNCTION 🔄 🔄 🔄
+
+// 21. Update Suspect Data (Generic - for all types)
+export const updateSuspectData = createAsyncThunk(
+  "suspect/update/data",
+  async ({ id, type, data }, { rejectWithValue }) => {
+    try {
+      let url = "";
+      let payload = {};
+
+      switch (type) {
+        case "personal":
+          url = `/api/suspect/update/personaldetails/${id}`;
+          payload = { personalDetails: data };
+          break;
+        case "family":
+          url = `/api/suspect/${id}/family`;
+          payload = { familyMembers: data };
+          break;
+        case "financial":
+          url = `/api/suspect/${id}/financial`;
+          payload = { financialInfo: data };
+          break;
+        case "futurePriorities":
+          url = `/api/suspect/${id}/priorities`;
+          payload = {
+            futurePriorities: data.futurePriorities,
+            needs: data.needs,
+          };
+          break;
+        case "proposedPlan":
+          url = `/api/suspect/${id}/proposed-plan`;
+          payload = { proposedPlan: data };
+          break;
+        default:
+          throw new Error("Invalid update type");
+      }
+
+      const response = await axios.put(url, payload);
+      console.log(`Update ${type} data successfully`, response?.data);
+      return { ...response.data, type };
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.error ||
+          `An error occurred while updating ${type} data.`
       );
     }
   }

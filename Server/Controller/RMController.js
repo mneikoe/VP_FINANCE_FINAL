@@ -36,204 +36,6 @@ exports.getAllRMs = async (req, res) => {
   }
 };
 
-// ✅ Get prospects for assignment (for prospects tab)
-exports.getProspectsForAssignment = async (req, res) => {
-  try {
-    console.log("🔍 Fetching prospects for RM assignment...");
-
-    // Find prospects with appointment scheduled
-    const prospects = await TestSchema.find({
-      status: "prospect",
-      "callTasks.taskStatus": "Appointment Scheduled",
-    })
-      .select("_id groupCode personalDetails callTasks createdAt status")
-      .sort({ createdAt: -1 });
-
-    // Get already assigned prospect IDs from RMAssignment collection ONLY
-    const assignedProspectIds = await RMAssignment.distinct("prospectId");
-
-    console.log(`📊 Total prospects: ${prospects.length}`);
-    console.log(
-      `📊 Already assigned in RMAssignment: ${assignedProspectIds.length}`
-    );
-
-    // Filter only unassigned prospects
-    const unassignedProspects = prospects.filter(
-      (prospect) => !assignedProspectIds.includes(prospect._id.toString())
-    );
-
-    // Format response
-    const formattedProspects = unassignedProspects.map((prospect) => {
-      const personal = prospect.personalDetails || {};
-      const appointmentTask = prospect.callTasks.find(
-        (task) => task.taskStatus === "Appointment Scheduled"
-      );
-
-      return {
-        id: prospect._id,
-        groupCode: prospect.groupCode || personal.groupCode || "N/A",
-        groupName: personal.groupName || personal.name || "N/A",
-        name: personal.name || "N/A",
-        mobileNo: personal.mobileNo || "N/A",
-        contactNo: personal.contactNo || "N/A",
-        organisation: personal.organisation || "N/A",
-        city: personal.city || "N/A",
-        leadSource: personal.leadSource || "N/A",
-        status: prospect.status,
-        appointmentDate: appointmentTask?.nextAppointmentDate || null,
-        appointmentTime: appointmentTask?.nextAppointmentTime || null,
-        scheduledOn: appointmentTask?.createdAt || null,
-      };
-    });
-
-    console.log(
-      `✅ Found ${formattedProspects.length} unassigned prospects with appointments`
-    );
-
-    res.status(200).json({
-      success: true,
-      count: formattedProspects.length,
-      data: formattedProspects,
-    });
-  } catch (error) {
-    console.error("❌ Error fetching prospects:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch prospects for assignment",
-      error: error.message,
-    });
-  }
-};
-
-// ✅ Assign prospects to RM (for prospects)
-exports.assignProspectsToRM = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { rmId, rmName, rmCode, prospects, assignmentNotes } = req.body;
-
-    console.log("🎯 Assigning prospects to RM:", {
-      rmId,
-      rmName,
-      prospectsCount: prospects.length,
-    });
-
-    // Validate
-    if (!rmId || !rmName || !prospects || prospects.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        success: false,
-        message: "RM details and prospects are required",
-      });
-    }
-
-    // Check if RM exists
-    const rmExists = await Employee.findOne({ _id: rmId, role: "RM" }).session(
-      session
-    );
-    if (!rmExists) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({
-        success: false,
-        message: "Relationship Manager not found",
-      });
-    }
-
-    const assignmentResults = [];
-    const failedAssignments = [];
-
-    // Assign each prospect
-    for (const prospectId of prospects) {
-      try {
-        // Check if prospect exists
-        const prospect = await TestSchema.findById(prospectId).session(session);
-        if (!prospect) {
-          failedAssignments.push({
-            prospectId,
-            error: "Prospect not found",
-          });
-          continue;
-        }
-
-        // Check if already assigned to any RM in RMAssignment
-        const existingAssignment = await RMAssignment.findOne({
-          prospectId: prospectId,
-        }).session(session);
-
-        if (existingAssignment) {
-          failedAssignments.push({
-            prospectId,
-            error: `Already assigned to RM: ${existingAssignment.rmName}`,
-          });
-          continue;
-        }
-
-        // ✅ CREATE RM ASSIGNMENT ONLY
-        const newAssignment = new RMAssignment({
-          prospectId: prospectId,
-          rmId: rmId,
-          rmName: rmName,
-          rmCode: rmCode,
-          assignmentNotes: assignmentNotes,
-          status: "assigned",
-        });
-
-        await newAssignment.save({ session });
-
-        assignmentResults.push({
-          prospectId: prospect._id,
-          groupCode: prospect.groupCode,
-          name: prospect.personalDetails?.name,
-          success: true,
-        });
-
-        console.log(
-          `✅ Prospect ${prospectId} assigned to RM ${rmName} (RMAssignment only)`
-        );
-      } catch (prospectError) {
-        failedAssignments.push({
-          prospectId,
-          error: prospectError.message,
-        });
-      }
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    console.log(
-      `✅ Assignment complete: ${assignmentResults.length} successful, ${failedAssignments.length} failed`
-    );
-
-    res.status(200).json({
-      success: true,
-      message: `Assigned ${assignmentResults.length} prospects to ${rmName}`,
-      data: {
-        assigned: assignmentResults,
-        failed: failedAssignments,
-        rmDetails: {
-          id: rmId,
-          name: rmName,
-          code: rmCode,
-        },
-      },
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error("❌ Assignment error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Assignment failed",
-      error: error.message,
-    });
-  }
-};
-
-// ✅ Get all RM assignments
 exports.getRMAssignments = async (req, res) => {
   try {
     const { rmId } = req.query;
@@ -569,66 +371,131 @@ exports.getSuspectsForAssignment = async (req, res) => {
   }
 };
 
-// ✅✅✅ NEW FUNCTION: Get assigned suspects (for RMAssignment component) ✅✅✅
 exports.getAssignedSuspects = async (req, res) => {
   try {
-    console.log("🔍 Fetching assigned suspects...");
+    const { rmId } = req.query;
 
-    // Find suspects assigned to any RM
+    console.log("🔍 ========== GET ASSIGNED SUSPECTS ==========");
+    console.log("📌 Request Query:", req.query);
+    console.log("📌 RM ID:", rmId);
+
+    if (!rmId) {
+      console.log("❌ RM ID is missing!");
+      return res.status(400).json({
+        success: false,
+        message: "RM ID is required",
+      });
+    }
+
+    // Check if RM exists
+    const rmExists = await Employee.findOne({ _id: rmId, role: "RM" });
+    if (!rmExists) {
+      console.log("❌ RM not found in Employee collection");
+      return res.status(404).json({
+        success: false,
+        message: "Relationship Manager not found",
+      });
+    }
+
+    console.log("🔍 Finding suspects for RM:", rmId);
+
+    // Find suspects assigned to this RM
     const assignedSuspects = await TestSchema.find({
       status: "suspect",
-      assignedToRM: { $exists: true, $ne: null },
+      assignedToRM: rmId,
     })
       .select(
-        "_id groupCode personalDetails callTasks createdAt status assignedToRM assignedToRMName assignedToRMCode assignedToRMAt"
+        "_id groupCode personalDetails callTasks createdAt status assignedToRM assignedToRMName assignedToRMCode assignedToRMAt rmAssignmentNotes"
       )
       .sort({ assignedToRMAt: -1 });
 
-    console.log(`📊 Total assigned suspects: ${assignedSuspects.length}`);
+    console.log(`📊 Raw query result count: ${assignedSuspects.length}`);
 
-    // Format response
-    const formattedAssignments = assignedSuspects.map((suspect, index) => {
-      const personal = suspect.personalDetails || {};
-      const appointmentTask = suspect.callTasks?.find(
+    // Log each suspect found
+    assignedSuspects.forEach((suspect, index) => {
+      console.log(`\n📝 Suspect ${index + 1}:`);
+      console.log(`   ID: ${suspect._id}`);
+      console.log(`   Name: ${suspect.personalDetails?.name || "N/A"}`);
+      console.log(`   Status: ${suspect.status}`);
+      console.log(`   Assigned to RM: ${suspect.assignedToRM}`);
+      console.log(`   Has callTasks: ${suspect.callTasks?.length || 0}`);
+
+      // Check for appointment scheduled
+      const appointmentTasks = suspect.callTasks?.filter(
         (task) => task.taskStatus === "Appointment Scheduled"
       );
+      console.log(`   Appointment tasks: ${appointmentTasks?.length || 0}`);
+    });
 
-      return {
-        assignmentId: suspect._id,
+    // Format response
+    const formattedSuspects = assignedSuspects.map((suspect, index) => {
+      const personal = suspect.personalDetails || {};
+
+      // Get appointment tasks
+      const appointmentTasks =
+        suspect.callTasks?.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        ) || [];
+
+      // Get the latest appointment
+      let latestAppointment = null;
+      if (appointmentTasks.length > 0) {
+        latestAppointment = appointmentTasks.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        )[0];
+      }
+
+      const formattedSuspect = {
         suspectId: suspect._id,
         sn: index + 1,
-        groupCode: suspect.groupCode || personal.groupCode,
-        groupName: personal.groupName,
-        suspectName: personal.name,
-        mobileNo: personal.mobileNo,
-        organisation: personal.organisation,
-        city: personal.city,
-        leadSource: personal.leadSource,
-        leadName: personal.leadName,
-        callingPurpose: personal.callingPurpose,
-        grade: personal.grade,
+        groupCode: suspect.groupCode || personal.groupCode || "N/A",
+        groupName: personal.groupName || "N/A",
+        suspectName: personal.name || "N/A",
+        mobileNo: personal.mobileNo || "N/A",
+        organisation: personal.organisation || "N/A",
+        city: personal.city || "N/A",
+        leadSource: personal.leadSource || "N/A",
+        leadName: personal.leadName || "N/A",
+        callingPurpose: personal.callingPurpose || "N/A",
+        grade: personal.grade || "N/A",
         status: suspect.status,
         rmId: suspect.assignedToRM,
         rmName: suspect.assignedToRMName,
         rmCode: suspect.assignedToRMCode,
         assignedAt: suspect.assignedToRMAt,
-        appointmentDate: appointmentTask?.nextAppointmentDate || null,
-        appointmentTime: appointmentTask?.nextAppointmentTime || null,
-        scheduledOn: appointmentTask?.createdAt || null,
+        appointmentDate: latestAppointment?.nextAppointmentDate || null,
+        appointmentTime: latestAppointment?.nextAppointmentTime || null,
+        scheduledOn: latestAppointment?.createdAt || null,
+        appointmentRemarks: latestAppointment?.taskRemarks || "",
         assignmentNotes: suspect.rmAssignmentNotes || "",
-        isSuspect: true, // Mark as suspect
+        contactNo: personal.contactNo || "N/A",
+        leadOccupation: personal.leadOccupation || "N/A",
+        area: personal.city || personal.preferredMeetingArea || "N/A",
+        remark:
+          latestAppointment?.taskRemarks || suspect.rmAssignmentNotes || "",
       };
+
+      console.log(
+        `✅ Formatted suspect ${index + 1}:`,
+        formattedSuspect.suspectName
+      );
+      return formattedSuspect;
     });
 
-    console.log(`✅ Found ${formattedAssignments.length} assigned suspects`);
+    console.log(`\n🎯 Total formatted suspects: ${formattedSuspects.length}`);
+    console.log("✅ ========== END GET ASSIGNED SUSPECTS ==========\n");
 
     res.status(200).json({
       success: true,
-      count: formattedAssignments.length,
-      data: formattedAssignments,
+      count: formattedSuspects.length,
+      data: formattedSuspects,
     });
   } catch (error) {
-    console.error("❌ Error fetching assigned suspects:", error);
+    console.error("❌ ========== ERROR IN GET ASSIGNED SUSPECTS ==========");
+    console.error("❌ Error:", error);
+    console.error("❌ Error stack:", error.stack);
+    console.error("❌ ==================================================\n");
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch assigned suspects",

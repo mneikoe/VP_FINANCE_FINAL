@@ -69,4 +69,17 @@ router.get(
   "/suspects/appointments",
   SuspectCtrl.getSuspectsAppointmentScheduled
 );
+// routes/suspect.js में ये routes add करो:
+
+// Update family members
+router.put("/:id/family", SuspectCtrl.updateFamilyMembers);
+
+// Update financial info
+router.put("/:id/financial", SuspectCtrl.updateFinancialInfo);
+
+// Update future priorities and needs
+router.put("/:id/priorities", SuspectCtrl.updateFuturePrioritiesAndNeeds);
+
+// Update proposed plan
+router.put("/:id/proposed-plan", SuspectCtrl.updateProposedFinancialPlan);
 module.exports = router;

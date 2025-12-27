@@ -93,9 +93,13 @@ const DashboardPage = () => {
 
       if (response.data && response.data.success) {
         const suspectsData = response.data.data.assignedSuspects || [];
-        const sortedData = suspectsData.sort(
-          (a, b) => new Date(b.assignedAt) - new Date(a.assignedAt)
-        );
+
+        const sortedData = suspectsData.sort((a, b) => {
+          const dateA = a.assignedAt ? new Date(a.assignedAt).getTime() : 0;
+          const dateB = b.assignedAt ? new Date(b.assignedAt).getTime() : 0;
+
+          return dateA - dateB; // ✅ newest first
+        });
         setAssignedSuspects(sortedData);
         calculateRealTimeStats(sortedData);
       } else {
@@ -299,7 +303,7 @@ const DashboardPage = () => {
       const sortedTasks = [...suspect.callTasks].sort((a, b) => {
         const dateA = new Date(a.taskDate || 0);
         const dateB = new Date(b.taskDate || 0);
-        return dateB - dateA;
+        return dateA - dateB;
       });
 
       const latestTask = sortedTasks[0];
@@ -579,7 +583,7 @@ const DashboardPage = () => {
     }
 
     return (
-      <table className="task-table">
+      <table className="task-table ">
         <thead>
           <tr>
             <th>Task Date</th>

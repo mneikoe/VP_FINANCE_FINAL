@@ -16,8 +16,8 @@ import Area from "../Components/Masters/Leads/Area";
 import City from "../Components/Masters/Leads/City";
 import LeadSource from "../Components/Masters/Leads/LeadSource";
 import SubArea from "../Components/Masters/Leads/SubArea";
-import MarketingTask from "../Components/Masters/Marketing/MarketingTask";
-import ServicingTask from "../Components/Masters/Servicing/ServicingTask";
+import Marketing from "../Components/Masters/Marketing/Marketing";
+import Servicing from "../Components/Masters/Servicing/Servicing";
 import LeadType from "../Components/Masters/Leads/LeadType";
 import LeadOccupation from "../Components/Masters/Leads/LeadOccupation";
 import OccupationType from "../Components/Masters/Leads/OccupationType";
@@ -25,7 +25,7 @@ import SuspectEditWrapper from "../Components/EmployeeDashboard/TelecallerDashbo
 // Customer Components
 import CustomerDetail from "../Components/Customer/Client/CustomerDetail";
 import ProspectDetail from "../Components/Customer/Prospect/ProspectDetail";
-import SuspectDetail from "../Components/Customer/Suspect/SuspectDetail";
+import SuspectDetail from "../Components/Customer/Suspect/SuspectDetailOA";
 import ClientFirstFrom from "../Components/Customer/Client/ClientFirstFrom";
 import ProspectFirstForm from "../Components/Customer/Prospect/ProspectFirstForm";
 import SuspectFirstForm from "../Components/Customer/Suspect/SuspectFirstForm";
@@ -92,9 +92,12 @@ import InterviewProcessHR from "../Components/HRDashboard/modules/InterviewProce
 import JoiningDataHR from "../Components/HRDashboard/modules/JoiningData";
 import ProspectAppointmentList from "../Components/Reports/ProspectAppointmentList";
 import RMDashboard from "../Components/RMDashboard/RMDashboard";
-import SuspectDetailsPage from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectDetailsPage";
+import SuspectDetailsPage from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectDetailsPageTelecaller";
 import StatusBasedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/StatusBasedLeadsPage";
 import RMAssignment from "../Components/Masters/RMAssignment";
+import CompositeAssignments from "../Components/Masters/Composite/CompositeAssignment";
+import MarketingAssignments from "../Components/Masters/Marketing/MarketingAssignment";
+import ServiceAssignments from "../Components/Masters/Servicing/ServiceAssignment";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -187,18 +190,21 @@ const AppRoutes = () => {
         <Route index element={<DashboardCards />} />
         {/* Masters - Only OA */}
         <Route path="/task-assign" element={<TaskAssign />} />
-        <Route path="/appointment-assign" element={<RMAssignment />} /> ✅
+        <Route path="/appointment-assign" element={<RMAssignment />} />
         <Route path="/area" element={<Area />} />
         <Route path="/sub-area" element={<SubArea />} />
         <Route path="/city" element={<City />} />
         <Route path="/composite" element={<Composite />} />
         <Route path="/kycdocument" element={<Kycdocument />} />
+        <Route path="/task-composite" element={<CompositeAssignments />} />
+        <Route path="/task-marketing" element={<MarketingAssignments />} />
+        <Route path="/task-servicing" element={<ServiceAssignments />} />
         <Route path="/lead-type" element={<LeadType />} />
         <Route path="/occupation-type" element={<OccupationType />} />
         <Route path="/lead-occupation" element={<LeadOccupation />} />
         <Route path="/lead-source" element={<LeadSource />} />
-        <Route path="/marketing-task" element={<MarketingTask />} />
-        <Route path="/servicing-task" element={<ServicingTask />} />
+        <Route path="/marketing-task" element={<Marketing />} />
+        <Route path="/servicing-task" element={<Servicing />} />
         {/* Customer - Only OA */}
         <Route path="/client" element={<ClientLeadTabs />} />
         <Route path="/client/:tabs" element={<ClientLeadTabs />} />
@@ -213,7 +219,6 @@ const AppRoutes = () => {
         <Route path="/prospect/add" element={<ProspectFirstForm />} />
         <Route path="/prospect/edit/:id" element={<ProspectFirstForm />} />
         <Route path="/prospect/detail/:id" element={<ProspectDetail />} />
-        // Routes me add karo
         <Route
           path="/reports/prospect-list"
           element={<ProspectAppointmentList />}
@@ -242,17 +247,45 @@ const AppRoutes = () => {
         <Route path="/CRE" element={<CREDashboard />} />
       </Route>
 
-      {/* 🏦 RM Dashboard - Only RM can access */}
+      {/* 🏦 RM Dashboard Routes - Only RM can access */}
       <Route
-        path="/rm/dashboard"
+        path="/rm/*"
         element={
           <ProtectedRoute allowedRoles={["RM"]}>
             <RMDashboard />
           </ProtectedRoute>
         }
       />
+
+      {/* 🚀 Default Route - Redirect based on role */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <NavigateToRoleBasedRoute />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
+};
+
+// Helper component to redirect based on user role
+const NavigateToRoleBasedRoute = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  switch (user.role) {
+    case "RM":
+      return <Navigate to="/rm/dashboard" replace />;
+    case "HR":
+      return <Navigate to="/dashboard" replace />;
+    case "Telecaller":
+      return <Navigate to="/telecaller/dashboard" replace />;
+    case "OA":
+      return <Navigate to="/" replace />;
+    default:
+      return <Navigate to="/auth/login" replace />;
+  }
 };
 
 export default AppRoutes;

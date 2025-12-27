@@ -5,266 +5,213 @@ import {
   Space,
   Tag,
   Card,
-  DatePicker,
   Input,
   message,
   Modal,
-  Avatar,
   Row,
   Col,
-  Statistic,
-  Alert,
   Tooltip,
-  Select,
-  Divider,
 } from "antd";
 import {
   SearchOutlined,
   EyeOutlined,
   CalendarOutlined,
-  PhoneOutlined,
+  EditOutlined,
+  DeleteOutlined,
   UserOutlined,
-  FilterOutlined,
-  ClearOutlined,
-  InfoCircleOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  TeamOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import axiosInstance from "../../config/axios";
 import dayjs from "dayjs";
-import "./ProspectAppointmentList.css";
 
-const { RangePicker } = DatePicker;
-const { Option } = Select;
-const { Search } = Input;
-
-const ProspectAppointmentList = ({
-  showAppointmentInfo = true,
-  showActions = true,
-  debugMode = false,
-  onStatsUpdate,
-}) => {
-  const [appointments, setAppointments] = useState([]);
+const ProspectAppointmentList = () => {
+  const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    dateRange: null,
-    search: "",
-    status: "all",
-  });
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [selectedProspect, setSelectedProspect] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [localStats, setLocalStats] = useState({
-    total: 0,
-    today: 0,
-    upcoming: 0,
-    suspects: 0,
-    prospects: 0,
-  });
 
-  const fetchAppointments = useCallback(async () => {
+  const fetchProspects = useCallback(async () => {
     setLoading(true);
     try {
-      console.log("📡 Fetching Appointment Scheduled prospects...");
+      console.log("📡 Fetching Prospects...");
 
-      const response = await axiosInstance.get(
-        "/api/suspect/appointments/scheduled"
-      );
+      const response = await axiosInstance.get("/api/prospect/all");
 
       console.log("📦 API Response:", response.data);
 
       if (response.data && response.data.success) {
-        const appointmentsData = response.data.data.appointments || [];
+        const prospectsData = response.data.prospects || [];
 
-        const processedAppointments = appointmentsData.map(
-          (appointment, index) => {
-            const personalDetails = appointment.personalDetails || {};
-            const telecallerInfo = appointment.assignedTo || {};
+        const processedProspects = prospectsData.map((prospect, index) => {
+          const personalDetails = prospect.personalDetails || {};
 
-            return {
-              key: appointment._id || index,
-              id: appointment._id,
-              sn: index + 1,
+          return {
+            key: prospect._id || index,
+            id: prospect._id,
+            sn: index + 1,
 
-              prospectName:
-                appointment.groupName ||
-                personalDetails.groupName ||
-                personalDetails.name ||
-                "Unknown",
-              groupCode: appointment.groupCode || "-",
-              organisation: appointment.organisation || "-",
-              city: appointment.city || "-",
-              mobile: appointment.mobileNo || "-",
-              contact: appointment.contactNo || "-",
-              email: appointment.emailId || "-",
-              status: appointment.status || "suspect",
-              leadSource: appointment.leadSource || "-",
+            // Basic Details
+            groupCode: personalDetails.groupCode || "-",
+            groupName: personalDetails.groupName || "-",
+            name: personalDetails.name || "-",
+            gender: personalDetails.gender || "-",
 
-              telecallerId: telecallerInfo._id,
-              telecallerName: telecallerInfo.username || "Unassigned",
-              telecallerEmail: telecallerInfo.email || "-",
-              telecallerMobile: telecallerInfo.mobileno || "-",
+            // Contact Details
+            mobile: personalDetails.mobileNo || "-",
+            whatsapp: personalDetails.whatsappNo || "-",
+            contact: personalDetails.contactNo || "-",
+            email: personalDetails.emailId || "-",
 
-              scheduledOn: appointment.scheduledOn
-                ? new Date(appointment.scheduledOn)
-                : null,
-              appointmentDate: appointment.appointmentDate
-                ? new Date(appointment.appointmentDate)
-                : null,
-              appointmentTime: appointment.appointmentTime || "-",
+            // Professional Details
+            organisation: personalDetails.organisation || "-",
+            designation: personalDetails.designation || "-",
+            annualIncome: personalDetails.annualIncome || "-",
+            grade: personalDetails.grade || "-",
 
-              remarks: appointment.appointmentRemarks || "-",
-              assignedAt: appointment.assignedAt
-                ? new Date(appointment.assignedAt)
-                : null,
+            // Location Details
+            city: personalDetails.city || "-",
+            preferredMeetingArea: personalDetails.preferredMeetingArea || "-",
+            resiAddr: personalDetails.resiAddr || "-",
+            officeAddr: personalDetails.officeAddr || "-",
 
-              rawData: appointment,
-            };
-          }
-        );
+            // Lead Details
+            leadSource: personalDetails.leadSource || "-",
+            leadName: personalDetails.leadName || "-",
+            leadOccupation: personalDetails.leadOccupation || "-",
+            leadOccupationType: personalDetails.leadOccupationType || "-",
+            callingPurpose: personalDetails.callingPurpose || "-",
 
-        console.log(
-          `✅ Processed ${processedAppointments.length} appointments`
-        );
-        setAppointments(processedAppointments);
+            // Other Details
+            allocatedCRE: personalDetails.allocatedCRE || "-",
+            allocatedRM: personalDetails.allocatedRM || "-",
+            adharNumber: personalDetails.adharNumber || "-",
+            panCardNumber: personalDetails.panCardNumber || "-",
+            hobbies: personalDetails.hobbies || "-",
+            nativePlace: personalDetails.nativePlace || "-",
+            habits: personalDetails.habits || "-",
+            socialLink: personalDetails.socialLink || "-",
+            bestTime: personalDetails.bestTime || "-",
+            time: personalDetails.time || "-",
+            remark: personalDetails.remark || "-",
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+            // Timestamps
+            createdAt: prospect.createdAt
+              ? dayjs(prospect.createdAt).format("DD/MM/YYYY")
+              : "-",
 
-        const todayCount = processedAppointments.filter((apt) => {
-          if (!apt.appointmentDate) return false;
-          const aptDate = new Date(apt.appointmentDate);
-          aptDate.setHours(0, 0, 0, 0);
-          return aptDate.getTime() === today.getTime();
-        }).length;
+            rawData: prospect,
+          };
+        });
 
-        const upcomingCount = processedAppointments.filter((apt) => {
-          if (!apt.appointmentDate) return false;
-          const today = new Date();
-          const nextWeek = new Date(today);
-          nextWeek.setDate(today.getDate() + 7);
-          return (
-            apt.appointmentDate >= today && apt.appointmentDate <= nextWeek
-          );
-        }).length;
-
-        const newStats = {
-          total: processedAppointments.length,
-          today: todayCount,
-          upcoming: upcomingCount,
-          suspects: processedAppointments.filter(
-            (apt) => apt.status === "suspect"
-          ).length,
-          prospects: processedAppointments.filter(
-            (apt) => apt.status === "prospect"
-          ).length,
-        };
-
-        setLocalStats(newStats);
-
-        if (onStatsUpdate) {
-          onStatsUpdate({
-            totalProspects: processedAppointments.length,
-            todayAppointments: todayCount,
-            upcomingAppointments: upcomingCount,
-          });
-        }
+        console.log(`✅ Processed ${processedProspects.length} prospects`);
+        setProspects(processedProspects);
       } else {
-        message.error(response.data?.message || "Failed to fetch appointments");
-        setAppointments([]);
+        message.error(response.data?.message || "Failed to fetch prospects");
+        setProspects([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching appointments:", error);
+      console.error("❌ Error fetching prospects:", error);
       message.error(
         error.response?.data?.message ||
           error.message ||
-          "Error loading appointments."
+          "Error loading prospects."
       );
-      setAppointments([]);
+      setProspects([]);
     } finally {
       setLoading(false);
     }
-  }, [onStatsUpdate]);
+  }, []);
 
-  const applyFilters = useCallback(() => {
-    let filtered = [...appointments];
+  const filteredProspects = useMemo(() => {
+    if (!searchText) return prospects;
 
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (apt) =>
-          apt.prospectName.toLowerCase().includes(searchTerm) ||
-          apt.groupCode.toLowerCase().includes(searchTerm) ||
-          apt.organisation.toLowerCase().includes(searchTerm) ||
-          apt.city.toLowerCase().includes(searchTerm) ||
-          apt.telecallerName.toLowerCase().includes(searchTerm)
-      );
-    }
+    const searchTerm = searchText.toLowerCase();
+    return prospects.filter((prospect) => {
+      const searchableFields = [
+        prospect.groupCode,
+        prospect.groupName,
+        prospect.name,
+        prospect.mobile,
+        prospect.whatsapp,
+        prospect.contact,
+        prospect.email,
+        prospect.organisation,
+        prospect.designation,
+        prospect.city,
+        prospect.leadSource,
+        prospect.leadName,
+        prospect.callingPurpose,
+        prospect.allocatedCRE,
+      ]
+        .filter(Boolean)
+        .map((field) => field.toString().toLowerCase());
 
-    if (filters.dateRange && filters.dateRange.length === 2) {
-      const [startDate, endDate] = filters.dateRange;
-      filtered = filtered.filter((apt) => {
-        if (!apt.appointmentDate) return false;
-
-        const aptDate = new Date(apt.appointmentDate);
-        aptDate.setHours(0, 0, 0, 0);
-
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        return aptDate >= start && aptDate <= end;
-      });
-    }
-
-    if (filters.status !== "all") {
-      filtered = filtered.filter((apt) => apt.status === filters.status);
-    }
-
-    return filtered;
-  }, [appointments, filters]);
-
-  const filteredAppointments = useMemo(() => applyFilters(), [applyFilters]);
+      return searchableFields.some((field) => field.includes(searchTerm));
+    });
+  }, [prospects, searchText]);
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
-  const handleDateRangeChange = (dates) => {
-    setFilters((prev) => ({ ...prev, dateRange: dates }));
-  };
+    fetchProspects();
+  }, [fetchProspects]);
 
   const handleSearchChange = (e) => {
-    setFilters((prev) => ({ ...prev, search: e.target.value }));
+    setSearchText(e.target.value);
   };
 
-  const handleStatusChange = (value) => {
-    setFilters((prev) => ({ ...prev, status: value }));
+  const handleClearSearch = () => {
+    setSearchText("");
   };
 
-  const handleClearFilters = () => {
-    setFilters({
-      dateRange: null,
-      search: "",
-      status: "all",
-    });
-  };
-
-  const viewAppointmentDetails = (record) => {
-    setSelectedAppointment(record);
+  const viewProspectDetails = (record) => {
+    setSelectedProspect(record);
     setModalVisible(true);
   };
 
-  const formatDate = (date) => {
-    if (!date) return "-";
-    return dayjs(date).format("DD/MM/YYYY");
+  const handleEdit = (prospect) => {
+    // Implement edit functionality
+    message.info(`Edit prospect: ${prospect.name}`);
+    // navigate(`/prospect/edit/${prospect.id}`);
   };
 
-  const formatTime = (time) => {
-    if (!time || time === "-") return "-";
-    return time;
+  const handleDelete = (prospect) => {
+    Modal.confirm({
+      title: "Delete Prospect",
+      content: `Are you sure you want to delete ${prospect.name}?`,
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
+      onOk: async () => {
+        try {
+          await axiosInstance.delete(`/api/prospect/delete/${prospect.id}`);
+          message.success("Prospect deleted successfully");
+          fetchProspects();
+        } catch (error) {
+          message.error("Failed to delete prospect");
+        }
+      },
+    });
+  };
+
+  const handleConvertToClient = (prospect) => {
+    Modal.confirm({
+      title: "Convert to Client",
+      content: `Convert ${prospect.name} to Client?`,
+      okText: "Convert",
+      onOk: async () => {
+        try {
+          await axiosInstance.put(`/api/prospect/convert/${prospect.id}`, {
+            status: "client",
+          });
+          message.success("Converted to Client successfully");
+          fetchProspects();
+        } catch (error) {
+          message.error("Failed to convert");
+        }
+      },
+    });
   };
 
   const columns = [
@@ -276,16 +223,58 @@ const ProspectAppointmentList = ({
       align: "center",
     },
     {
-      title: "Prospect Name",
-      dataIndex: "prospectName",
-      key: "prospectName",
-      width: 180,
+      title: "Group Code",
+      dataIndex: "groupCode",
+      key: "groupCode",
+      width: 100,
+      render: (text) => <Tag color="blue">{text}</Tag>,
+    },
+    {
+      title: "Group Head",
+      dataIndex: "groupName",
+      key: "groupName",
+      width: 150,
+    },
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      width: 150,
       render: (text, record) => (
         <div>
-          <div style={{ fontWeight: 500, color: "#1890ff" }}>{text}</div>
-          <div style={{ fontSize: "11px", color: "#666" }}>
-            Code: {record.groupCode}
+          <div style={{ fontWeight: 500 }}>{text}</div>
+          <div style={{ fontSize: "11px", color: "#666" }}>{record.gender}</div>
+        </div>
+      ),
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobile",
+      key: "mobile",
+      width: 120,
+      render: (text, record) => (
+        <div>
+          <div>
+            <PhoneOutlined style={{ marginRight: 5 }} />
+            {text}
           </div>
+          {record.whatsapp !== "-" && (
+            <div style={{ fontSize: "11px", color: "#666" }}>
+              WA: {record.whatsapp}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      width: 180,
+      render: (text) => (
+        <div>
+          <MailOutlined style={{ marginRight: 5 }} />
+          {text}
         </div>
       ),
     },
@@ -296,103 +285,75 @@ const ProspectAppointmentList = ({
       width: 150,
     },
     {
-      title: "City",
-      dataIndex: "city",
-      key: "city",
-      width: 100,
-      render: (text) => (
-        <Tag color="blue" style={{ fontSize: "11px" }}>
-          {text}
-        </Tag>
-      ),
+      title: "Designation",
+      dataIndex: "designation",
+      key: "designation",
+      width: 120,
     },
     {
-      title: "Contact",
-      dataIndex: "mobile",
-      key: "mobile",
+      title: "Annual Income",
+      dataIndex: "annualIncome",
+      key: "annualIncome",
       width: 120,
       render: (text, record) => (
         <div>
-          <div style={{ fontFamily: "monospace" }}>{text}</div>
-          {record.contact !== "-" && record.contact !== text && (
-            <div style={{ fontSize: "10px", color: "#666" }}>
-              Alt: {record.contact}
-            </div>
-          )}
+          <div>{text}</div>
+          <Tag color="green" style={{ fontSize: "10px" }}>
+            Grade: {record.grade}
+          </Tag>
         </div>
       ),
     },
     {
-      title: "Scheduled On",
-      dataIndex: "scheduledOn",
-      key: "scheduledOn",
-      width: 110,
-      render: (date) => formatDate(date),
-      sorter: (a, b) => new Date(a.scheduledOn) - new Date(b.scheduledOn),
-    },
-    {
-      title: "Appointment Date",
-      dataIndex: "appointmentDate",
-      key: "appointmentDate",
+      title: "Location",
+      dataIndex: "city",
+      key: "city",
       width: 120,
-      render: (date, record) => (
+      render: (text, record) => (
         <div>
-          <div style={{ fontWeight: 500, color: "#52c41a" }}>
-            {formatDate(date)}
-          </div>
-          <div style={{ fontSize: "11px", color: "#666" }}>
-            {formatTime(record.appointmentTime)}
-          </div>
-        </div>
-      ),
-      sorter: (a, b) =>
-        new Date(a.appointmentDate) - new Date(b.appointmentDate),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 90,
-      render: (status) => (
-        <Tag color={status === "prospect" ? "green" : "blue"}>
-          {status?.toUpperCase()}
-        </Tag>
-      ),
-      filters: [
-        { text: "Suspect", value: "suspect" },
-        { text: "Prospect", value: "prospect" },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: "Telecaller",
-      dataIndex: "telecallerName",
-      key: "telecallerName",
-      width: 130,
-      render: (name, record) => (
-        <div>
-          <Avatar
-            size="small"
-            style={{
-              backgroundColor: "#1890ff",
-              marginRight: "6px",
-              fontSize: "10px",
-            }}
-            icon={<UserOutlined />}
-          />
-          <span style={{ fontSize: "12px" }}>{name}</span>
-          {record.telecallerEmail !== "-" && (
-            <div style={{ fontSize: "10px", color: "#666" }}>
-              {record.telecallerEmail}
+          <EnvironmentOutlined style={{ marginRight: 5 }} />
+          {text}
+          {record.preferredMeetingArea !== "-" && (
+            <div style={{ fontSize: "11px", color: "#666" }}>
+              Area: {record.preferredMeetingArea}
             </div>
           )}
         </div>
       ),
+    },
+    {
+      title: "Lead Source",
+      dataIndex: "leadSource",
+      key: "leadSource",
+      width: 120,
+      render: (text, record) => (
+        <div>
+          <div>{text}</div>
+          {record.leadName !== "-" && (
+            <div style={{ fontSize: "11px", color: "#666" }}>
+              {record.leadName}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Allocated CRE",
+      dataIndex: "allocatedCRE",
+      key: "allocatedCRE",
+      width: 120,
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 100,
     },
     {
       title: "Actions",
       key: "actions",
-      width: 80,
+      width: 180,
+      fixed: "right",
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="View Details">
@@ -400,31 +361,57 @@ const ProspectAppointmentList = ({
               type="link"
               size="small"
               icon={<EyeOutlined />}
-              onClick={() => viewAppointmentDetails(record)}
+              onClick={() => viewProspectDetails(record)}
               style={{ color: "#1890ff" }}
             />
           </Tooltip>
+          <Tooltip title="Edit">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              style={{ color: "#52c41a" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="link"
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record)}
+              style={{ color: "#ff4d4f" }}
+            />
+          </Tooltip>
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => handleConvertToClient(record)}
+            style={{ fontSize: "11px" }}
+          >
+            To Client
+          </Button>
         </Space>
       ),
     },
   ];
 
   return (
-    <div className="prospect-appointment-list">
+    <div className="prospect-list">
       <Card
         title={
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <CalendarOutlined style={{ color: "#1890ff" }} />
-            <span>Appointment Scheduled Prospects</span>
-            <Tag color="blue" style={{ marginLeft: "10px" }}>
-              {localStats.total} Appointments
+            <UserOutlined style={{ color: "#1890ff" }} />
+            <span>Prospects List</span>
+            <Tag color="green" style={{ marginLeft: "10px" }}>
+              {filteredProspects.length} Prospects
             </Tag>
           </div>
         }
         extra={
           <Button
             type="primary"
-            onClick={fetchAppointments}
+            onClick={fetchProspects}
             loading={loading}
             icon={<CalendarOutlined />}
           >
@@ -434,206 +421,44 @@ const ProspectAppointmentList = ({
         style={{ marginBottom: "20px", borderRadius: "8px" }}
       >
         <Row gutter={[16, 16]} style={{ marginBottom: "20px" }}>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="Total Appointments"
-                value={localStats.total}
-                prefix={<TeamOutlined style={{ color: "#1890ff" }} />}
-                valueStyle={{ color: "#1890ff" }}
+          <Col span={24}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <Input
+                placeholder="Search prospects by name, mobile, email, organisation, etc..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={handleSearchChange}
+                allowClear
+                style={{ flex: 1 }}
               />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="Today"
-                value={localStats.today}
-                prefix={<CalendarOutlined style={{ color: "#52c41a" }} />}
-                valueStyle={{ color: "#52c41a" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <Statistic
-                title="Upcoming (7 days)"
-                value={localStats.upcoming}
-                prefix={<ClockCircleOutlined style={{ color: "#fa8c16" }} />}
-                valueStyle={{ color: "#fa8c16" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card size="small">
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Prospects/Suspects
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <Tag
-                    color="blue"
-                    style={{ fontSize: "12px", padding: "2px 8px" }}
-                  >
-                    S: {localStats.suspects}
-                  </Tag>
-                  <Tag
-                    color="green"
-                    style={{ fontSize: "12px", padding: "2px 8px" }}
-                  >
-                    P: {localStats.prospects}
-                  </Tag>
-                </div>
-              </div>
-            </Card>
+              {searchText && <Button onClick={handleClearSearch}>Clear</Button>}
+            </div>
           </Col>
         </Row>
-
-        <Card
-          title={
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <FilterOutlined />
-              <span>Filters</span>
-            </div>
-          }
-          size="small"
-          style={{ marginBottom: "20px" }}
-          extra={
-            <Button
-              size="small"
-              onClick={handleClearFilters}
-              icon={<ClearOutlined />}
-            >
-              Clear
-            </Button>
-          }
-        >
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={12} md={8}>
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Search Prospect/Telecaller
-                </div>
-                <Input
-                  placeholder="Search by name, organisation, city..."
-                  prefix={<SearchOutlined />}
-                  value={filters.search}
-                  onChange={handleSearchChange}
-                  allowClear
-                />
-              </div>
-            </Col>
-
-            <Col xs={24} sm={12} md={8}>
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Filter by Appointment Date
-                </div>
-                <RangePicker
-                  value={filters.dateRange}
-                  onChange={handleDateRangeChange}
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%" }}
-                  placeholder={["Start Date", "End Date"]}
-                />
-              </div>
-            </Col>
-
-            <Col xs={24} sm={12} md={8}>
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Status Filter
-                </div>
-                <Select
-                  value={filters.status}
-                  onChange={handleStatusChange}
-                  style={{ width: "100%" }}
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="suspect">Suspect Only</Option>
-                  <Option value="prospect">Prospect Only</Option>
-                </Select>
-              </div>
-            </Col>
-          </Row>
-        </Card>
       </Card>
 
       <Card style={{ borderRadius: "8px" }}>
         <Table
           columns={columns}
-          dataSource={filteredAppointments}
+          dataSource={filteredProspects}
           loading={loading}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1800 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} appointments`,
+            showTotal: (total) => `Total ${total} prospects`,
             showQuickJumper: true,
           }}
           rowKey="id"
-          summary={() => (
-            <Table.Summary>
-              <Table.Summary.Row style={{ background: "#fafafa" }}>
-                <Table.Summary.Cell index={0} colSpan={3}>
-                  <strong>Total Appointments:</strong>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} colSpan={7}>
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    <span>
-                      <Tag color="blue">
-                        Total: {filteredAppointments.length}
-                      </Tag>
-                    </span>
-                    <span>
-                      <Tag color="green">Today: {localStats.today}</Tag>
-                    </span>
-                    <span>
-                      <Tag color="orange">Upcoming: {localStats.upcoming}</Tag>
-                    </span>
-                  </div>
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
-            </Table.Summary>
-          )}
         />
       </Card>
 
+      {/* Details Modal */}
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <CalendarOutlined style={{ color: "#1890ff" }} />
-            <span>Appointment Details</span>
+            <UserOutlined style={{ color: "#1890ff" }} />
+            <span>Prospect Details - {selectedProspect?.name}</span>
           </div>
         }
         open={modalVisible}
@@ -643,114 +468,145 @@ const ProspectAppointmentList = ({
             Close
           </Button>,
         ]}
-        width={600}
+        width={800}
       >
-        {selectedAppointment && (
+        {selectedProspect && (
           <div>
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <div style={{ marginBottom: "12px" }}>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    Prospect Name
-                  </div>
-                  <div style={{ fontSize: "16px", fontWeight: 500 }}>
-                    {selectedAppointment.prospectName}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    Code: {selectedAppointment.groupCode}
-                  </div>
-                </div>
-              </Col>
-              <Col span={12}>
-                <div style={{ marginBottom: "12px" }}>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    Organisation
-                  </div>
-                  <div style={{ fontSize: "16px", fontWeight: 500 }}>
-                    {selectedAppointment.organisation}
-                  </div>
-                </div>
-              </Col>
-            </Row>
-
-            <Divider orientation="left" style={{ fontSize: "14px" }}>
-              Appointment Information
-            </Divider>
-
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Card size="small" title="Scheduled On">
-                  <div style={{ textAlign: "center" }}>
-                    <div
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 500,
-                        color: "#1890ff",
-                      }}
-                    >
-                      {formatDate(selectedAppointment.scheduledOn)}
-                    </div>
-                  </div>
+                <Card size="small" title="Basic Information">
+                  <p>
+                    <strong>Group Code:</strong> {selectedProspect.groupCode}
+                  </p>
+                  <p>
+                    <strong>Group Head:</strong> {selectedProspect.groupName}
+                  </p>
+                  <p>
+                    <strong>Name:</strong> {selectedProspect.name}
+                  </p>
+                  <p>
+                    <strong>Gender:</strong> {selectedProspect.gender}
+                  </p>
+                  <p>
+                    <strong>Annual Income:</strong>{" "}
+                    {selectedProspect.annualIncome}
+                  </p>
+                  <p>
+                    <strong>Grade:</strong> {selectedProspect.grade}
+                  </p>
                 </Card>
               </Col>
               <Col span={12}>
-                <Card size="small" title="Appointment Date">
-                  <div style={{ textAlign: "center" }}>
-                    <div
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 500,
-                        color: "#52c41a",
-                      }}
-                    >
-                      {formatDate(selectedAppointment.appointmentDate)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        color: "#666",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {formatTime(selectedAppointment.appointmentTime)}
-                    </div>
-                  </div>
+                <Card size="small" title="Contact Information">
+                  <p>
+                    <strong>Mobile:</strong> {selectedProspect.mobile}
+                  </p>
+                  <p>
+                    <strong>WhatsApp:</strong> {selectedProspect.whatsapp}
+                  </p>
+                  <p>
+                    <strong>Contact:</strong> {selectedProspect.contact}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {selectedProspect.email}
+                  </p>
+                  <p>
+                    <strong>Aadhar:</strong> {selectedProspect.adharNumber}
+                  </p>
+                  <p>
+                    <strong>PAN:</strong> {selectedProspect.panCardNumber}
+                  </p>
                 </Card>
               </Col>
             </Row>
 
-            <Divider orientation="left" style={{ fontSize: "14px" }}>
-              Telecaller Information
-            </Divider>
+            <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
+              <Col span={12}>
+                <Card size="small" title="Professional Details">
+                  <p>
+                    <strong>Organisation:</strong>{" "}
+                    {selectedProspect.organisation}
+                  </p>
+                  <p>
+                    <strong>Designation:</strong> {selectedProspect.designation}
+                  </p>
+                  <p>
+                    <strong>Lead Source:</strong> {selectedProspect.leadSource}
+                  </p>
+                  <p>
+                    <strong>Lead Name:</strong> {selectedProspect.leadName}
+                  </p>
+                  <p>
+                    <strong>Lead Occupation:</strong>{" "}
+                    {selectedProspect.leadOccupation}
+                  </p>
+                  <p>
+                    <strong>Occupation Type:</strong>{" "}
+                    {selectedProspect.leadOccupationType}
+                  </p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" title="Location Details">
+                  <p>
+                    <strong>City:</strong> {selectedProspect.city}
+                  </p>
+                  <p>
+                    <strong>Meeting Area:</strong>{" "}
+                    {selectedProspect.preferredMeetingArea}
+                  </p>
+                  <p>
+                    <strong>Residential Address:</strong>{" "}
+                    {selectedProspect.resiAddr}
+                  </p>
+                  <p>
+                    <strong>Office Address:</strong>{" "}
+                    {selectedProspect.officeAddr}
+                  </p>
+                  <p>
+                    <strong>Best Time:</strong> {selectedProspect.bestTime}
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {selectedProspect.time}
+                  </p>
+                </Card>
+              </Col>
+            </Row>
 
-            <Card size="small">
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
-              >
-                <Avatar
-                  size={40}
-                  style={{ backgroundColor: "#1890ff" }}
-                  icon={<UserOutlined />}
-                />
-                <div>
-                  <div style={{ fontSize: "16px", fontWeight: 500 }}>
-                    {selectedAppointment.telecallerName}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    Email: {selectedAppointment.telecallerEmail}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#999",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    ID: {selectedAppointment.telecallerId?.substring(0, 16)}...
-                  </div>
-                </div>
-              </div>
-            </Card>
+            <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
+              <Col span={24}>
+                <Card size="small" title="Additional Information">
+                  <p>
+                    <strong>Allocated CRE:</strong>{" "}
+                    {selectedProspect.allocatedCRE}
+                  </p>
+                  <p>
+                    <strong>Allocated RM:</strong>{" "}
+                    {selectedProspect.allocatedRM}
+                  </p>
+                  <p>
+                    <strong>Calling Purpose:</strong>{" "}
+                    {selectedProspect.callingPurpose}
+                  </p>
+                  <p>
+                    <strong>Hobbies:</strong> {selectedProspect.hobbies}
+                  </p>
+                  <p>
+                    <strong>Native Place:</strong>{" "}
+                    {selectedProspect.nativePlace}
+                  </p>
+                  <p>
+                    <strong>Habits:</strong> {selectedProspect.habits}
+                  </p>
+                  <p>
+                    <strong>Social Link:</strong> {selectedProspect.socialLink}
+                  </p>
+                  <p>
+                    <strong>Remark:</strong> {selectedProspect.remark}
+                  </p>
+                </Card>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>

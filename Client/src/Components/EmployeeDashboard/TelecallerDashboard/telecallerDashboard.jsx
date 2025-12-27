@@ -243,7 +243,6 @@ const TelecallerPanel = () => {
       {/* Main Content */}
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">{active}</h1>
           <div className="breadcrumb">Telecaller Panel / {active}</div>
         </div>
 

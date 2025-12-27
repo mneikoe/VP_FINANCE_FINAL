@@ -178,7 +178,7 @@ export default function Login() {
         </div>
 
         {/* Company Info Panel */}
-        <div className="company-sidebar">
+        {/* <div className="company-sidebar">
           <div className="company-header">
             <div className="company-logo">
               <FaBuilding className="logo-icon" />
@@ -236,7 +236,7 @@ export default function Login() {
           <div className="company-footer">
             <p className="support-hours">Mon-Fri: 9AM-6PM | Sat: 10AM-2PM</p>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -52,7 +52,7 @@ const ProspectLeadTabs = () => {
             padding: "8px 16px",
           }}
         >
-          📅 Prospect/Appointment List
+          📅 Prospect Leads
         </button>
       </div>
 
