@@ -1,47 +1,65 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { logoutUser } from "../../redux/feature/auth/authThunx";
-import axiosInstance from "../../config/axios";
+import React, { useState, useEffect } from "react";
 import {
-  FaTasks,
-  FaCalendarAlt,
-  FaUserTie,
-  FaChartLine,
-  FaFileAlt,
-  FaBell,
-  FaSearch,
-  FaFilter,
-  FaDownload,
-  FaSync,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { logoutUser } from "../../redux/feature/auth/authThunx";
+import { useDispatch } from "react-redux";
+import axios from "../../config/axios";
+import {
   FaSignOutAlt,
   FaHome,
   FaUser,
-  FaChartBar,
-  FaFileContract,
-  FaEye,
-  FaCheckCircle,
-  FaClock,
-  FaPhoneAlt,
-  FaBuilding,
-  FaMapMarkerAlt,
-  FaIdCard,
   FaUsers,
-  FaCalendarDay,
-  FaEllipsisH,
-  FaEdit,
-  FaCog,
-  FaChevronRight,
-  FaRegCalendarCheck,
-  FaStar,
+  FaTasks,
+  FaFileAlt,
+  FaChartLine,
+  FaHistory,
+  FaMoneyBillAlt,
+  FaImage,
+  FaBriefcase,
+  FaMapMarkedAlt,
+  FaClipboardList,
+  FaUserTie,
+  FaBars,
+  FaChevronDown,
+  FaChevronUp,
+  FaDownload,
+  FaTimes,
 } from "react-icons/fa";
-import "./RMDashboard.css";
-import { useDispatch } from "react-redux";
+
+import RMDashboardHome from "./RMDashboardHome";
+import Profile from "./modules/Profile";
+import AreaOfWork from "./modules/AreaOfWork";
+import TaskSummary from "./modules/TaskSummary";
+import AssignedTasks from "./modules/AssignedSuspects";
+import RMSuspectDetailsPage from "./modules/RMSuspectDetailsPage";
+
+const PlaceholderComponent = ({ title }) => (
+  <div className="flex flex-col items-center justify-center min-h-[50vh] p-8">
+    <h2 className="text-2xl font-bold text-gray-800 mb-3">{title}</h2>
+    <p className="text-gray-600 mb-6">This page is under construction.</p>
+    <button
+      className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors"
+      onClick={() => window.history.back()}
+    >
+      Go Back
+    </button>
+  </div>
+);
+
 const RMDashboard = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [loading, setLoading] = useState(false);
-  const [assignedProspects, setAssignedProspects] = useState([]);
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  });
+  const [assignedSuspects, setAssignedSuspects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalAssigned: 0,
     completed: 0,
@@ -49,819 +67,368 @@ const RMDashboard = () => {
     upcomingAppointments: 0,
     todayAppointments: 0,
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dispatch = useDispatch();
-  const [filters, setFilters] = useState({
-    search: "",
-    status: "all",
-    sortBy: "appointmentDate",
-    sortOrder: "asc",
-  });
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
-
     if (!userData || userData.role !== "RM") {
       navigate("/auth/login");
       return;
     }
-
     setUser(userData);
-    fetchAssignedProspects();
+    fetchAssignedSuspects();
   }, [navigate]);
 
-  const fetchAssignedProspects = async () => {
-    setLoading(true);
+  const fetchAssignedSuspects = async () => {
     try {
-      const response = await axiosInstance.get("/api/rm/assignments", {
-        params: { rmId: user?._id },
+      setLoading(true);
+
+      const rmId = user?.id;
+
+      if (!rmId) {
+        console.error("❌ No RM ID found!");
+        setAssignedSuspects([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get("/api/rm/assigned-suspects", {
+        params: { rmId: rmId },
       });
 
       if (response.data.success) {
-        const prospects = response.data.data.map((assignment, index) => ({
-          key: assignment.prospectId || assignment.assignmentId,
-          id: assignment.prospectId,
-          assignmentId: assignment.assignmentId,
-          sn: index + 1,
-          prospectName: assignment.prospectName || "Unknown",
-          groupCode: assignment.groupCode || "N/A",
-          groupName: assignment.groupName || "N/A",
-          grade: assignment.grade || "N/A",
-          organisation: assignment.organisation || "N/A",
-          city: assignment.city || "N/A",
-          mobile: assignment.mobileNo || "N/A",
-          contactNo: assignment.contactNo || "N/A",
-          leadSource: assignment.leadSource || "N/A",
-          leadName: assignment.leadName || "N/A",
-          callingPurpose: assignment.callingPurpose || "N/A",
-          status: assignment.status || "prospect",
-          appointmentDate: assignment.appointmentDate || null,
-          appointmentTime: assignment.appointmentTime || null,
-          assignedAt: assignment.assignedAt || new Date(),
-          rmName: assignment.rmName,
-          rmCode: assignment.rmCode,
-          assignmentNotes: assignment.assignmentNotes || "",
-          assignmentStatus: assignment.assignmentStatus || "assigned",
-        }));
-
-        setAssignedProspects(prospects);
-        calculateStatistics(prospects);
+        setAssignedSuspects(response.data.data || []);
+      } else {
+        console.error("❌ API Error:", response.data.message);
+        setAssignedSuspects([]);
       }
     } catch (error) {
-      console.error("Error fetching assigned prospects:", error);
+      console.error("❌ Error fetching assigned suspects:", error);
+      console.error("❌ Error response:", error.response?.data);
+      setAssignedSuspects([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStatistics = (prospects) => {
+  const calculateStatistics = (suspects) => {
+    // ✅ parameter name change
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayCount = prospects.filter((prospect) => {
-      if (!prospect.appointmentDate) return false;
-      const aptDate = new Date(prospect.appointmentDate);
+    const todayCount = suspects.filter((suspect) => {
+      // ✅ variable name change
+      if (!suspect.appointmentDate) return false;
+      const aptDate = new Date(suspect.appointmentDate);
       aptDate.setHours(0, 0, 0, 0);
       return aptDate.getTime() === today.getTime();
     }).length;
 
-    const upcomingCount = prospects.filter((prospect) => {
-      if (!prospect.appointmentDate) return false;
-      const aptDate = new Date(prospect.appointmentDate);
+    const upcomingCount = suspects.filter((suspect) => {
+      if (!suspect.appointmentDate) return false;
+      const aptDate = new Date(suspect.appointmentDate);
       const today = new Date();
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
       return aptDate >= today && aptDate <= nextWeek;
     }).length;
 
-    const completedCount = prospects.filter(
-      (p) => p.assignmentStatus === "completed"
+    const completedCount = suspects.filter(
+      (s) => s.assignmentStatus === "completed"
     ).length;
 
     setStats({
-      totalAssigned: prospects.length,
+      totalAssigned: suspects.length,
       completed: completedCount,
-      pending: prospects.length - completedCount,
+      pending: suspects.length - completedCount,
       upcomingAppointments: upcomingCount,
       todayAppointments: todayCount,
     });
   };
+
+  // और useEffect में call करो:
+  useEffect(() => {
+    if (assignedSuspects.length > 0) {
+      calculateStatistics(assignedSuspects);
+    }
+  }, [assignedSuspects]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/auth/login");
   };
 
-  const applyFilters = () => {
-    let filtered = [...assignedProspects];
+  const navigation = [
+    { name: "Dashboard", href: "/rm/dashboard", icon: <FaHome size={14} /> },
+    { name: "Profile", href: "/rm/profile", icon: <FaUser size={14} /> },
+    {
+      name: "Customer Master",
+      href: "/rm/customer-master",
+      icon: <FaUserTie size={14} />,
+    },
+    {
+      name: "Area of Work",
+      href: "/rm/area-of-work",
+      icon: <FaMapMarkedAlt size={14} />,
+    },
+    {
+      name: "Work Description",
+      href: "/rm/work-description",
+      icon: <FaClipboardList size={14} />,
+    },
+    {
+      name: "Task Summary",
+      href: "/rm/task-summary",
+      icon: <FaTasks size={14} />,
+    },
+    {
+      name: "Task Status",
+      href: "/rm/task-status",
+      icon: <FaChartLine size={14} />,
+    },
+    {
+      name: "Salary History",
+      href: "/rm/salary-history",
+      icon: <FaMoneyBillAlt size={14} />,
+    },
+    {
+      name: "Incentive History",
+      href: "/rm/incentive-history",
+      icon: <FaHistory size={14} />,
+    },
+    {
+      name: "Assigned Suspects",
+      href: "/rm/assigned-suspects",
+      icon: <FaBriefcase size={14} />,
+      count: assignedSuspects.length,
+    },
+  ];
 
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (prospect) =>
-          prospect.prospectName.toLowerCase().includes(searchTerm) ||
-          prospect.groupCode.toLowerCase().includes(searchTerm) ||
-          prospect.groupName.toLowerCase().includes(searchTerm) ||
-          prospect.organisation.toLowerCase().includes(searchTerm) ||
-          prospect.city.toLowerCase().includes(searchTerm) ||
-          prospect.mobile.toLowerCase().includes(searchTerm) ||
-          prospect.leadName.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    if (filters.status !== "all") {
-      filtered = filtered.filter(
-        (prospect) => prospect.status === filters.status
-      );
-    }
-
-    // Sorting
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-
-      switch (filters.sortBy) {
-        case "appointmentDate":
-          aValue = a.appointmentDate
-            ? new Date(a.appointmentDate).getTime()
-            : 0;
-          bValue = b.appointmentDate
-            ? new Date(b.appointmentDate).getTime()
-            : 0;
-          break;
-        case "assignedAt":
-          aValue = new Date(a.assignedAt).getTime();
-          bValue = new Date(b.assignedAt).getTime();
-          break;
-        case "groupCode":
-          aValue = a.groupCode?.toLowerCase() || "";
-          bValue = b.groupCode?.toLowerCase() || "";
-          break;
-        default:
-          aValue = a.prospectName?.toLowerCase() || "";
-          bValue = b.prospectName?.toLowerCase() || "";
-      }
-
-      if (filters.sortOrder === "desc") {
-        return bValue - aValue;
-      }
-      return aValue - bValue;
-    });
-
-    return filtered;
-  };
-
-  const filteredProspects = useMemo(
-    () => applyFilters(),
-    [assignedProspects, filters]
-  );
-
-  const formatDate = (date) => {
-    if (!date) return "-";
-    const dateObj = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const targetDate = new Date(dateObj);
-    targetDate.setHours(0, 0, 0, 0);
-
-    if (targetDate.getTime() === today.getTime()) {
-      return "Today";
-    }
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (targetDate.getTime() === tomorrow.getTime()) {
-      return "Tomorrow";
-    }
-
-    return dateObj.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatTime = (time) => {
-    if (!time || time === "-") return "-";
-    return time;
-  };
-
-  const getStatusBadge = (status) => {
-    const config = {
-      prospect: { color: "#28a745", label: "Prospect", icon: "✅" },
-      suspect: { color: "#17a2b8", label: "Suspect", icon: "👁️" },
-      client: { color: "#6f42c1", label: "Client", icon: "⭐" },
-    };
-
-    const { color, label, icon } = config[status] || config.prospect;
-
+  const isActive = (href) => {
     return (
-      <span
-        className="status-badge"
-        style={{
-          color: color,
-          border: `1px solid ${color}`,
-          backgroundColor: `${color}10`,
-        }}
-      >
-        {icon} {label}
-      </span>
+      location.pathname === href || location.pathname.startsWith(href + "/")
     );
   };
 
-  const handleRefresh = async () => {
-    await fetchAssignedProspects();
-  };
-
-  const renderDashboardContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return (
-          <>
-            {/* Stats Overview */}
-            <div className="stats-overview">
-              <div className="stat-card">
-                <div className="stat-header">
-                  <FaTasks className="stat-icon" />
-                  <span className="stat-title">Total Assigned</span>
-                </div>
-                <div className="stat-number">{stats.totalAssigned}</div>
-                <div className="stat-desc">Active Prospects</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-header">
-                  <FaCheckCircle className="stat-icon completed" />
-                  <span className="stat-title">Completed</span>
-                </div>
-                <div className="stat-number completed">{stats.completed}</div>
-                <div className="stat-desc">Successful Conversions</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-header">
-                  <FaCalendarDay className="stat-icon" />
-                  <span className="stat-title">Today's Schedule</span>
-                </div>
-                <div className="stat-number">{stats.todayAppointments}</div>
-                <div className="stat-desc">Meetings & Calls</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-header">
-                  <FaRegCalendarCheck className="stat-icon" />
-                  <span className="stat-title">Upcoming</span>
-                </div>
-                <div className="stat-number upcoming">
-                  {stats.upcomingAppointments}
-                </div>
-                <div className="stat-desc">Next 7 Days</div>
-              </div>
-            </div>
-
-            {/* Recent Prospects */}
-            <div className="recent-prospects">
-              <div className="section-header">
-                <h3>
-                  <FaUsers /> Recent Prospects
-                </h3>
-                <button
-                  className="view-all-btn"
-                  onClick={() => setActiveTab("assigned-tasks")}
-                >
-                  View All <FaChevronRight />
-                </button>
-              </div>
-
-              <div className="table-container">
-                <table className="prospects-table">
-                  <thead>
-                    <tr>
-                      <th>Group Code</th>
-                      <th>Group Name</th>
-                      <th>Name</th>
-                      <th>Contact</th>
-                      <th>Lead Source</th>
-                      <th>Appointment</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProspects.slice(0, 5).map((prospect) => (
-                      <tr key={prospect.id}>
-                        <td>
-                          <div className="group-code">
-                            <FaIdCard /> {prospect.groupCode}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="group-name">{prospect.groupName}</div>
-                        </td>
-                        <td>
-                          <div className="name">
-                            <FaUser /> {prospect.prospectName}
-                          </div>
-                          <div className="org">
-                            <FaBuilding /> {prospect.organisation}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="contact-info">
-                            <div className="phone">
-                              <FaPhoneAlt /> {prospect.mobile}
-                            </div>
-                            {prospect.contactNo &&
-                              prospect.contactNo !== "N/A" && (
-                                <div className="alt-phone">
-                                  📞 {prospect.contactNo}
-                                </div>
-                              )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="lead-info">
-                            <div className="source">{prospect.leadSource}</div>
-                            <div className="name">{prospect.leadName}</div>
-                          </div>
-                        </td>
-                        <td>
-                          {prospect.appointmentDate ? (
-                            <div className="appointment-info">
-                              <div className="date">
-                                {formatDate(prospect.appointmentDate)}
-                              </div>
-                              <div className="time">
-                                {formatTime(prospect.appointmentTime)}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="no-appointment">
-                              Not scheduled
-                            </span>
-                          )}
-                        </td>
-                        <td>{getStatusBadge(prospect.status)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        );
-
-      case "assigned-tasks":
-        return (
-          <>
-            {/* Filters */}
-            <div className="filters-section">
-              <div className="filters-header">
-                <h3>Assigned Prospects ({filteredProspects.length})</h3>
-                <div className="filter-actions">
-                  <div className="search-box">
-                    <FaSearch className="search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Search by name, group code, phone..."
-                      value={filters.search}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          search: e.target.value,
-                        }))
-                      }
-                      className="search-input"
-                    />
-                  </div>
-                  <button className="btn-refresh" onClick={handleRefresh}>
-                    <FaSync /> Refresh
-                  </button>
-                </div>
-              </div>
-
-              <div className="filter-controls">
-                <div className="filter-group">
-                  <label>Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        status: e.target.value,
-                      }))
-                    }
-                    className="filter-select"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="prospect">Prospect</option>
-                    <option value="suspect">Suspect</option>
-                    <option value="client">Client</option>
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label>Sort By</label>
-                  <div className="sort-buttons">
-                    <button
-                      className={`sort-btn ${
-                        filters.sortBy === "appointmentDate" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          sortBy: "appointmentDate",
-                          sortOrder:
-                            prev.sortBy === "appointmentDate" &&
-                            prev.sortOrder === "asc"
-                              ? "desc"
-                              : "asc",
-                        }))
-                      }
-                    >
-                      Appointment{" "}
-                      {filters.sortBy === "appointmentDate" &&
-                        (filters.sortOrder === "asc" ? "↑" : "↓")}
-                    </button>
-                    <button
-                      className={`sort-btn ${
-                        filters.sortBy === "assignedAt" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          sortBy: "assignedAt",
-                          sortOrder:
-                            prev.sortBy === "assignedAt" &&
-                            prev.sortOrder === "asc"
-                              ? "desc"
-                              : "asc",
-                        }))
-                      }
-                    >
-                      Assigned{" "}
-                      {filters.sortBy === "assignedAt" &&
-                        (filters.sortOrder === "asc" ? "↑" : "↓")}
-                    </button>
-                    <button
-                      className={`sort-btn ${
-                        filters.sortBy === "groupCode" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          sortBy: "groupCode",
-                          sortOrder:
-                            prev.sortBy === "groupCode" &&
-                            prev.sortOrder === "asc"
-                              ? "desc"
-                              : "asc",
-                        }))
-                      }
-                    >
-                      Group Code{" "}
-                      {filters.sortBy === "groupCode" &&
-                        (filters.sortOrder === "asc" ? "↑" : "↓")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Table */}
-            <div className="main-table-container">
-              <table className="main-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Group Code</th>
-                    <th>Grade</th>
-                    <th>Group Name</th>
-                    <th>Name</th>
-                    <th>Contact Numbers</th>
-                    <th>Lead Source</th>
-                    <th>Lead Name</th>
-                    <th>Calling Purpose</th>
-                    <th>Status</th>
-                    <th>Appointment Date</th>
-                    <th>Assigned On</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="13" className="loading-cell">
-                        <div className="loading-indicator">
-                          <div className="spinner"></div>
-                          Loading prospects...
-                        </div>
-                      </td>
-                    </tr>
-                  ) : filteredProspects.length === 0 ? (
-                    <tr>
-                      <td colSpan="13" className="empty-cell">
-                        <div className="empty-state">
-                          <FaUsers />
-                          <div>
-                            <h4>No prospects found</h4>
-                            <p>
-                              Try adjusting your filters or check back later.
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredProspects.map((prospect, index) => (
-                      <tr key={prospect.id}>
-                        <td className="serial">{index + 1}</td>
-
-                        <td>
-                          <div className="group-code-cell">
-                            <FaIdCard /> {prospect.groupCode}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="grade-cell">{prospect.grade}</div>
-                        </td>
-
-                        <td>
-                          <div className="group-name-cell">
-                            {prospect.groupName}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="name-cell">
-                            <FaUser /> {prospect.prospectName}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="contact-cell">
-                            <div className="primary-phone">
-                              <FaPhoneAlt /> {prospect.mobile}
-                            </div>
-                            {prospect.contactNo &&
-                              prospect.contactNo !== "N/A" && (
-                                <div className="secondary-phone">
-                                  📞 {prospect.contactNo}
-                                </div>
-                              )}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="lead-source-cell">
-                            {prospect.leadSource}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="lead-name-cell">
-                            {prospect.leadName}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="calling-purpose-cell">
-                            {prospect.callingPurpose}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="status-cell">
-                            {getStatusBadge(prospect.status)}
-                          </div>
-                        </td>
-
-                        <td>
-                          {prospect.appointmentDate ? (
-                            <div className="appointment-cell">
-                              <div className="date">
-                                {formatDate(prospect.appointmentDate)}
-                              </div>
-                              <div className="time">
-                                {formatTime(prospect.appointmentTime)}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="no-appointment">
-                              Not scheduled
-                            </span>
-                          )}
-                        </td>
-
-                        <td>
-                          <div className="assigned-date-cell">
-                            {formatDate(prospect.assignedAt)}
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="action-cells">
-                            <button className="action-btn" title="View Details">
-                              <FaEye />
-                            </button>
-                            <button className="action-btn" title="Update">
-                              <FaEdit />
-                            </button>
-                            <button className="action-btn" title="Call">
-                              <FaPhoneAlt />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-
-              <div className="table-footer">
-                <div className="pagination-info">
-                  Showing {filteredProspects.length} of{" "}
-                  {assignedProspects.length} prospects
-                </div>
-                <div className="table-stats">
-                  <span className="stat-item">
-                    <FaCalendarAlt /> Today: {stats.todayAppointments}
-                  </span>
-                  <span className="stat-item">
-                    <FaCheckCircle /> Completed: {stats.completed}
-                  </span>
-                  <span className="stat-item">
-                    <FaTasks /> Pending: {stats.pending}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        );
-
-      default:
-        return (
-          <div className="empty-section">
-            <FaStar className="empty-icon" />
-            <h3>Select a section to view content</h3>
-          </div>
-        );
-    }
+  const getPageTitle = () => {
+    if (location.pathname.includes("/rm/dashboard")) return "Dashboard";
+    if (location.pathname.includes("/rm/profile")) return "Profile";
+    if (location.pathname.includes("/rm/customer-master"))
+      return "Customer Master";
+    if (location.pathname.includes("/rm/area-of-work")) return "Area of Work";
+    if (location.pathname.includes("/rm/work-description"))
+      return "Work Description";
+    if (location.pathname.includes("/rm/task-summary")) return "Task Summary";
+    if (location.pathname.includes("/rm/task-status")) return "Task Status";
+    if (location.pathname.includes("/rm/salary-history"))
+      return "Salary History";
+    if (location.pathname.includes("/rm/incentive-history"))
+      return "Incentive History";
+    if (location.pathname.includes("/rm/assigned-suspects"))
+      return "Assigned Suspects";
+    return "RM Dashboard";
   };
 
   return (
-    <div className="rm-dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-left">
-          <div className="logo">
-            <FaUserTie />
-            <span>RM Dashboard</span>
-          </div>
-        </div>
-
-        <div className="header-center">
-          <div className="search-container">
-            <FaSearch />
-            <input type="text" placeholder="Search prospects..." />
-          </div>
-        </div>
-
-        <div className="header-right">
-          <button className="notifications">
-            <FaBell />
-            {stats.todayAppointments > 0 && (
-              <span className="badge">{stats.todayAppointments}</span>
-            )}
-          </button>
-
-          <div className="user-profile">
-            <div className="avatar">{user?.name?.charAt(0) || "R"}</div>
-            <div className="user-info">
-              <div className="name">{user?.name || "RM User"}</div>
-              <div className="role">Relationship Manager</div>
-            </div>
-          </div>
-
-          <button className="settings">
-            <FaCog />
-          </button>
-
-          <button className="logout" onClick={handleLogout}>
-            <FaSignOutAlt />
-          </button>
-        </div>
-      </header>
-
-      <div className="dashboard-container">
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="user-summary">
-            <div className="user-details">
-              <p>Relationship Manager</p>
-              <p className="code">ID: {user?.employeeCode || "RM001"}</p>
-            </div>
-            <div className="quick-stats">
-              <div className="stat">
-                <div className="number">{stats.totalAssigned}</div>
-                <div className="label">Assigned</div>
-              </div>
-              <div className="stat">
-                <div className="number">{stats.completed}</div>
-                <div className="label">Completed</div>
-              </div>
-            </div>
-          </div>
-
-          <nav className="sidebar-nav">
-            <button
-              className={`nav-item ${
-                activeTab === "dashboard" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              <FaHome />
-              <span>Dashboard</span>
-              {stats.totalAssigned > 0 && (
-                <span className="count">{stats.totalAssigned}</span>
-              )}
-            </button>
-
-            <button
-              className={`nav-item ${
-                activeTab === "assigned-tasks" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("assigned-tasks")}
-            >
-              <FaTasks />
-              <span>Assigned Tasks</span>
-              <span className="count">{assignedProspects.length}</span>
-            </button>
-
-            <button
-              className={`nav-item ${
-                activeTab === "appointments" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("appointments")}
-            >
-              <FaCalendarAlt />
-              <span>Appointments</span>
-              <span className="count">{stats.todayAppointments}</span>
-            </button>
-
-            <button
-              className={`nav-item ${activeTab === "reports" ? "active" : ""}`}
-              onClick={() => setActiveTab("reports")}
-            >
-              <FaChartBar />
-              <span>Reports</span>
-            </button>
-          </nav>
-
-          <div className="sidebar-footer">
-            <div className="performance">
-              <h4>Summary</h4>
-              <div className="summary-item">
-                <span>Today's Appointments</span>
-                <span className="value">{stats.todayAppointments}</span>
-              </div>
-              <div className="summary-item">
-                <span>Upcoming</span>
-                <span className="value">{stats.upcomingAppointments}</span>
-              </div>
-              <div className="summary-item">
-                <span>Pending Tasks</span>
-                <span className="value">{stats.pending}</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="main-content">
-          <div className="content-header">
-            <h1>
-              {activeTab === "dashboard" && "Dashboard"}
-              {activeTab === "assigned-tasks" && "Assigned Prospects"}
-              {activeTab === "appointments" && "Appointments"}
-              {activeTab === "reports" && "Reports"}
-            </h1>
-            <div className="header-actions">
-              <button className="btn-download">
-                <FaDownload /> Export
+    <div className="min-h-screen bg-gray-50">
+      {/* 🔴 TOP NAVBAR - PURE TAILWIND */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 py-2 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="flex items-center justify-between h-14">
+            {/* LEFT: Logo & Mobile Menu Toggle */}
+            <div className="flex items-center space-x-3">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
+              >
+                {mobileMenuOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
               </button>
             </div>
+
+            {/* CENTER: Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-0.5">
+              <div className="flex items-center bg-white border border-gray-200 rounded-lg px-1 pt-2 pb-2 shadow-sm">
+                {navigation.map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.href)}
+                    className={`flex items-center px-3 py-1.5 mx-0.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                      isActive(item.href)
+                        ? "bg-black text-white shadow-sm"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <span className="mr-1.5">{item.icon}</span>
+                    <div className="text-[10px]  leading-tight">
+                      {item.name}
+                    </div>
+                    {item.count !== undefined && (
+                      <span className="ml-1.5 h-4 w-4 flex items-center justify-center text-[10px] font-bold bg-gray-700 text-white rounded-full">
+                        {item.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT: User Info & Logout - MODIFIED */}
+            <div className="flex items-center ml-2 space-x-4">
+              {/* User Email & Code Display */}
+              <div className="hidden md:flex flex-col items-end">
+                <div className="text-xs font-medium text-gray-900 truncate max-w-[180px]">
+                  {user?.emailId || user?.email || "No email"}
+                </div>
+                <div className="text-[10px] text-gray-500">
+                  Code: {user?.employeeCode || "N/A"}
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
+                title="Logout"
+              >
+                <FaSignOutAlt size={12} />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+
+              {/* Mobile: User Avatar (for consistency) */}
+              <div className="md:hidden">
+                <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center">
+                  <span className="text-white font-semibold text-xs">
+                    {user?.name?.charAt(0) || "R"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="content-body">{renderDashboardContent()}</div>
+        {/* Mobile Navigation Menu */}
+        <div className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}>
+          <div className="px-3 py-2 border-t border-gray-200 bg-white">
+            <div className="space-y-0.5">
+              {navigation.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    navigate(item.href);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center w-full px-3 py-2.5 rounded-md text-sm font-medium ${
+                    isActive(item.href)
+                      ? "bg-black text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  <span className="flex-1 text-left">{item.name}</span>
+                  {item.count !== undefined && (
+                    <span className="h-5 w-5 flex items-center justify-center text-xs font-bold bg-gray-700 text-white rounded-full">
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </nav>
 
-          <footer className="footer">
-            <span>© 2024 RM Dashboard</span>
-            <span>Total Prospects: {assignedProspects.length}</span>
-            <span>Today: {stats.todayAppointments}</span>
-          </footer>
-        </main>
+      {/* 🔴 PAGE HEADER */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+              {getPageTitle()}
+            </h3>
+          </div>
+        </div>
       </div>
+
+      {/* 🔴 MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
+        <Routes>
+          <Route path="/" element={<Navigate to="/rm/dashboard" replace />} />
+          <Route
+            path="/dashboard"
+            element={
+              <RMDashboardHome
+                stats={stats}
+                assignedSuspects={assignedSuspects}
+              />
+            }
+          />
+          <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/customer-master"
+            element={<PlaceholderComponent title="Customer Master" />}
+          />
+          <Route path="/area-of-work" element={<AreaOfWork />} />
+          <Route
+            path="/work-description"
+            element={<PlaceholderComponent title="Work Description" />}
+          />
+          <Route path="/task-summary" element={<TaskSummary />} />
+          <Route
+            path="/task-status"
+            element={<PlaceholderComponent title="Task Status" />}
+          />
+          <Route
+            path="/salary-history"
+            element={<PlaceholderComponent title="Salary History" />}
+          />
+          <Route
+            path="/incentive-history"
+            element={<PlaceholderComponent title="Incentive History" />}
+          />
+          <Route
+            path="/assigned-suspects"
+            element={<AssignedTasks user={user} />}
+          />
+          <Route
+            path="/suspect/details/:id"
+            element={<RMSuspectDetailsPage />}
+          />
+          <Route path="*" element={<Navigate to="/rm/dashboard" replace />} />
+        </Routes>
+      </main>
+
+      {/* 🔴 FOOTER */}
+      <footer className="bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="text-xs text-gray-500">
+              © {new Date().getFullYear()} RM Dashboard
+            </div>
+            <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <div className="flex items-center space-x-1 text-xs">
+                <span className="text-gray-500">Assigned:</span>
+                <span className="font-semibold text-gray-900">
+                  {stats.totalAssigned}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <span className="text-gray-500">Completed:</span>
+                <span className="font-semibold text-gray-900">
+                  {stats.completed}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <span className="text-gray-500">Today:</span>
+                <span className="font-semibold text-gray-900">
+                  {stats.todayAppointments}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

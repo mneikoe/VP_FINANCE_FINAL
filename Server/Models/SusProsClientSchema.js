@@ -108,7 +108,6 @@ const personalDetailsSchema = new mongoose.Schema({
   mobileNo: String,
   emailId: String,
   name: String,
-
   organisation: String,
   designation: String,
   annualIncome: String,
@@ -129,8 +128,10 @@ const personalDetailsSchema = new mongoose.Schema({
   officePincode: String,
   preferredMeetingAddr: String,
   preferredMeetingArea: String,
+  subArea: String, // ✅ NEW FIELD ADDED
   city: String,
   bestTime: String,
+  time: String, // ✅ NEW TIME FIELD ADDED
   nativePlace: String,
   hobbies: String,
   socialLink: String,
@@ -143,6 +144,7 @@ const personalDetailsSchema = new mongoose.Schema({
   occupation: String,
   callingPurpose: String,
   allocatedCRE: String,
+  allocatedRM: String, // ✅ NEW RM FIELD ADDED
   remark: String,
   pincode: Number,
   dob: Date,

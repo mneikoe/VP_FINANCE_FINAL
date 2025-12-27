@@ -1,12 +1,15 @@
-
-
 import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { Form, Row, Col, Button } from "react-bootstrap";
-import { addFamilyMember} from "../../../redux/feature/SuspectRedux/SuspectThunx";
+import { addFamilyMember } from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { toast } from "react-toastify";
 
-const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated }) => {
+const FamilyMembersFormForSuspect = ({
+  suspectId,
+  suspectData,
+  onSuspectCreated,
+  onDataUpdate,
+}) => {
   const dispatch = useDispatch();
   const [familyMembers, setFamilyMembers] = useState([]);
 
@@ -75,13 +78,19 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated 
       return;
     }
 
-    const result = await dispatch(addFamilyMember({ suspectId: idToUse, membersArray: familyMembers }));
+    const result = await dispatch(
+      addFamilyMember({ suspectId: idToUse, membersArray: familyMembers })
+    );
+
     if (result) {
       setFamilyMembers([]);
       toast.info("Family Members Added Successfully...");
       const returnedId = result?.payload;
       console.log("Suspect ID in family details:", returnedId);
       if (onSuspectCreated && returnedId) onSuspectCreated(returnedId);
+    }
+    if (onDataUpdate) {
+      onDataUpdate(familyMembers); // Send data to parent
     }
   };
 
@@ -212,7 +221,9 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated 
               <Col md={10}>
                 <Row>
                   <Col md={2}>
-                    <Form.Group controlId={`healthHistory.submissionDate-${index}`}>
+                    <Form.Group
+                      controlId={`healthHistory.submissionDate-${index}`}
+                    >
                       <Form.Label>Submission Date</Form.Label>
                       <Form.Control
                         type="date"
@@ -223,7 +234,9 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated 
                     </Form.Group>
                   </Col>
                   <Col md={2}>
-                    <Form.Group controlId={`healthHistory.diseaseName-${index}`}>
+                    <Form.Group
+                      controlId={`healthHistory.diseaseName-${index}`}
+                    >
                       <Form.Label>Disease Name</Form.Label>
                       <Form.Control
                         name="healthHistory.diseaseName"
@@ -238,7 +251,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated 
                       <Form.Control
                         type="date"
                         name="healthHistory.since"
-                        value={member.healthHistory.since ?? ''}
+                        value={member.healthHistory.since ?? ""}
                         onChange={(e) => handleMemberChange(e, index)}
                       />
                     </Form.Group>
@@ -287,7 +300,12 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onSuspectCreated 
           </Button>
         </div>
       ))}
-      <Button variant="success" onClick={handleAddMember} type="button" className="me-2">
+      <Button
+        variant="success"
+        onClick={handleAddMember}
+        type="button"
+        className="me-2"
+      >
         Add Member
       </Button>
       <Button type="submit" className="btn btn-primary">

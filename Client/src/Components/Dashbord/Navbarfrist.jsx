@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Navbar, Container, Nav, Dropdown, Button } from "react-bootstrap";
-import { logoutUser } from "../../redux/feature/auth/authThunx";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { logoutUser } from "../../redux/feature/auth/authThunx";
 import {
   FiGrid,
   FiLayers,
@@ -16,709 +15,972 @@ import {
   FiChevronDown,
   FiMenu,
   FiLogOut,
+  FiX,
 } from "react-icons/fi";
-import "bootstrap/dist/css/bootstrap.min.css";
 
 const Navbarfristn = () => {
-  const [expanded, setExpanded] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  const toggleMenu = () => setOpen(!open);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [openMutualFund, setOpenMutualFund] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // Logout function
+
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/auth/login");
   };
 
-  const dropdownItems = {
-    masters: [
-      { name: "Composite", to: "/composite" },
-      { name: "Sub Master 2", to: "/masters/sub-master2" },
-      { name: "Sub Master 3", to: "/masters/sub-master3" },
-      { name: "All Masters", to: "/masters/all-masters", divider: true },
-    ],
-    customers: [
-      { name: "Customer List", to: "/customers/list" },
-      { name: "Add Customer", to: "/customers/add" },
-      { name: "Customer Groups", to: "/customers/groups" },
-    ],
-    employee: [
-      { name: "Employee List", to: "/employee/list" },
-      { name: "Add Employee", to: "/employee/add" },
-      { name: "Roles", to: "/employee/roles" },
-    ],
-    crm: [
-      { name: "Leads", to: "/crm/leads" },
-      { name: "Contacts", to: "/crm/contacts" },
-      { name: "Opportunities", to: "/crm/opportunities" },
-    ],
-    reports: [
-      { name: "Financial Reports", to: "/financial-product-list" },
-      { name: "Sales Reports", to: "/reports/sales" },
-      { name: "Customer Reports", to: "/reports/customer" },
-    ],
+  const toggleDropdown = (name) => {
+    setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  const renderDropdownItems = (items) => (
-    <div className="row">
-      {items.map((item, index) => (
-        <div className="col-md-6 mb-2" key={index}>
-          <Dropdown.Item as={Link} to={item.to}>
-            {item.name}
-          </Dropdown.Item>
-          {item.divider && <Dropdown.Divider />}
-        </div>
-      ))}
-    </div>
-  );
+  const toggleMutualFund = () => {
+    setOpenMutualFund(!openMutualFund);
+  };
+
+  const closeAllDropdowns = () => {
+    setOpenDropdown(null);
+    setOpenMutualFund(false);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
-    <div className="vpfinancial-navbar">
-      <div className="blue-header px-3   py-2">
-        <Container>
-          <h1 className="brand-title mb-0">
+    <div className="font-sans">
+      {/* Blue Header - Original color */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 py-3 px-4">
+        <div className="container mx-auto">
+          <h1 className="text-white text-2xl font-medium">
             Vpfinancial{" "}
-            <span style={{ color: "red", backgroundColor: "white" }}>Nest</span>
+            <span className="text-red-600 bg-white px-1 rounded">Nest</span>
           </h1>
-        </Container>
+        </div>
       </div>
 
-      <div className="dashboard-section p-4 ">
-        <Container>
-          <div className="dashboard-header d-flex justify-content-between align-items-center">
-            <h2 className="dashboard-title m-0">Dashboard</h2>
-            <div className="breadcrumb">Vp &gt; Dashboard</div>
-          </div>
-        </Container>
-      </div>
+      {/* Main Navigation */}
+      <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center py-2">
+            {/* Mobile Menu Button */}
+            <button
+              className="lg:hidden text-gray-700 focus:outline-none"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
 
-      <Navbar
-        style={{ width: "100%" }}
-        bg="white"
-        expand="lg"
-        className="main-navigation border-top border-bottom d-flex justify-content-center align-content-center"
-        expanded={expanded}
-        onToggle={() => setExpanded(!expanded)}
-      >
-        <Container fluid>
-          <Navbar.Toggle
-            aria-controls="main-navbar-nav"
-            className="navbar-toggler-custom"
-          >
-            <FiMenu className="toggle-icon" />
-          </Navbar.Toggle>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex space-x-0 items-center">
+              {/* Dashboard */}
+              <Link
+                to="/"
+                className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                onClick={closeAllDropdowns}
+              >
+                <FiGrid className="text-lg mb-1" />
+                <span className="text-xs font-medium">Dashboard</span>
+              </Link>
 
-          <Navbar.Collapse id="main-navbar-nav">
-            <Nav className="m-auto gap-4">
-              <Nav.Link as={Link} to="/" className="nav-item">
-                <FiGrid className="nav-icon" />
-                <span className="nav-text">Dashboard</span>
-              </Nav.Link>
-
-              {/* Masters */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiLayers className="nav-icon" />
-                  Masters <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "600px" }}
+              {/* Masters Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("masters")}
                 >
-                  <div className="row">
-                    {/* Task Master */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">TASK MASTER</h6>
-                      <Dropdown.Item as={Link} to="/composite">
-                        Composite Task
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/marketing-task">
-                        Marketing Task
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/servicing-task">
-                        Servicing Task
-                      </Dropdown.Item>
-                    </div>
+                  <FiLayers className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Masters</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
 
-                    {/* Location Master */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">LOCATION MASTER</h6>
-                      <Dropdown.Item as={Link} to="/area">
-                        Add Location
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/sub-area">
-                        Add Sub Location
-                      </Dropdown.Item>
-                      {/* <Dropdown.Item as={Link} to="/city">
-                        Add City
-                      </Dropdown.Item> */}
-                    </div>
+                {openDropdown === "masters" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Task Master */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          TASK MASTER
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/composite"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Composite Task
+                          </Link>
+                          <Link
+                            to="/marketing-task"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Marketing Task
+                          </Link>
+                          <Link
+                            to="/servicing-task"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Servicing Task
+                          </Link>
+                        </div>
+                      </div>
 
-                    {/* Lead Master */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">LEAD MASTER</h6>
+                      {/* Location Master */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          LOCATION MASTER
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/area"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Add Location
+                          </Link>
+                          <Link
+                            to="/sub-area"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Add Sub Location
+                          </Link>
+                        </div>
+                      </div>
 
-                      <Dropdown.Item as={Link} to="/lead-type">
-                        Lead Source
-                      </Dropdown.Item>
+                      {/* Lead Master */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          LEAD MASTER
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/lead-type"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Lead Source
+                          </Link>
+                          <Link
+                            to="/lead-source"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Lead Name
+                          </Link>
+                          <Link
+                            to="/lead-occupation"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Lead Occupation
+                          </Link>
+                          <Link
+                            to="/occupation-type"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Occupation Type
+                          </Link>
+                        </div>
+                      </div>
 
-                      <Dropdown.Item as={Link} to="/lead-source">
-                        Lead Name
-                      </Dropdown.Item>
-
-                      <Dropdown.Item as={Link} to="/lead-occupation">
-                        Lead Occupation
-                      </Dropdown.Item>
-
-                      <Dropdown.Item as={Link} to="/occupation-type">
-                        Occupation Type
-                      </Dropdown.Item>
-                    </div>
-
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Kyc Document</h6>
-
-                      <Dropdown.Item as={Link} to="/kycdocument">
-                        document type
-                      </Dropdown.Item>
+                      {/* KYC Document */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          KYC Document
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/kycdocument"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Document Type
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Customers */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiLayers className="nav-icon" />
-                  Customers <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "600px" }}
-                >
-                  <div className="row">
-                    {/* Task Master */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Suspect</h6>
-
-                      <Dropdown.Item as={Link} to="/suspect/add">
-                        Add Suspect
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/suspect">
-                        Suspect List
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/import-lead">
-                        Import Lead
-                      </Dropdown.Item>
-                    </div>
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Prospect</h6>
-                      <Dropdown.Item as={Link} to="/prospect/add">
-                        Add Prospect
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/prospect">
-                        Prospect List
-                      </Dropdown.Item>
-                    </div>
-
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Client</h6>
-
-                      <Dropdown.Item
-                        as={Link}
-                        to="/client/add"
-                        state={{ tab: "add" }}
-                      >
-                        Add Client
-                      </Dropdown.Item>
-                      <Dropdown.Item
-                        as={Link}
-                        to="/client"
-                        state={{ tab: "display" }}
-                      >
-                        Client List
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Location Master */}
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Employee */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiUsers className="nav-icon" />
-                  Employee <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "900px" }}
-                >
-                  <div className="row">
-                    {/* Office Admin */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Office Admin</h6>
-                      <Dropdown.Item as={Link} to="/job-profile-target-admin">
-                        Job Profile & Target
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/employee-recruitment">
-                        Employee Recruitment
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/vacancy-notice">
-                        Vacancy Notice
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/addcandidate">
-                        Add Candidate
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/career-enquiry">
-                        Career Enquiry
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/resume-shortlist">
-                        Resume Shortlist
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/interview-process">
-                        Interview Process
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/internship-candidate">
-                        Internship Candidate
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/add-employee">
-                        Add Employee
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/joining-data">
-                        Joining Data
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/job-profile-target-admin">
-                        Show Appointments
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Telecaller, Telemarketer, CRE */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Telecaller</h6>
-                      <Dropdown.Item
-                        as={Link}
-                        to="/job-profile-target-telecaller"
-                      >
-                        Job Profile & Target
-                      </Dropdown.Item>
-
-                      <h6 className="text-danger mt-3">Telemarketer</h6>
-                      <Dropdown.Item
-                        as={Link}
-                        to="/job-profile-target-telemarketer"
-                      >
-                        Job Profile & Target
-                      </Dropdown.Item>
-
-                      <h6 className="text-danger mt-3">CRE</h6>
-                      <Dropdown.Item as={Link} to="/job-profile-target-cre">
-                        Job Profile & Target
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Office Executive, HR Rules, Training */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Office Executive</h6>
-                      <Dropdown.Item
-                        as={Link}
-                        to="/job-profile-target-office-executive"
-                      >
-                        Job Profile & Target
-                      </Dropdown.Item>
-
-                      <h6 className="text-danger mt-3">HR Rules</h6>
-                      <Dropdown.Item as={Link} to="/hr-rules">
-                        HR Rules & Regulations
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/employee-training">
-                        Employee Training
-                      </Dropdown.Item>
-                    </div>
-
-                    <div className="col-md-4">
-                      <h6 className="text-danger">Office Executive</h6>
-                      <Dropdown.Item
-                        as={Link}
-                        to="/job-profile-target-office-executive"
-                      >
-                        Job Profile & Target
-                      </Dropdown.Item>
-
-                      <h6 className="text-danger mt-3">HR Rules</h6>
-                      <Dropdown.Item as={Link} to="/hr-rules">
-                        HR Rules & Regulations
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/employee-training">
-                        Employee Training
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Departments */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiBriefcase className="nav-icon" />
-                  Departments <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "800px" }}
-                >
-                  <div className="row">
-                    {/* HR Department */}
-                    <div className="col-md-3">
-                      <h6 className="text-danger">HR Department</h6>
-                      <Dropdown.Item as={Link} to="/employee-recruitment">
-                        Employee Recruitment
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/vacancy-notice">
-                        Vacancy Notice
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/addcandidate">
-                        Add Candidate
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/career-enquiry">
-                        Career Enquiry
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/resume-shortlist">
-                        Resume Shortlist
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/interview-process">
-                        Interview Process
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/intership-candidate">
-                        Internship Candidate
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/add-employee">
-                        Add Employee
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/joining-data">
-                        Joining Data
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/job-profile-target">
-                        Job Profile & Target
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/hr-rules">
-                        HR Rules & Regulations
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/employee-training">
-                        Employee Training
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Account Department */}
-                    <div className="col-md-3">
-                      <h6 className="text-danger">Account Department</h6>
-                      <Dropdown.Item as={Link} to="/income-head">
-                        Income Head
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/expenses-head">
-                        Expenses Head
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/salary-wages">
-                        Salary & Wages
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/incentives">
-                        Incentives
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/office-purchase">
-                        Office Purchase
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/utility-expenses">
-                        Utility Expenses
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/loss-discount">
-                        Loss & Discount
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/promotional-expenses">
-                        Promotional Expenses
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Marketing Department */}
-                    <div className="col-md-3">
-                      <h6 className="text-danger">Marketing Department</h6>
-                      <Dropdown.Item as={Link} to="/marketing-composite">
-                        Composite Data
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/marketing-life">
-                        Life Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/marketing-health">
-                        Health Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/marketing-mutual">
-                        Mutual Fund
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/marketing-realestate">
-                        Real Estate
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Servicing Department + CRM */}
-                    <div className="col-md-3">
-                      <h6 className="text-danger">Servicing Department</h6>
-                      <Dropdown.Item as={Link} to="/servicing-composite">
-                        Composite Data
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/servicing-life">
-                        Life Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/servicing-health">
-                        Health Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/servicing-mutual">
-                        Mutual Fund
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/servicing-realestate">
-                        Real Estate
-                      </Dropdown.Item>
-
-                      <h6 className="text-danger mt-3">CRM</h6>
-                      <Dropdown.Item as={Link} to="/crm-department">
-                        CRM Department
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Office */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiHome className="nav-icon" />
-                  <i className="ti-pie-chart"></i> Office{" "}
-                  <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "600px" }}
-                >
-                  <div className="row">
-                    {/* Financial */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">FINANCIAL</h6>
-                      <Dropdown.Item as={Link} to="/financial-product-list">
-                        Financial Product List
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/company-name">
-                        Company Name
-                      </Dropdown.Item>
-
-                      {/* <Dropdown.Item as={Link} to="/mutual-fund">
-                        Mutual Fund
-                      </Dropdown.Item> */}
-                      <Dropdown>
-                        <Dropdown.Item
-                          variant="light"
-                          id="dropdown-basic"
-                          className="menu-item"
-                          onClick={toggleMenu}
-                        >
-                          <span className="bullet"></span> Mutual Fund{" "}
-                          {open ? "▾" : "▸"}
-                          {open && (
-                            <div className="submenu">
-                              <ul>
-                                <li>
-                                  <div className="submenu-item">
-                                    <span className="bullet"></span>
-                                    <Link to="/mutual-fund/registrar">
-                                      Registrar
-                                    </Link>
-                                  </div>
-                                </li>
-                                <li>
-                                  <div className="submenu-item">
-                                    <span className="bullet"></span>
-                                    <Link to="/mutual-fund/amc">AMC Name</Link>
-                                  </div>
-                                </li>
-                              </ul>
-                            </div>
-                          )}
-                        </Dropdown.Item>
-                      </Dropdown>
-                      <Dropdown.Item as={Link} to="/other-product">
-                        Other Product
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* Office Records */}
-                    <div className="col-md-4">
-                      <h6 className="text-danger">OFFICE RECORDS</h6>
-
-                      <Dropdown.Item as={Link} to="/office-diary">
-                        Office Diary
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/office-purchase">
-                        Office Purchase
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/important-documents">
-                        Important Documents
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* CRM */}
-
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiMessageSquare className="nav-icon" />
-                  <i className="ti-support"></i> CRM{" "}
-                  <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "400px" }}
-                >
-                  <div className="row">
-                    {/* CRM Records */}
-                    <div className="col-md-6">
-                      <h6 className="text-danger">CRM RECORDS</h6>
-                      <Dropdown.Item as={Link} to="/crm-relationship">
-                        Relationship
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-employee">
-                        Employee
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-customer">
-                        Customer
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-associates">
-                        Associates
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* CRM Activities */}
-                    <div className="col-md-6">
-                      <h6 className="text-danger">CRM ACTIVITIES</h6>
-                      <Dropdown.Item as={Link} to="/crm-creative-activity">
-                        Creative Activity
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-advertisement">
-                        Advertisement
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-composite">
-                        Composite Data
-                      </Dropdown.Item>
-                    </div>
-
-                    {/* CRM Insurance & Funds */}
-                    <div className="col-md-6">
-                      <h6 className="text-danger">CRM INSURANCE & FUNDS</h6>
-                      <Dropdown.Item as={Link} to="/crm-life">
-                        Life Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-health">
-                        Health Insurance
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-mutual">
-                        Mutual Fund
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/crm-realestate">
-                        Real Estate
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-              {/* task */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiCheckSquare className="nav-icon" />
-                  <i className="ti-check-box"></i> Task{" "}
-                  <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "400px" }}
-                >
-                  <div className="row">
-                    {/* Task Categories */}
-                    <div className="col-md-6">
-                      <h6 className="text-danger">TASK CATEGORIES</h6>
-                      <Dropdown.Item as={Link} to="/task-composite">
-                        Composite
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/task-marketing">
-                        Marketing
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/task-servicing">
-                        Servicing
-                      </Dropdown.Item>
-                    </div>
-                    {/* Task Assign */}
-                    <div className="col-md-6">
-                      <h6 className="text-danger">Task Assign</h6>
-                      <Dropdown.Item as={Link} to="/task-assign">
-                        Assign Task
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/appointment-assign">
-                        Assign Appointments
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Reports */}
-              <Dropdown as={Nav.Item} className="nav-item dropdown-hover">
-                <Dropdown.Toggle as={Nav.Link}>
-                  <FiFileText className="nav-icon" />
-                  Reports <FiChevronDown size={12} className="ms-1" />
-                </Dropdown.Toggle>
-                <Dropdown.Menu
-                  className="custom-dropdown p-4"
-                  style={{ minWidth: "300px" }}
-                >
-                  <div className="row">
-                    {/* Report Items */}
-                    <div className="col-md-12">
-                      <h6 className="text-danger">REPORTS</h6>
-                      <Dropdown.Item as={Link} to="/report-1">
-                        Report 1
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/report-2">
-                        Report 2
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/report-3">
-                        Report 3
-                      </Dropdown.Item>
-                      <Dropdown.Item as={Link} to="/report-4">
-                        Report 4
-                      </Dropdown.Item>
-                    </div>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Logout Button */}
-              <div className="d-flex align-items-center ms-auto">
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="d-flex align-items-center gap-1"
-                >
-                  <FiLogOut size={14} />
-                  <span>Logout</span>
-                </Button>
+                )}
               </div>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
+
+              {/* Customers Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("customers")}
+                >
+                  <FiLayers className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Customers</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "customers" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Suspect */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Suspect
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/suspect/add"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Add Suspect
+                          </Link>
+                          <Link
+                            to="/suspect"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Suspect List
+                          </Link>
+                          <Link
+                            to="/import-lead"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Import Lead
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Prospect */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Prospect
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/prospect/add"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Add Prospect
+                          </Link>
+                          <Link
+                            to="/prospect"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Prospect List
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Client */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Client
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/client/add"
+                            state={{ tab: "add" }}
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Add Client
+                          </Link>
+                          <Link
+                            to="/client"
+                            state={{ tab: "display" }}
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Client List
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Employee Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("employee")}
+                >
+                  <FiUsers className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Employee</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "employee" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[900px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-4 gap-4">
+                      {/* Office Admin */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Office Admin
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            {
+                              name: "Job Profile & Target",
+                              to: "/job-profile-target-admin",
+                            },
+                            {
+                              name: "Employee Recruitment",
+                              to: "/employee-recruitment",
+                            },
+                            { name: "Vacancy Notice", to: "/vacancy-notice" },
+                            { name: "Add Candidate", to: "/addcandidate" },
+                            { name: "Career Enquiry", to: "/career-enquiry" },
+                            {
+                              name: "Resume Shortlist",
+                              to: "/resume-shortlist",
+                            },
+                            {
+                              name: "Interview Process",
+                              to: "/interview-process",
+                            },
+                            {
+                              name: "Internship Candidate",
+                              to: "/internship-candidate",
+                            },
+                            { name: "Add Employee", to: "/add-employee" },
+                            { name: "Joining Data", to: "/joining-data" },
+                            {
+                              name: "Show Appointments",
+                              to: "/job-profile-target-admin",
+                            },
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Telecaller */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Telecaller
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/job-profile-target-telecaller"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Job Profile & Target
+                          </Link>
+                        </div>
+
+                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
+                          Telemarketer
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/job-profile-target-telemarketer"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Job Profile & Target
+                          </Link>
+                        </div>
+
+                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
+                          CRE
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/job-profile-target-cre"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Job Profile & Target
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Office Executive */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Office Executive
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/job-profile-target-office-executive"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Job Profile & Target
+                          </Link>
+                        </div>
+
+                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
+                          HR Rules
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/hr-rules"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            HR Rules & Regulations
+                          </Link>
+                          <Link
+                            to="/employee-training"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Employee Training
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Departments Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[120px]"
+                  onClick={() => toggleDropdown("departments")}
+                >
+                  <FiBriefcase className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Departments</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "departments" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[800px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-4 gap-4">
+                      {/* HR Department */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          HR Department
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            {
+                              name: "Employee Recruitment",
+                              to: "/employee-recruitment",
+                            },
+                            { name: "Vacancy Notice", to: "/vacancy-notice" },
+                            { name: "Add Candidate", to: "/addcandidate" },
+                            { name: "Career Enquiry", to: "/career-enquiry" },
+                            {
+                              name: "Resume Shortlist",
+                              to: "/resume-shortlist",
+                            },
+                            {
+                              name: "Interview Process",
+                              to: "/interview-process",
+                            },
+                            {
+                              name: "Internship Candidate",
+                              to: "/internship-candidate",
+                            },
+                            { name: "Add Employee", to: "/add-employee" },
+                            { name: "Joining Data", to: "/joining-data" },
+                            {
+                              name: "Job Profile & Target",
+                              to: "/job-profile-target",
+                            },
+                            { name: "HR Rules & Regulations", to: "/hr-rules" },
+                            {
+                              name: "Employee Training",
+                              to: "/employee-training",
+                            },
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Account Department */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Account Department
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            { name: "Income Head", to: "/income-head" },
+                            { name: "Expenses Head", to: "/expenses-head" },
+                            { name: "Salary & Wages", to: "/salary-wages" },
+                            { name: "Incentives", to: "/incentives" },
+                            { name: "Office Purchase", to: "/office-purchase" },
+                            {
+                              name: "Utility Expenses",
+                              to: "/utility-expenses",
+                            },
+                            { name: "Loss & Discount", to: "/loss-discount" },
+                            {
+                              name: "Promotional Expenses",
+                              to: "/promotional-expenses",
+                            },
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Marketing Department */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Marketing Department
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            {
+                              name: "Composite Data",
+                              to: "/marketing-composite",
+                            },
+                            { name: "Life Insurance", to: "/marketing-life" },
+                            {
+                              name: "Health Insurance",
+                              to: "/marketing-health",
+                            },
+                            { name: "Mutual Fund", to: "/marketing-mutual" },
+                            {
+                              name: "Real Estate",
+                              to: "/marketing-realestate",
+                            },
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Servicing Department + CRM */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Servicing Department
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            {
+                              name: "Composite Data",
+                              to: "/servicing-composite",
+                            },
+                            { name: "Life Insurance", to: "/servicing-life" },
+                            {
+                              name: "Health Insurance",
+                              to: "/servicing-health",
+                            },
+                            { name: "Mutual Fund", to: "/servicing-mutual" },
+                            {
+                              name: "Real Estate",
+                              to: "/servicing-realestate",
+                            },
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+
+                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
+                          CRM
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/crm-department"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            CRM Department
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Office Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("office")}
+                >
+                  <FiHome className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Office</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "office" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Financial */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          FINANCIAL
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/financial-product-list"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Financial Product List
+                          </Link>
+                          <Link
+                            to="/company-name"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Company Name
+                          </Link>
+
+                          {/* Mutual Fund Submenu */}
+                          <div className="relative">
+                            <button
+                              onClick={toggleMutualFund}
+                              className="flex items-center justify-between w-full text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            >
+                              <span>Mutual Fund</span>
+                              <FiChevronDown
+                                className={`transform ${
+                                  openMutualFund ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
+
+                            {openMutualFund && (
+                              <div className="ml-4 mt-1 space-y-1">
+                                <Link
+                                  to="/mutual-fund/registrar"
+                                  className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                                  onClick={closeAllDropdowns}
+                                >
+                                  Registrar
+                                </Link>
+                                <Link
+                                  to="/mutual-fund/amc"
+                                  className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                                  onClick={closeAllDropdowns}
+                                >
+                                  AMC Name
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+
+                          <Link
+                            to="/other-product"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Other Product
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Office Records */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          OFFICE RECORDS
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/office-diary"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Office Diary
+                          </Link>
+                          <Link
+                            to="/office-purchase"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Office Purchase
+                          </Link>
+                          <Link
+                            to="/important-documents"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Important Documents
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CRM Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("crm")}
+                >
+                  <FiMessageSquare className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">CRM</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "crm" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[400px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* CRM Records */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          CRM RECORDS
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            "Relationship",
+                            "Employee",
+                            "Customer",
+                            "Associates",
+                          ].map((item) => (
+                            <Link
+                              key={item}
+                              to={`/crm-${item.toLowerCase()}`}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* CRM Activities */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          CRM ACTIVITIES
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            "Creative Activity",
+                            "Advertisement",
+                            "Composite Data",
+                          ].map((item) => (
+                            <Link
+                              key={item}
+                              to={`/crm-${item
+                                .toLowerCase()
+                                .replace(/\s+/g, "-")}`}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* CRM Insurance & Funds */}
+                      <div className="col-span-2">
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          CRM INSURANCE & FUNDS
+                        </h6>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            "Life Insurance",
+                            "Health Insurance",
+                            "Mutual Fund",
+                            "Real Estate",
+                          ].map((item) => (
+                            <Link
+                              key={item}
+                              to={`/crm-${item
+                                .toLowerCase()
+                                .replace(/\s+/g, "-")}`}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Task Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("task")}
+                >
+                  <FiCheckSquare className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Task</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "task" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[400px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Task Categories */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          TASK CATEGORIES
+                        </h6>
+                        <div className="space-y-1">
+                          {["Composite", "Marketing", "Servicing"].map(
+                            (item) => (
+                              <Link
+                                key={item}
+                                to={`/task-${item.toLowerCase()}`}
+                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                                onClick={closeAllDropdowns}
+                              >
+                                {item}
+                              </Link>
+                            )
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Task Assign */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Task Assign
+                        </h6>
+                        <div className="space-y-1">
+                          <Link
+                            to="/task-assign"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Assign Task
+                          </Link>
+                          <Link
+                            to="/appointment-assign"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Assign Appointments
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Reports Dropdown */}
+              <div className="relative group">
+                <button
+                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                  onClick={() => toggleDropdown("reports")}
+                >
+                  <FiFileText className="text-lg mb-1" />
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Reports</span>
+                    <FiChevronDown className="ml-1 text-xs" />
+                  </div>
+                </button>
+
+                {openDropdown === "reports" && (
+                  <div className="absolute top-full left-0 mt-0 p-4 w-[300px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div>
+                      <h6 className="text-red-600 text-xs font-semibold mb-2">
+                        REPORTS
+                      </h6>
+                      <div className="space-y-1">
+                        <Link
+                          to="/financial-product-list"
+                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                          onClick={closeAllDropdowns}
+                        >
+                          Financial Reports
+                        </Link>
+                        <Link
+                          to="/report-2"
+                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                          onClick={closeAllDropdowns}
+                        >
+                          Sales Reports
+                        </Link>
+                        <Link
+                          to="/report-3"
+                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                          onClick={closeAllDropdowns}
+                        >
+                          Customer Reports
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <FiLogOut className="mr-2" />
+              Logout
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          {isMobileMenuOpen && (
+            <div className="lg:hidden py-4 border-t">
+              <div className="space-y-2">
+                {/* Mobile menu items will be added similarly */}
+                <div className="text-center text-gray-600 py-2">
+                  Mobile menu - Add items as needed
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
     </div>
   );
 };

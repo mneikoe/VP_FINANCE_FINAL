@@ -34,7 +34,7 @@ import { getAllOccupations } from "../../../redux/feature/LeadOccupation/Occupat
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
 
-const SuspectDetailsPage = () => {
+const SuspectDetailTelecaller = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -429,12 +429,12 @@ const SuspectDetailsPage = () => {
           onClick={() => navigate("/telecaller/dashboard")}
           className="mb-3"
         >
-          <FiArrowLeft /> Back to List
+          Back to List
         </Button>
 
         <h4 className="mb-1">
           <FiUser className="me-2" />
-          {personal.name || "Unknown"} - Edit & Call Task
+          {personal.groupName || "Unknown"}
         </h4>
         <p className="text-muted mb-0">
           Mobile: {personal.mobileNo || "N/A"} | Group Code:{" "}
@@ -1306,4 +1306,4 @@ const SuspectDetailsPage = () => {
   );
 };
 
-export default SuspectDetailsPage;
+export default SuspectDetailTelecaller;

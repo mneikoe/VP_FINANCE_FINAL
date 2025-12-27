@@ -1,39 +1,4 @@
-// const express = require("express");
-// const router = express.Router();
-// const multer = require("multer");
-// const path = require("path");
-// const fs = require("fs");
-// const TaskController = require("../Controller/TaskCtrl");
-// const upload = require("../config/multer");
-
-// const uploadFields = upload.fields([
-//   { name: "image", maxCount: 1 },
-//   { name: "downloadFormUrl", maxCount: 1000 },
-//   { name: "sampleFormUrl", maxCount: 1000 },
-// ]);
-
-// // Create a new task
-// router.post("/", uploadFields, TaskController.createTask);
-
-// // Get all tasks
-// router.get("/", TaskController.getAllTasks);
-
-// // Get a task by ID
-// router.get("/:id", TaskController.getTaskById);
-
-// // Update a task by ID
-
-// router.put("/:id", uploadFields, TaskController.updateTask);
-
-// // Delete a task by ID
-// router.delete("/delete/:id", TaskController.deleteTask);
-
-// module.exports = router;
-
-
-
-
-
+// TaskRoute.js - Updated version
 const express = require("express");
 const router = express.Router();
 const TaskController = require("../Controller/TaskCtrl");
@@ -41,74 +6,78 @@ const upload = require("../config/multer");
 
 // Validation middleware
 const validateTaskType = (req, res, next) => {
-  const validTypes = ['composite', 'marketing', 'service'];
-  const type = req.body.type || req.query.type;
-  
-  if (!type) {
-    return res.status(400).json({ 
-      message: "Task type is required",
-      validTypes 
-    });
-  }
-  
+  const validTypes = ["composite", "individual", "marketing", "service"];
+  const type = req.body.type || req.query.type || "composite";
+
   if (!validTypes.includes(type)) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
       message: `Invalid task type: ${type}`,
-      validTypes 
+      validTypes,
     });
   }
-  
+
   next();
 };
 
-// Multer configuration for multiple files
+// Multer configuration
 const uploadFields = upload.fields([
   { name: "image", maxCount: 1 },
-  { name: "downloadFormUrl", maxCount: 50 }, // Reduced from 1000 for better performance
-  { name: "sampleFormUrl", maxCount: 50 },
+  { name: "downloadFormUrl", maxCount: 10 },
+  { name: "sampleFormUrl", maxCount: 10 },
 ]);
 
-// Error handling middleware for multer
-const handleMulterError = (error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File too large' });
-    }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ message: 'Too many files' });
-    }
-    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ message: 'Unexpected file field' });
-    }
-  }
-  next(error);
-};
+// ✅ ROUTES
 
-// Routes
-// Create a new task
-router.post("/", uploadFields, handleMulterError, validateTaskType, TaskController.createTask);
-
-// Get all tasks (with optional filtering)
+// 1. GET all tasks
 router.get("/", validateTaskType, TaskController.getAllTasks);
 
-// Get task statistics
-router.get("/stats", TaskController.getTaskStats);
-
-// Get a task by ID
+// 2. GET single task
 router.get("/:id", validateTaskType, TaskController.getTaskById);
 
-// Update a task by ID
-router.put("/:id", uploadFields, handleMulterError, validateTaskType, TaskController.updateTask);
+// 3. CREATE task
+router.post("/", uploadFields, validateTaskType, TaskController.createTask);
 
-// Update task status
-router.patch("/:id/status", validateTaskType, TaskController.updateTaskStatus);
+// 4. UPDATE task
+router.put("/:id", uploadFields, validateTaskType, TaskController.updateTask);
 
-// Delete a task by ID
-router.delete("/:id", validateTaskType, TaskController.deleteTask);
+// 5. DELETE task
 router.delete("/delete/:id", validateTaskType, TaskController.deleteTask);
 
-// Bulk operations
-router.post("/bulk/delete", validateTaskType, TaskController.bulkDeleteTasks);
-router.patch("/bulk/status", validateTaskType, TaskController.bulkUpdateStatus);
+// 6. Special routes
+router.get("/templates/composite", TaskController.getCompositeTemplates);
+router.get("/for-employee/:employeeId", TaskController.getTasksByEmployeeRole);
+router.get("/by-role/:role", TaskController.getTasksByRole);
+// ✅ FIXED: Add the missing assign-composite route
+router.post("/assign-composite", TaskController.assignCompositeTask);
+router.get("/assigned/:employeeId", TaskController.getAssignedTasks);
+router.get("/templates/marketing", TaskController.getMarketingTemplates);
+router.get(
+  "/marketing/for-employee/:employeeId",
+  TaskController.getMarketingTasksByEmployeeRole
+);
+router.get(
+  "/marketing/assigned/:employeeId",
+  TaskController.getAssignedMarketingTasks
+);
+router.get("/marketing/stats", TaskController.getMarketingTaskStats);
+router.get("/marketing/:id", TaskController.getMarketingTaskById);
+router.post("/assign-marketing", TaskController.assignMarketingTask);
+router.put("/marketing/:id", uploadFields, TaskController.updateMarketingTask);
+router.delete("/marketing/:id", TaskController.deleteMarketingTask);
+router.get("/templates/service", TaskController.getServiceTemplates);
+router.get(
+  "/service/for-employee/:employeeId",
+  TaskController.getServiceTasksByEmployeeRole
+);
+router.get(
+  "/service/assigned/:employeeId",
+  TaskController.getAssignedServiceTasks
+);
+router.get("/service/stats", TaskController.getServiceTaskStats);
+router.get("/service/:id", TaskController.getServiceTaskById);
+router.post("/assign-service", TaskController.assignServiceTask);
+router.put("/service/:id", uploadFields, TaskController.updateServiceTask);
+router.delete("/service/:id", TaskController.deleteServiceTask);
 
 module.exports = router;

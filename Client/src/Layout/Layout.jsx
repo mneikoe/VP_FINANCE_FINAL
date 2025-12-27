@@ -7,7 +7,7 @@ const Layout = () => {
   return (
     <>
       <Navbarfrist />
-      <div className="px-5 mb-4   rounded-sam">
+      <div className="p-5 mb-4    rounded-sam">
         <Outlet />
       </div>
     </>

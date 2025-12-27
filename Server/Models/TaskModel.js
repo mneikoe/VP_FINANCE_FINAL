@@ -20,9 +20,6 @@
 //   ServiceTask,
 // };
 
-
-
-
 const mongoose = require("mongoose");
 const TaskSchema = require("./TaskSchema");
 
@@ -34,30 +31,28 @@ const CompositeTask = mongoose.model(
 );
 
 const MarketingTask = mongoose.model(
-  "MarketingTask", 
+  "MarketingTask",
   TaskSchema,
   "marketing_tasks"
 );
 
-const ServiceTask = mongoose.model(
-  "ServiceTask", 
-  TaskSchema, 
-  "service_tasks"
-);
+const ServiceTask = mongoose.model("ServiceTask", TaskSchema, "service_tasks");
 
 // Helper function to get model by type
 const getModelByType = (type) => {
   const models = {
     composite: CompositeTask,
     marketing: MarketingTask,
-    service: ServiceTask
+    service: ServiceTask,
   };
-  
+
   const model = models[type];
   if (!model) {
-    throw new Error(`Invalid task type: ${type}. Valid types are: composite, marketing, service`);
+    throw new Error(
+      `Invalid task type: ${type}. Valid types are: composite, marketing, service`
+    );
   }
-  
+
   return model;
 };
 
@@ -65,5 +60,5 @@ module.exports = {
   CompositeTask,
   MarketingTask,
   ServiceTask,
-  getModelByType
+  getModelByType,
 };
