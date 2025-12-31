@@ -75,6 +75,18 @@ const MarketingTaskSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Employee",
         },
+        assignedClients: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "testSchema", // Your client/prospect model
+          },
+        ],
+        assignedProspects: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "testSchema", // Your client/prospect model
+          },
+        ],
         assignedAt: {
           type: Date,
           default: Date.now,

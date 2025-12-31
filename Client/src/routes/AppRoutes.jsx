@@ -12,6 +12,7 @@ import BalanceLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboar
 import CallingDonePage from "../Components/EmployeeDashboard/TelecallerDashboard/CallingDonePage";
 // Master Components
 import Composite from "../Components/Masters/Composite/Composite";
+
 import Area from "../Components/Masters/Leads/Area";
 import City from "../Components/Masters/Leads/City";
 import LeadSource from "../Components/Masters/Leads/LeadSource";
@@ -79,7 +80,7 @@ import Appointment from "../Components/Appointment";
 import CREDashboard from "../Components/CREDashboard";
 import HRDashboard from "../Components/HRDashboard/HRDashboard";
 import EmployeeDetails from "../Components/Employee/OfficeAdmin/EmployeeDetails";
-
+import OEDashboard from "../Components/OEDashboard/OEDashboard";
 // Import new HR Dashboard modules
 import HRDashboardHome from "../Components/HRDashboard/HRDashboardHome";
 import Analytics from "../Components/HRDashboard/modules/Analytics";
@@ -256,7 +257,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/oe/*"
+        element={
+          <ProtectedRoute allowedRoles={["OE"]}>
+            <OEDashboard />
+          </ProtectedRoute>
+        }
+      />
       {/* 🚀 Default Route - Redirect based on role */}
       <Route
         path="/"
@@ -277,6 +285,8 @@ const NavigateToRoleBasedRoute = () => {
   switch (user.role) {
     case "RM":
       return <Navigate to="/rm/dashboard" replace />;
+    case "OE":
+      return <Navigate to="/oe/dashboard" replace />;
     case "HR":
       return <Navigate to="/dashboard" replace />;
     case "Telecaller":

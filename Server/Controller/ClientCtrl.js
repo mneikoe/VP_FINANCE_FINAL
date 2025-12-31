@@ -113,7 +113,7 @@ exports.addFamilyMember = async (req, res) => {
       error: error.message,
     });
   }
-} 
+};
 
 exports.updateFamilyMember = async (req, res) => {
   try {
@@ -237,9 +237,6 @@ exports.updateFamilyMember = async (req, res) => {
   }
 };
 
-
-
-
 // add financial details of the client
 exports.addFinancialInfo = async (req, res) => {
   try {
@@ -318,7 +315,9 @@ exports.addFinancialInfo = async (req, res) => {
     const attachFiles = (dataArray, uploadedFilesArray = []) => {
       if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
         dataArray.forEach((item, index) => {
-          item.document = uploadedFilesArray[index] ? uploadedFilesArray[index].filename : null;
+          item.document = uploadedFilesArray[index]
+            ? uploadedFilesArray[index].filename
+            : null;
         });
       }
     };
@@ -436,7 +435,9 @@ exports.updateFinancialInfo = async (req, res) => {
     const attachFiles = (dataArray, uploadedFilesArray = []) => {
       if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
         dataArray.forEach((item, index) => {
-          item.document = uploadedFilesArray[index] ? uploadedFilesArray[index].filename : null;
+          item.document = uploadedFilesArray[index]
+            ? uploadedFilesArray[index].filename
+            : null;
         });
       }
     };
@@ -463,8 +464,8 @@ exports.updateFinancialInfo = async (req, res) => {
     const insuranceIds = insuranceData
       .filter((item) => item._id)
       .map((item) => item._id.toString());
-    client.financialInfo.insurance = client.financialInfo.insurance.filter((item) =>
-      insuranceIds.includes(item._id.toString())
+    client.financialInfo.insurance = client.financialInfo.insurance.filter(
+      (item) => insuranceIds.includes(item._id.toString())
     );
 
     insuranceData.forEach((item) => {
@@ -477,10 +478,16 @@ exports.updateFinancialInfo = async (req, res) => {
             document: item.document || existingItem.document || null,
           });
         } else {
-          client.financialInfo.insurance.push({ ...data, document: item.document || null });
+          client.financialInfo.insurance.push({
+            ...data,
+            document: item.document || null,
+          });
         }
       } else {
-        client.financialInfo.insurance.push({ ...data, document: item.document || null });
+        client.financialInfo.insurance.push({
+          ...data,
+          document: item.document || null,
+        });
       }
     });
 
@@ -488,8 +495,8 @@ exports.updateFinancialInfo = async (req, res) => {
     const investmentIds = investmentsData
       .filter((item) => item._id)
       .map((item) => item._id.toString());
-    client.financialInfo.investments = client.financialInfo.investments.filter((item) =>
-      investmentIds.includes(item._id.toString())
+    client.financialInfo.investments = client.financialInfo.investments.filter(
+      (item) => investmentIds.includes(item._id.toString())
     );
 
     investmentsData.forEach((item) => {
@@ -502,10 +509,16 @@ exports.updateFinancialInfo = async (req, res) => {
             document: item.document || existingItem.document || null,
           });
         } else {
-          client.financialInfo.investments.push({ ...data, document: item.document || null });
+          client.financialInfo.investments.push({
+            ...data,
+            document: item.document || null,
+          });
         }
       } else {
-        client.financialInfo.investments.push({ ...data, document: item.document || null });
+        client.financialInfo.investments.push({
+          ...data,
+          document: item.document || null,
+        });
       }
     });
 
@@ -527,10 +540,16 @@ exports.updateFinancialInfo = async (req, res) => {
             document: item.document || existingItem.document || null,
           });
         } else {
-          client.financialInfo.loans.push({ ...data, document: item.document || null });
+          client.financialInfo.loans.push({
+            ...data,
+            document: item.document || null,
+          });
         }
       } else {
-        client.financialInfo.loans.push({ ...data, document: item.document || null });
+        client.financialInfo.loans.push({
+          ...data,
+          document: item.document || null,
+        });
       }
     });
 
@@ -552,12 +571,6 @@ exports.updateFinancialInfo = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
 
 // Existing updateFamilyMember controller (unchanged, included for completeness)
 exports.updateFamilyMember = async (req, res) => {
@@ -626,7 +639,8 @@ exports.updateFamilyMember = async (req, res) => {
           existingMember.dobRecord = dobRecord || "";
           existingMember.marriageDate = marriageDate || "";
           existingMember.includeHealth = includeHealth || false;
-          existingMember.healthHistory = includeHealth && healthHistory ? healthHistory : undefined;
+          existingMember.healthHistory =
+            includeHealth && healthHistory ? healthHistory : undefined;
         } else {
           // If _id is provided but not found, treat as new member
           client.familyMembers.push({
@@ -752,7 +766,6 @@ exports.addFamilyMember = async (req, res) => {
     });
   }
 };
-
 
 //   try {
 //     const { clientId } = req.params;
@@ -1098,8 +1111,6 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
   }
 };
 
-
-
 // ✅ Add Proposed Financial Plan
 exports.addProposedFinancialPlan = async (req, res) => {
   try {
@@ -1208,8 +1219,6 @@ exports.updateProposedFinancialPlan = async (req, res) => {
   }
 };
 
-
-
 exports.addProposedFinancialPlan = async (req, res) => {
   try {
     const { clientId } = req.params;
@@ -1272,13 +1281,12 @@ exports.addProposedFinancialPlan = async (req, res) => {
   }
 };
 
-
 //update porposed status
 exports.updatePorposedStatus = async (req, res) => {
   try {
     const { clientId } = req.params;
     const { status, selected } = req.body;
-    console.log(status, selected,'ttttttttttttttt');
+    console.log(status, selected, "ttttttttttttttt");
 
     if (!status || !selected) {
       return res.status(403).json({ message: "all fields are required" });
@@ -1318,8 +1326,6 @@ exports.updatePorposedStatus = async (req, res) => {
   }
 };
 
-
-
 exports.updatePersonalDetails = async (req, res) => {
   try {
     const { clientId } = req.params;
@@ -1340,20 +1346,17 @@ exports.updatePersonalDetails = async (req, res) => {
       });
     }
 
-  
     const updatedClient = await clientModel.findByIdAndUpdate(
       clientId,
       { $set: { personalDetails } },
-      { new: true, runValidators: true } 
+      { new: true, runValidators: true }
     );
 
-  
     if (!updatedClient) {
       return res
         .status(404)
         .json({ success: false, message: "Client not found." });
     }
-
 
     res.status(200).json({
       success: true,
@@ -1371,27 +1374,25 @@ exports.updatePersonalDetails = async (req, res) => {
   }
 };
 
-
 exports.updateImage = async (req, res) => {
   try {
     const { firstId } = req.params;
-    const { secondID } = req.body;  // yahan se bhejna hoga frontend se
+    const { secondID } = req.body; // yahan se bhejna hoga frontend se
 
-    console.log(req.body)
+    console.log(req.body);
 
-    console.log(firstId)
-    console.log(secondID)
-
+    console.log(firstId);
+    console.log(secondID);
 
     console.log("req.body:", req.body);
     console.log("req.params:", req.params);
     console.log("req.file:", req.file); //
 
-    
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Image file is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Image file is required." });
     }
-
 
     // 1. Check if the client ID is provided in the URL.
     if (!firstId) {
@@ -1428,7 +1429,6 @@ exports.updateImage = async (req, res) => {
       { $set: { "personalDetails.profilepic": imagePath } },
       { new: true }
     );
-
 
     if (!updatedClient) {
       return res
@@ -1472,26 +1472,80 @@ exports.getAllClients = async (req, res) => {
   }
 };
 
+// ✅ ClientController.js mein getClientById ko fix karo
 exports.getClientById = async (req, res) => {
   try {
     const { id } = req.params;
+
     if (!id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Client ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Client ID is required",
+      });
     }
-    const client = await clientModel.findById(id);
+
+    // Task history ko populate karo WITHOUT error
+    const client = await clientModel
+      .findById(id)
+      .populate({
+        path: "taskHistory.assignedTo",
+        select: "name employeeCode email",
+      })
+      .populate({
+        path: "taskHistory.statusUpdates.updatedBy",
+        select: "name email",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "name employeeCode",
+      })
+      .populate({
+        path: "assignedToRM",
+        select: "name employeeCode",
+      })
+      .populate({
+        path: "kycs",
+        select: "name status documentNumber documents createdAt",
+      })
+      .lean(); // JSON object return karega
+
     if (!client) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Client not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Client not found",
+      });
     }
-    res.status(200).json({ success: true, client });
+
+    // Agar taskHistory mein taskId null hai to basic info add karo
+    if (client.taskHistory && client.taskHistory.length > 0) {
+      for (let task of client.taskHistory) {
+        if (!task.taskId || typeof task.taskId === "string") {
+          // Task ID populate nahi hua, to basic info add karo
+          task.taskDetails = {
+            _id: task.taskId || task._id,
+            taskType: task.taskType,
+            taskName: task.taskName,
+            message: "Task details loaded",
+          };
+        }
+      }
+    }
+
+    console.log(
+      `✅ Client fetched: ${client.personalDetails?.name || "No Name"}`
+    );
+    console.log(`📊 Task History Count: ${client.taskHistory?.length || 0}`);
+    console.log(`📈 KYCs: ${client.kycs?.length || 0}`);
+
+    res.status(200).json({
+      success: true,
+      client,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error in getClientById:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while fetching clients",
+      message: "Server error while fetching client",
       error: error.message,
     });
   }
@@ -1583,8 +1637,6 @@ exports.getAllFamilyMembers = async (req, res) => {
 // CREATE a new KYC
 exports.createKyc = async (req, res) => {
   try {
-
-
     const { clientId } = req.params;
     const { memberName, documentName, documentNumber, remark } = req.body;
 
@@ -1593,8 +1645,6 @@ exports.createKyc = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Client ID is required" });
     }
-
-
 
     // Check if file was uploaded
     if (!req.file) {
@@ -1614,8 +1664,9 @@ exports.createKyc = async (req, res) => {
     // Save file name
     // const fileUrl = req.file.filename;
 
-    const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename
-      }`;
+    const fileUrl = `${req.protocol}://${req.get("host")}/Images/${
+      req.file.filename
+    }`;
 
     // console.log(fileUrl, "fileUrl in createKyc");
 
@@ -1642,13 +1693,10 @@ exports.createKyc = async (req, res) => {
 
     const uploadedDocs = uploadedKycs.map((k) => k.documentName);
 
-
-
     return res.status(201).json({
       success: true,
       message: "KYC uploaded successfully",
       uploaded: kyc,
-
     });
   } catch (error) {
     console.error(error);
@@ -1734,8 +1782,9 @@ exports.updateKyc = async (req, res) => {
     // Handle optional file upload
     if (req.file) {
       // updateData.fileUrl = req.file.filename;
-      const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename
-        }`;
+      const fileUrl = `${req.protocol}://${req.get("host")}/Images/${
+        req.file.filename
+      }`;
       updateData.fileUrl = fileUrl;
     }
 

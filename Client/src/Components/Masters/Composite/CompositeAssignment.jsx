@@ -48,6 +48,9 @@ import {
   FaSync,
 } from "react-icons/fa";
 
+// ✅ Import ClientProspectSelectionModal
+import ClientProspectSelectionModal from "../ClientProspectSelectionModal";
+
 const CompositeAssignments = () => {
   const [compositeTasks, setCompositeTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +63,20 @@ const CompositeAssignments = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
+  // ✅ NEW: Client/Prospect Modal State
+  const [showClientProspectModal, setShowClientProspectModal] = useState(false);
+
   // Assign Form State
   const [assignForm, setAssignForm] = useState({
     priority: "medium",
     remarks: "",
     dueDate: "",
     selectedEmployees: {},
+    // ✅ NEW: Client/Prospect fields
+    selectedClients: [],
+    selectedProspects: [],
+    clientRemarks: "",
+    prospectRemarks: "",
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -211,9 +222,41 @@ const CompositeAssignments = () => {
       remarks: "",
       dueDate: dueDate.toISOString().split("T")[0],
       selectedEmployees: existingSelections,
+      // ✅ NEW: Add existing client/prospect selections
+      selectedClients: task.assignedClients || [],
+      selectedProspects: task.assignedProspects || [],
+      clientRemarks: "",
+      prospectRemarks: "",
     });
 
     setShowAssignModal(true);
+  };
+
+  // ✅ NEW: Handle Client/Prospect Selection Button Click
+  const handleClientProspectSelect = () => {
+    setShowClientProspectModal(true);
+  };
+
+  // ✅ NEW: Handle Client/Prospect Selection Confirm
+  const handleClientProspectConfirm = (selectionData) => {
+    console.log("🎯 Client/Prospect Selection Confirmed:", selectionData);
+
+    // Update assignForm with new selections
+    setAssignForm((prev) => ({
+      ...prev,
+      selectedClients: selectionData.clients,
+      selectedProspects: selectionData.prospects,
+      clientRemarks: selectionData.clientRemarks,
+      prospectRemarks: selectionData.prospectRemarks,
+    }));
+
+    // Show success message
+    const successMsg = `Selected ${selectionData.clients.length} client(s) and ${selectionData.prospects.length} prospect(s)`;
+    setSuccessMessage(successMsg);
+    setTimeout(() => setSuccessMessage(""), 3000);
+
+    // Close the modal
+    setShowClientProspectModal(false);
   };
 
   // Handle employee selection
@@ -322,7 +365,30 @@ const CompositeAssignments = () => {
         return;
       }
 
-      const confirmMessage = `Assign "${selectedTask.name}" to ${assignments.length} employee(s)?\n\nThis will add to existing assignments.`;
+      // ✅ Prepare client/prospect data
+      const clientProspectData = {
+        clients: assignForm.selectedClients || [],
+        prospects: assignForm.selectedProspects || [],
+        clientAssignmentRemarks: assignForm.clientRemarks || "",
+        prospectAssignmentRemarks: assignForm.prospectRemarks || "",
+      };
+
+      const confirmMessage = `Assign "${selectedTask.name}" to ${
+        assignments.length
+      } employee(s)?
+      
+      ${
+        assignForm.selectedClients?.length > 0
+          ? `• For ${assignForm.selectedClients.length} client(s)\n`
+          : ""
+      }
+      ${
+        assignForm.selectedProspects?.length > 0
+          ? `• For ${assignForm.selectedProspects.length} prospect(s)`
+          : ""
+      }
+      
+      Do you want to proceed?`;
 
       if (!window.confirm(confirmMessage)) {
         return;
@@ -332,12 +398,22 @@ const CompositeAssignments = () => {
         taskId: selectedTask._id,
         assignments,
         assignedBy: JSON.parse(localStorage.getItem("user")).id,
+        // ✅ Send client/prospect data
+        ...clientProspectData,
       });
 
       if (response.data.success) {
-        setSuccessMessage(
-          `Task assigned to ${assignments.length} employee(s)!`
-        );
+        const successMsg = `Task assigned to ${assignments.length} employee(s)${
+          assignForm.selectedClients?.length > 0
+            ? ` for ${assignForm.selectedClients.length} client(s)`
+            : ""
+        }${
+          assignForm.selectedProspects?.length > 0
+            ? ` and ${assignForm.selectedProspects.length} prospect(s)`
+            : ""
+        }!`;
+
+        setSuccessMessage(successMsg);
         setTimeout(() => setSuccessMessage(""), 3000);
         setShowAssignModal(false);
         fetchCompositeTasks();
@@ -496,6 +572,14 @@ const CompositeAssignments = () => {
     }
 
     return 1;
+  };
+
+  // ✅ Get total selected clients and prospects count
+  const getTotalSelectedClientProspects = () => {
+    return (
+      (assignForm.selectedClients?.length || 0) +
+      (assignForm.selectedProspects?.length || 0)
+    );
   };
 
   if (loading) {
@@ -816,6 +900,19 @@ const CompositeAssignments = () => {
                                     {assignmentCount} assigned
                                   </small>
                                 )}
+                                {/* ✅ NEW: Show client/prospect counts */}
+                                {task.assignedClients?.length > 0 && (
+                                  <small className="text-success">
+                                    <FaUserCheck className="me-1" />
+                                    {task.assignedClients.length} client(s)
+                                  </small>
+                                )}
+                                {task.assignedProspects?.length > 0 && (
+                                  <small className="text-info">
+                                    <FaUsers className="me-1" />
+                                    {task.assignedProspects.length} prospect(s)
+                                  </small>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -920,6 +1017,21 @@ const CompositeAssignments = () => {
           )}
         </Card.Body>
       </Card>
+
+      {/* ✅ NEW: Client/Prospect Selection Modal */}
+      <ClientProspectSelectionModal
+        show={showClientProspectModal}
+        onHide={() => setShowClientProspectModal(false)}
+        onConfirm={handleClientProspectConfirm}
+        selectedTask={selectedTask}
+        initialSelections={{
+          clients: assignForm.selectedClients || [],
+          prospects: assignForm.selectedProspects || [],
+          clientRemarks: assignForm.clientRemarks || "",
+          prospectRemarks: assignForm.prospectRemarks || "",
+        }}
+        title={`Select Clients & Prospects for "${selectedTask?.name}"`}
+      />
 
       {/* Assign Modal */}
       <Modal
@@ -1052,6 +1164,80 @@ const CompositeAssignments = () => {
                     </div>
                   </Col>
                 </Row>
+              </div>
+
+              {/* ✅ NEW: Client & Prospect Selection Section */}
+              <div className="mb-4">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h6 className="mb-0 fw-bold">Client & Prospect Selection</h6>
+                  <small className="text-muted">
+                    {getTotalSelectedClientProspects()} selected
+                  </small>
+                </div>
+
+                <Button
+                  variant="outline-primary"
+                  onClick={handleClientProspectSelect}
+                  className="w-100 py-3 d-flex align-items-center justify-content-center"
+                >
+                  <FaUsers className="me-2" />
+                  {getTotalSelectedClientProspects() > 0
+                    ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
+                    : "Select Clients & Prospects (Optional)"}
+                </Button>
+
+                {/* Show selected counts */}
+                {getTotalSelectedClientProspects() > 0 && (
+                  <div className="mt-3">
+                    <Row>
+                      {assignForm.selectedClients?.length > 0 && (
+                        <Col md={6}>
+                          <Alert variant="success" className="py-2">
+                            <FaUserFriends className="me-2" />
+                            <strong>
+                              {assignForm.selectedClients.length}
+                            </strong>{" "}
+                            client(s) selected
+                          </Alert>
+                        </Col>
+                      )}
+                      {assignForm.selectedProspects?.length > 0 && (
+                        <Col md={6}>
+                          <Alert variant="info" className="py-2">
+                            <FaUsers className="me-2" />
+                            <strong>
+                              {assignForm.selectedProspects.length}
+                            </strong>{" "}
+                            prospect(s) selected
+                          </Alert>
+                        </Col>
+                      )}
+                    </Row>
+
+                    {/* Show remarks if any */}
+                    {assignForm.clientRemarks && (
+                      <Alert variant="light" className="mt-2">
+                        <small className="text-success fw-bold">
+                          Client Remarks:
+                        </small>
+                        <p className="mb-0">{assignForm.clientRemarks}</p>
+                      </Alert>
+                    )}
+
+                    {assignForm.prospectRemarks && (
+                      <Alert variant="light" className="mt-2">
+                        <small className="text-info fw-bold">
+                          Prospect Remarks:
+                        </small>
+                        <p className="mb-0">{assignForm.prospectRemarks}</p>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+                <small className="text-muted d-block mt-1">
+                  Optional - You can select clients and/or prospects for whom
+                  this task is being assigned
+                </small>
               </div>
 
               {/* Employee Selection */}

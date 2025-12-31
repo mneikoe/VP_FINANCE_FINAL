@@ -1,4 +1,4 @@
-// models/IndividualTaskModel.js
+// models/IndividualTaskModel.js - UPDATE KARO
 import mongoose from "mongoose";
 
 const IndividualTaskSchema = new mongoose.Schema(
@@ -72,6 +72,47 @@ const IndividualTaskSchema = new mongoose.Schema(
       ref: "Employee",
       required: true,
     },
+
+    // ✅ YEH NAYA FIELD ADD KARO
+    clientProspectStatuses: [
+      {
+        entityId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "testSchema",
+          required: true,
+        },
+        entityType: {
+          type: String,
+          enum: ["client", "prospect"],
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["pending", "in-progress", "completed", "cancelled"],
+          default: "pending",
+        },
+        remarks: {
+          type: String,
+          default: "",
+        },
+        updatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Employee",
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        files: [
+          {
+            filename: String,
+            originalName: String,
+            uploadedAt: Date,
+          },
+        ],
+      },
+    ],
+
     assignmentDetails: {
       priority: {
         type: String,
@@ -88,6 +129,20 @@ const IndividualTaskSchema = new mongoose.Schema(
         type: Date,
         default: Date.now,
       },
+      assignedClients: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "testSchema",
+        },
+      ],
+      assignedProspects: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "testSchema",
+        },
+      ],
+      clientAssignmentRemarks: String,
+      prospectAssignmentRemarks: String,
     },
     completedAt: Date,
     createdBy: {

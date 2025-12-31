@@ -79,5 +79,28 @@ router.get("/service/:id", TaskController.getServiceTaskById);
 router.post("/assign-service", TaskController.assignServiceTask);
 router.put("/service/:id", uploadFields, TaskController.updateServiceTask);
 router.delete("/service/:id", TaskController.deleteServiceTask);
+router.put(
+  "/entity/:entityId/task/:taskId/status",
 
+  TaskController.updateEntityTaskStatus
+);
+
+// ✅ Get entity task history
+router.get(
+  "/entity/:entityId/task-history",
+
+  TaskController.getEntityTaskHistory
+);
+
+// ✅ Get specific task status for entity
+router.get(
+  "/entity/:entityId/task/:taskId/status",
+
+  TaskController.getEntityTaskStatus
+);
+router.put(
+  "/:taskId/status",
+
+  TaskController.updateTaskStatus
+);
 module.exports = router;

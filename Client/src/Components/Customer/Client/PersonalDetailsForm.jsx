@@ -1,15 +1,16 @@
-
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col, Button } from "react-bootstrap";
-import { createClient, updateClientPersonalDetails } from "../../../redux/feature/ClientRedux/ClientThunx";
- import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
+import {
+  createClient,
+  updateClientPersonalDetails,
+} from "../../../redux/feature/ClientRedux/ClientThunx";
+import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
 import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { toast } from "react-toastify";
 import axiosInstance from "../../../config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
-// import { fetchDetailss } from "../../../redux/feature/LeadSource/LeadThunx"
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -23,8 +24,16 @@ const gradeMap = {
   "2.5 to 5 lakh": 3,
 };
 
-const PersonalDetailsForm = ({ isEdit, clientData, onClientCreated,setFamilyDetail,changeTab }) => {
+const PersonalDetailsForm = ({
+  isEdit,
+  clientData,
+  onClientCreated,
+  setFamilyDetail,
+  changeTab,
+}) => {
   const dispatch = useDispatch();
+
+  // ✅ UPDATED INITIAL STATE WITH NEW FIELDS (SAME AS PROSPECT)
   const initialFormState = {
     salutation: "",
     groupName: "",
@@ -48,8 +57,10 @@ const PersonalDetailsForm = ({ isEdit, clientData, onClientCreated,setFamilyDeta
     officePincode: "",
     preferredMeetingAddr: "",
     preferredMeetingArea: "",
+    subArea: "", // ✅ NEW FIELD
     city: "",
     bestTime: "",
+    time: "10:00 AM", // ✅ NEW TIME FIELD
     adharNumber: "",
     panCardNumber: "",
     hobbies: "",
@@ -63,91 +74,148 @@ const PersonalDetailsForm = ({ isEdit, clientData, onClientCreated,setFamilyDeta
     callingPurpose: "",
     name: "",
     allocatedCRE: "",
+    allocatedRM: "", // ✅ NEW FIELD FOR RM
     remark: "",
   };
-const [occupations, setOccupations] = useState([]);
+
   const [formData, setFormData] = useState(initialFormState);
+  const [occupations, setOccupations] = useState([]);
+  const [occupationTypes, setOccupationTypes] = useState([]);
+  const [whatsappEdited, setWhatsappEdited] = useState(false);
+
+  // ✅ NEW STATES FOR AREAS, SUBAREAS, RMS
+  const [areas, setAreas] = useState([]);
+  const [subAreas, setSubAreas] = useState([]);
+  const [filteredSubAreas, setFilteredSubAreas] = useState([]);
+  const [rms, setRms] = useState([]);
 
   const { alldetails } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
-  const [occupationTypes, setOccupationTypes] = useState([])
-const [whatsappEdited, setWhatsappEdited] = useState(false);
-const [contactEdited, setcontactEdited] = useState(false);
+  const { LeadType: leadTypes, loading } = useSelector(
+    (state) => state.LeadType
+  );
+  const { leadsourceDetail } = useSelector((state) => state.leadsource);
 
-  const { LeadType: leadTypes, loading } = useSelector((state) => state.LeadType);
-     const { leadsourceDetail } = useSelector((state) => state.leadsource);
-
-  // Component mount hote hi data fetch
+  // ✅ COMPONENT MOUNT - ALL DATA FETCH
   useEffect(() => {
     dispatch(fetchLeadType());
-  }, [dispatch]);
-
-    useEffect(() => {
-    dispatch(fetchDetails());
-  }, [dispatch]);
-
-const handleMobileWhatsappChange = (e) => {
-  const { name, value } = e.target;
-
-  setFormData((prev) => {
-    let updated = { ...prev, [name]: value };
-
-    // ✅ agar mobileNo complete ho (10 digit for example) aur whatsapp edit nahi hua ho
-    if (name === "mobileNo" && value.length === 10 && !whatsappEdited  ) {
-      updated.whatsappNo = value;
-   
-    }
-
-    return updated;
-  });
-
-  if (name === "whatsappNo") {
-    setWhatsappEdited(true);
-  }
-
-};
-
-
-
-useEffect(() => {
-    const fetchOccupations = async () => {
-      try {
-        const response = await axiosInstance.get("/api/occupation");
-        if (response.data.success) {
-          setOccupations(response.data.data); // API se aaya data store karo
-        } else {
-          console.error("Failed to fetch occupations:", response.data.message);
-        }
-      } catch (error) {
-        console.error("Error fetching occupations:", error);
-      }
-    };
-    fetchOccupations();
-  }, []);
-
-
-
-  useEffect(() => {
-    const fetchOccupationTypes = async () => {
-      try {
-        const response = await axiosInstance.get("/api/occupation/types");
-        if (response.data.success) {
-          setOccupationTypes(response.data.data); // API se aaya data store karo
-        } else {
-          console.error("Failed to fetch occupation types:", response.data.message);
-        }
-      } catch (error) {
-        console.error("Error fetching occupation types:", error);
-      }
-    };
-    fetchOccupationTypes();
-  }, []);
-
-  useEffect(() => {
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
+
+    // ✅ FETCH AREAS, SUBAREAS AND RMS
+    fetchAreas();
+    fetchSubAreas();
+    fetchRMs();
+
+    fetchOccupations();
+    fetchOccupationTypes();
   }, [dispatch]);
+
+  // ✅ FETCH AREAS FUNCTION
+  const fetchAreas = async () => {
+    try {
+      const response = await axiosInstance.get("/api/leadarea");
+      if (response.data && Array.isArray(response.data)) {
+        setAreas(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+    }
+  };
+
+  // ✅ FETCH SUBAREAS FUNCTION
+  const fetchSubAreas = async () => {
+    try {
+      const response = await axiosInstance.get("/api/leadsubarea");
+      if (response.data && Array.isArray(response.data)) {
+        setSubAreas(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching subareas:", error);
+    }
+  };
+
+  // ✅ FETCH RMs (RELATIONSHIP MANAGERS) - SAME AS PROSPECT
+  const fetchRMs = async () => {
+    try {
+      const response = await axiosInstance.get("/api/employee/getAllEmployees");
+      let allEmployees = [];
+
+      if (response.data) {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          allEmployees = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          allEmployees = response.data;
+        } else if (
+          response.data.employees &&
+          Array.isArray(response.data.employees)
+        ) {
+          allEmployees = response.data.employees;
+        }
+      }
+
+      // ✅ Filter only active RMs (Relationship Managers)
+      const rmEmployees = allEmployees.filter((emp) => {
+        const isActive =
+          !emp.dateOfTermination &&
+          !emp.terminationDate &&
+          !emp.endDate &&
+          (emp.status === undefined ||
+            emp.status === null ||
+            emp.status === "active" ||
+            emp.status === "Active");
+
+        const empRole = (
+          emp.role ||
+          emp.designation ||
+          emp.position ||
+          ""
+        ).toLowerCase();
+        const isRM =
+          empRole.includes("rm") ||
+          empRole.includes("relationship") ||
+          empRole.includes("manager");
+
+        return isActive && isRM;
+      });
+
+      setRms(rmEmployees);
+    } catch (error) {
+      console.error("Error fetching RMs:", error);
+    }
+  };
+
+  // ✅ FETCH OCCUPATIONS
+  const fetchOccupations = async () => {
+    try {
+      const response = await axiosInstance.get("/api/occupation");
+      if (response.data.success) {
+        setOccupations(response.data.data);
+      } else {
+        console.error("Failed to fetch occupations:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching occupations:", error);
+    }
+  };
+
+  // ✅ FETCH OCCUPATION TYPES
+  const fetchOccupationTypes = async () => {
+    try {
+      const response = await axiosInstance.get("/api/occupation/types");
+      if (response.data.success) {
+        setOccupationTypes(response.data.data);
+      } else {
+        console.error(
+          "Failed to fetch occupation types:",
+          response.data.message
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching occupation types:", error);
+    }
+  };
 
   useEffect(() => {
     if (isEdit && clientData) {
@@ -164,27 +232,55 @@ useEffect(() => {
     }));
   }, [formData.annualIncome]);
 
+  // ✅ FILTER SUBAREAS BASED ON SELECTED AREA (SAME AS PROSPECT)
+  useEffect(() => {
+    if (formData.preferredMeetingArea) {
+      const selectedArea = areas.find(
+        (area) => area.name === formData.preferredMeetingArea
+      );
+      if (selectedArea) {
+        const filtered = subAreas.filter(
+          (sub) =>
+            sub.areaId &&
+            (sub.areaId._id === selectedArea._id ||
+              sub.areaId === selectedArea._id)
+        );
+        setFilteredSubAreas(filtered);
+      } else {
+        setFilteredSubAreas([]);
+      }
+    }
+  }, [formData.preferredMeetingArea, areas, subAreas]);
+
+  // ✅ FETCH AREA DATA WHEN PINCODE CHANGES
   const fetchAreaData = async (pincode) => {
     try {
-      const response = await axiosInstance.get(`/api/leadarea?pincode=${pincode}`);
+      const response = await axiosInstance.get(
+        `/api/leadarea?pincode=${pincode}`
+      );
       const data = response.data;
       console.log("API Response:", data);
 
       if (data && Array.isArray(data)) {
-        const area = data.find((item) => String(item.pincode) === String(pincode));
-        return area || { name: "Area not found", city: "" };
+        const area = data.find(
+          (item) => String(item.pincode) === String(pincode)
+        );
+        return area || { name: "Area not found", city: "", _id: "" };
       } else {
-        return { name: "No data received", city: "" };
+        return { name: "No data received", city: "", _id: "" };
       }
     } catch (error) {
       console.error("Error fetching area data:", error);
-      return { name: "Error fetching area", city: "" };
+      return { name: "Error fetching area", city: "", _id: "" };
     }
   };
 
   useEffect(() => {
     const updatePreferredData = async () => {
-      if (formData.preferredAddressType === "resi" && formData.resiPincode.length === 6) {
+      if (
+        formData.preferredAddressType === "resi" &&
+        formData.resiPincode.length === 6
+      ) {
         const areaData = await fetchAreaData(formData.resiPincode);
         setFormData((prev) => ({
           ...prev,
@@ -192,7 +288,10 @@ useEffect(() => {
           preferredMeetingArea: areaData.name,
           city: areaData.city,
         }));
-      } else if (formData.preferredAddressType === "office" && formData.officePincode.length === 6) {
+      } else if (
+        formData.preferredAddressType === "office" &&
+        formData.officePincode.length === 6
+      ) {
         const areaData = await fetchAreaData(formData.officePincode);
         setFormData((prev) => ({
           ...prev,
@@ -203,20 +302,37 @@ useEffect(() => {
       }
     };
     updatePreferredData();
-  }, [formData.preferredAddressType, formData.resiPincode, formData.officePincode, formData.resiAddr, formData.officeAddr]);
+  }, [
+    formData.preferredAddressType,
+    formData.resiPincode,
+    formData.officePincode,
+    formData.resiAddr,
+    formData.officeAddr,
+  ]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if ((name === "resiPincode" || name === "officePincode") && value.length === 6) {
+
+    // ✅ When pincode changes, fetch area and update preferred meeting area
+    if (
+      (name === "resiPincode" || name === "officePincode") &&
+      value.length === 6
+    ) {
       fetchAreaData(value).then((areaData) => {
-        if (name === "resiPincode" && formData.preferredAddressType === "resi") {
+        if (
+          name === "resiPincode" &&
+          formData.preferredAddressType === "resi"
+        ) {
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
             city: areaData.city,
           }));
-        } else if (name === "officePincode" && formData.preferredAddressType === "office") {
+        } else if (
+          name === "officePincode" &&
+          formData.preferredAddressType === "office"
+        ) {
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
@@ -224,6 +340,25 @@ useEffect(() => {
           }));
         }
       });
+    }
+  };
+
+  const handleMobileWhatsappChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      let updated = { ...prev, [name]: value };
+
+      // ✅ agar mobileNo complete ho (10 digit) aur whatsapp edit nahi hua ho
+      if (name === "mobileNo" && value.length === 10 && !whatsappEdited) {
+        updated.whatsappNo = value;
+      }
+
+      return updated;
+    });
+
+    if (name === "whatsappNo") {
+      setWhatsappEdited(true);
     }
   };
 
@@ -259,19 +394,25 @@ useEffect(() => {
     e.preventDefault();
     if (isEdit && clientData?._id) {
       console.log(formData);
-      const result = await dispatch(updateClientPersonalDetails({ id: clientData._id, personalDetails: formData }));
+      const result = await dispatch(
+        updateClientPersonalDetails({
+          id: clientData._id,
+          personalDetails: formData,
+        })
+      );
       if (result) {
         setFormData(initialFormState);
         toast.info("Client details updated successfully");
         if (onClientCreated) onClientCreated(clientData._id);
       }
     } else {
-      const resultAction = await dispatch(createClient({ personalDetails: formData }));
+      const resultAction = await dispatch(
+        createClient({ personalDetails: formData })
+      );
       if (resultAction) {
         toast.success("Client Created Successfully");
-        setFamilyDetail(formData)
-        changeTab("family")
-        // setFormData(initialFormState);
+        setFamilyDetail(formData);
+        changeTab("family");
         const clientId = resultAction?.payload;
         if (onClientCreated && clientId) onClientCreated(clientId);
       }
@@ -395,56 +536,55 @@ useEffect(() => {
         </Col>
       </Row>
       <Row className="mb-4">
-       
         <Col md={3}>
-  <Form.Group controlId="mobileNo">
-    <Form.Label>Mobile No</Form.Label>
-    <Form.Control
-      name="mobileNo"
-      type="text"
-      placeholder="Mobile No"
-      value={formData.mobileNo ?? ""}
-      onChange={handleMobileWhatsappChange}
-      maxLength={10}
-      size="sm"
-    />
-  </Form.Group>
-</Col>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No</Form.Label>
+            <Form.Control
+              name="mobileNo"
+              type="text"
+              placeholder="Mobile No"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
 
-<Col md={3}>
-  <Form.Group controlId="whatsappNo">
-    <Form.Label>WhatsApp No</Form.Label>
-    <Form.Control
-      name="whatsappNo"
-      type="text"
-      placeholder="WhatsApp No"
-      value={formData.whatsappNo ?? ""}
-      maxLength={10}
-      onChange={handleMobileWhatsappChange}
-      size="sm"
-    />
-  </Form.Group>
-</Col>
+        <Col md={3}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              placeholder="WhatsApp No"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
 
-      <Col md={3}>
-  <Form.Group controlId="contactNo">
-    <Form.Label>Phone No</Form.Label>
-    <Form.Control
-      name="contactNo"
-      type="text"
-      placeholder="Phone No"
-      maxLength={14}
-      value={`0755${formData.contactNo ?? ""}`}  // 👈 prefix + stored number
-      onChange={(e) =>
-        setFormData({
-          ...formData,
-          contactNo: e.target.value.replace(/^0755/, ""), // 👈 store without prefix
-        })
-      }
-      size="sm"
-    />
-  </Form.Group>
-</Col>
+        <Col md={3}>
+          <Form.Group controlId="contactNo">
+            <Form.Label>Phone No</Form.Label>
+            <Form.Control
+              name="contactNo"
+              type="text"
+              placeholder="Phone No"
+              maxLength={14}
+              value={`0755${formData.contactNo ?? ""}`}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  contactNo: e.target.value.replace(/^0755/, ""),
+                })
+              }
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
 
         <Col md={3}>
           <Form.Group controlId="emailId">
@@ -504,14 +644,14 @@ useEffect(() => {
         </Col>
         <Col md={3}>
           <Form.Group controlId="panCardNumber">
-            <Form.Label>PAN  No.</Form.Label>
+            <Form.Label>PAN No.</Form.Label>
             <Form.Control
               name="panCardNumber"
               type="text"
-              placeholder="PAN  Number"
+              placeholder="PAN Number"
               value={formData.panCardNumber ?? ""}
               onChange={handleChange}
-               maxLength={10}
+              maxLength={10}
               size="sm"
               style={{ textTransform: "uppercase" }}
             />
@@ -618,6 +758,8 @@ useEffect(() => {
           </Form.Group>
         </Col>
       </Row>
+
+      {/* ✅ UPDATED SECTION WITH SUBAREA AND TIME (SAME AS PROSPECT) */}
       <Row className="mb-4">
         <Col md={5}>
           <Form.Group controlId="preferredMeetingAddr">
@@ -635,11 +777,11 @@ useEffect(() => {
         </Col>
         <Col md={2}>
           <Form.Group controlId="preferredMeetingArea">
-            <Form.Label>Preferred Meeting Area</Form.Label>
+            <Form.Label>Area</Form.Label>
             <Form.Control
               name="preferredMeetingArea"
               type="text"
-              placeholder="Preferred Meeting Area"
+              placeholder="Area"
               value={formData.preferredMeetingArea ?? ""}
               onChange={handleChange}
               size="sm"
@@ -647,6 +789,27 @@ useEffect(() => {
             />
           </Form.Group>
         </Col>
+
+        {/* ✅ NEW SUBAREA FIELD */}
+        <Col md={2}>
+          <Form.Group controlId="subArea">
+            <Form.Label>Sub Area</Form.Label>
+            <Form.Select
+              name="subArea"
+              value={formData.subArea ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">-- Select Sub Area --</option>
+              {filteredSubAreas.map((subArea) => (
+                <option key={subArea._id} value={subArea.subAreaName}>
+                  {subArea.subAreaName}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+
         <Col md={2}>
           <Form.Group controlId="city">
             <Form.Label>City</Form.Label>
@@ -661,22 +824,45 @@ useEffect(() => {
             />
           </Form.Group>
         </Col>
+      </Row>
+
+      {/* ✅ UPDATED TIME SECTION (SAME AS PROSPECT) */}
+      <Row className="mb-4">
         <Col md={2}>
           <Form.Group controlId="bestTime">
-            <Form.Label>Best Time</Form.Label>
+            <Form.Label>Best Time Slot</Form.Label>
             <Form.Select
               name="bestTime"
               value={formData.bestTime ?? ""}
               onChange={handleChange}
               size="sm"
             >
-              <option value="">-- Select Time --</option>
+              <option value="">-- Select Time Slot --</option>
               <option value="10 AM to 2 PM">10 AM to 2 PM</option>
               <option value="2 PM to 7 PM">2 PM to 7 PM</option>
             </Form.Select>
           </Form.Group>
         </Col>
+
+        {/* ✅ NEW SPECIFIC TIME FIELD */}
+        <Col md={2}>
+          <Form.Group controlId="time">
+            <Form.Label>Specific Time</Form.Label>
+            <Form.Control
+              name="time"
+              type="text"
+              placeholder="e.g., 10:30 AM"
+              value={formData.time ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+            <Form.Text className="text-muted">Demo time field</Form.Text>
+          </Form.Group>
+        </Col>
+
+        <Col md={8}>{/* Empty for spacing */}</Col>
       </Row>
+
       <Row className="mb-4">
         <Col md={3}>
           <Form.Group controlId="hobbies">
@@ -732,50 +918,50 @@ useEffect(() => {
         </Col>
       </Row>
       <Row className="mb-4">
-     <Col md={3}>
-      <Form.Group controlId="leadSource">
-        <Form.Label>Lead Source</Form.Label>
-        <Form.Select
-          name="leadSource"
-          value={formData.leadSource ?? ""}
-          onChange={handleChange}
-          size="sm"
-        >
-          <option value="">Select Lead Source</option>
-          {loading ? (
-            <option disabled>Loading...</option>
-          ) : (
-            leadTypes?.map((type) => (
-              <option key={type._id} value={type.leadType.trim()}>
-                {type.leadType.trim()}
-              </option>
-            ))
-          )}
-        </Form.Select>
-      </Form.Group>
-    </Col>
-      <Col md={3}>
-      <Form.Group controlId="leadName">
-        <Form.Label>Lead Name</Form.Label>
-        <Form.Select
-          name="leadName"
-          value={formData.leadName ?? ""}
-          onChange={handleChange}
-          size="sm"
-        >
-          <option value="">Select Lead Name</option>
-          {loading ? (
-            <option disabled>Loading...</option>
-          ) : (
-            leadsourceDetail?.map((src) => (
-              <option key={src._id} value={src.sourceName}>
-                {src.sourceName}
-              </option>
-            ))
-          )}
-        </Form.Select>
-      </Form.Group>
-    </Col>  
+        <Col md={3}>
+          <Form.Group controlId="leadSource">
+            <Form.Label>Lead Source</Form.Label>
+            <Form.Select
+              name="leadSource"
+              value={formData.leadSource ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Select Lead Source</option>
+              {loading ? (
+                <option disabled>Loading...</option>
+              ) : (
+                leadTypes?.map((type) => (
+                  <option key={type._id} value={type.leadType.trim()}>
+                    {type.leadType.trim()}
+                  </option>
+                ))
+              )}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col md={3}>
+          <Form.Group controlId="leadName">
+            <Form.Label>Lead Name</Form.Label>
+            <Form.Select
+              name="leadName"
+              value={formData.leadName ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Select Lead Name</option>
+              {loading ? (
+                <option disabled>Loading...</option>
+              ) : (
+                leadsourceDetail?.map((src) => (
+                  <option key={src._id} value={src.sourceName}>
+                    {src.sourceName}
+                  </option>
+                ))
+              )}
+            </Form.Select>
+          </Form.Group>
+        </Col>
         <Col md={3}>
           <Form.Group controlId="leadOccupation">
             <Form.Label>Lead Occupation</Form.Label>
@@ -812,7 +998,6 @@ useEffect(() => {
             </Form.Select>
           </Form.Group>
         </Col>
-
       </Row>
       <Row className="mb-4">
         <Col md={4}>
@@ -833,9 +1018,9 @@ useEffect(() => {
             </Form.Select>
           </Form.Group>
         </Col>
-                <Col md={3}>
+        <Col md={3}>
           <Form.Group controlId="name">
-            <Form.Label>Purpose name / Task name </Form.Label>
+            <Form.Label>Purpose name / Task name</Form.Label>
             <Form.Control
               name="name"
               type="text"
@@ -846,7 +1031,8 @@ useEffect(() => {
             />
           </Form.Group>
         </Col>
-        <Col md={4}>
+
+        <Col md={2}>
           <Form.Group controlId="allocatedCRE">
             <Form.Label>Allocated CRE</Form.Label>
             <Form.Control
@@ -860,6 +1046,25 @@ useEffect(() => {
           </Form.Group>
         </Col>
 
+        {/* ✅ NEW ALLOCATED RM FIELD */}
+        <Col md={2}>
+          <Form.Group controlId="allocatedRM">
+            <Form.Label>Allocated RM</Form.Label>
+            <Form.Select
+              name="allocatedRM"
+              value={formData.allocatedRM ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">-- Select RM --</option>
+              {rms.map((rm) => (
+                <option key={rm._id} value={rm._id}>
+                  {rm.name} - {rm.employeeCode || rm.designation}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
       </Row>
       <Row className="mb-4">
         <Col md={9}>
@@ -883,8 +1088,5 @@ useEffect(() => {
     </Form>
   );
 };
+
 export default PersonalDetailsForm;
-
-
-
-

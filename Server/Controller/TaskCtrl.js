@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import path from "path";
 import fs from "fs";
 import Employee from "../Models/employeeModel.js";
-
+import SusProsClient from "../Models/SusProsClientSchema.js";
 // createTask function में type checking update करें:
 export const createTask = async (req, res) => {
   try {
@@ -310,7 +310,17 @@ export const updateTask = async (req, res) => {
 
 export const assignCompositeTask = async (req, res) => {
   try {
-    const { taskId, assignments, assignedBy } = req.body;
+    const {
+      taskId,
+      assignments,
+      assignedBy,
+      // ✅ NEW: Add client/prospect selection
+      clients = [],
+      prospects = [],
+      // ✅ Optional: Any specific remarks for client/prospect assignment
+      clientAssignmentRemarks = "",
+      prospectAssignmentRemarks = "",
+    } = req.body;
 
     console.log(
       `🎯 Assigning composite task ${taskId} to ${assignments.length} employees`
@@ -327,8 +337,25 @@ export const assignCompositeTask = async (req, res) => {
       });
     }
 
-    // ✅ IMPORTANT: Task का status TEMPLATE ही रहने दें
-    // task.status = "assigned"; // ❌ इस लाइन को हटाएं या कमेंट करें
+    // ✅ Validate clients/prospects if provided
+    let validatedClients = [];
+    let validatedProspects = [];
+
+    if (clients.length > 0) {
+      const clientDocs = await SusProsClient.find({
+        _id: { $in: clients },
+        status: "client",
+      });
+      validatedClients = clientDocs.map((c) => c._id);
+    }
+
+    if (prospects.length > 0) {
+      const prospectDocs = await SusProsClient.find({
+        _id: { $in: prospects },
+        status: "prospect",
+      });
+      validatedProspects = prospectDocs.map((p) => p._id);
+    }
 
     // Validate assignments
     const validAssignments = [];
@@ -362,6 +389,11 @@ export const assignCompositeTask = async (req, res) => {
               Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
             ),
         status: "pending",
+        // ✅ NEW: Add client/prospect references to each assignment
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
+        clientAssignmentRemarks,
+        prospectAssignmentRemarks,
       });
     }
 
@@ -374,9 +406,18 @@ export const assignCompositeTask = async (req, res) => {
     }
 
     // ✅ Update composite task - assignments array में जोड़ें
-    // लेकिन status TEMPLATE ही रहने दें
     task.assignments = [...(task.assignments || []), ...validAssignments];
-    // task.status = "assigned"; // ❌ इस लाइन को भी हटाएं
+
+    // ✅ NEW: Also store client/prospect references at task level
+    if (validatedClients.length > 0 || validatedProspects.length > 0) {
+      task.assignedClients = [
+        ...new Set([...(task.assignedClients || []), ...validatedClients]),
+      ];
+      task.assignedProspects = [
+        ...new Set([...(task.assignedProspects || []), ...validatedProspects]),
+      ];
+    }
+
     await task.save();
 
     // Create individual tasks
@@ -403,21 +444,108 @@ export const assignCompositeTask = async (req, res) => {
           dueDate: assignment.dueDate,
           assignedBy: assignment.assignedBy,
           assignedAt: assignment.assignedAt,
+          // ✅ YEH FIELDS ASSIGNMENTDETAILS KE ANDAR MOVE KARO
+          assignedClients: assignment.assignedClients,
+          assignedProspects: assignment.assignedProspects,
+          clientAssignmentRemarks: assignment.clientAssignmentRemarks,
+          prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
         },
+        // ❌ YEH FIELDS DELETE KARO (kyunki schema mein nahi hain)
+        // assignedClients: assignment.assignedClients,
+        // assignedProspects: assignment.assignedProspects,
+        // clientAssignmentRemarks: assignment.clientAssignmentRemarks,
+        // prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
         createdBy: assignedBy,
       });
 
       await individualTask.save();
       individualTasks.push(individualTask._id);
+
+      // TaskCtrl.js - assignCompositeTask function mein YEH SECTION REPLACE KARO:
+
+      // ✅ OPTIONAL: Also update client/prospect documents with task reference
+      if (assignment.assignedClients.length > 0) {
+        await SusProsClient.updateMany(
+          { _id: { $in: assignment.assignedClients } },
+          {
+            $addToSet: {
+              taskHistory: {
+                taskId: individualTask._id,
+                taskName: task.name,
+                taskType: "CompositeTask",
+                assignedTo: assignment.employeeId,
+                assignedToName: employee.name,
+                assignedAt: assignment.assignedAt,
+                dueDate: assignment.dueDate,
+                priority: assignment.priority,
+                status: "pending",
+                statusUpdates: [
+                  {
+                    status: "pending",
+                    remarks: assignment.remarks || "Task assigned to employee",
+                    updatedBy: assignedBy,
+                    updatedByName: "System",
+                    updatedAt: assignment.assignedAt,
+                  },
+                ],
+                currentStatus: "pending",
+                assignmentRemarks: assignment.remarks,
+              },
+            },
+          }
+        );
+      }
+
+      if (assignment.assignedProspects.length > 0) {
+        await SusProsClient.updateMany(
+          { _id: { $in: assignment.assignedProspects } },
+          {
+            $addToSet: {
+              taskHistory: {
+                taskId: individualTask._id,
+                taskName: task.name,
+                taskType: "CompositeTask",
+                assignedTo: assignment.employeeId,
+                assignedToName: employee.name,
+                assignedAt: assignment.assignedAt,
+                dueDate: assignment.dueDate,
+                priority: assignment.priority,
+                status: "pending",
+                statusUpdates: [
+                  {
+                    status: "pending",
+                    remarks: assignment.remarks || "Task assigned to employee",
+                    updatedBy: assignedBy,
+                    updatedByName: "System",
+                    updatedAt: assignment.assignedAt,
+                  },
+                ],
+                currentStatus: "pending",
+                assignmentRemarks: assignment.remarks,
+              },
+            },
+          }
+        );
+      }
     }
 
     res.status(200).json({
       success: true,
-      message: `Task assigned to ${validAssignments.length} employee(s)`,
+      message: `Task assigned to ${validAssignments.length} employee(s) ${
+        validatedClients.length > 0
+          ? `for ${validatedClients.length} client(s)`
+          : ""
+      } ${
+        validatedProspects.length > 0
+          ? `for ${validatedProspects.length} prospect(s)`
+          : ""
+      }`,
       data: {
         task: task,
         assignments: validAssignments,
         individualTaskIds: individualTasks,
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
       },
     });
   } catch (error) {
@@ -470,22 +598,33 @@ export const getTasksByRole = async (req, res) => {
   }
 };
 
-// ✅ FIXED: Get assigned tasks for employee with proper checklist population
+// TaskCtrl.js - getAssignedTasks function mein YEH UPDATE KARO
+
 export const getAssignedTasks = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const TaskModel = GetModelByType("individual");
 
+    // ✅ IMPORTANT: First find without populate
     const tasks = await TaskModel.find({
       assignedTo: employeeId,
       status: { $in: ["assigned", "in-progress", "pending"] },
     })
       .populate({
         path: "parentTask",
-        select: "name templatePriority checklists estimatedDays",
-        // ✅ FIXED: Populate checklists from parent task
+        select: "name type templatePriority checklists estimatedDays",
       })
       .populate("cat", "name")
+      .populate(
+        "assignmentDetails.assignedClients",
+        "personalDetails.groupName personalDetails.mobileNo personalDetails.emailId status"
+      )
+      .populate(
+        "assignmentDetails.assignedProspects",
+        "personalDetails.groupName personalDetails.mobileNo personalDetails.emailId personalDetails.leadSource status"
+      )
+      .populate("assignmentDetails.assignedBy", "name email")
+      .populate("createdBy", "name")
       .sort({
         "assignmentDetails.priority": -1,
         "assignmentDetails.dueDate": 1,
@@ -493,39 +632,54 @@ export const getAssignedTasks = async (req, res) => {
       })
       .lean();
 
+    console.log(
+      `✅ Found ${tasks.length} individual tasks for employee ${employeeId}`
+    );
+
     // Format response with all necessary data
     const formattedTasks = tasks.map((task) => {
-      // ✅ Get checklists from parentTask
+      // Get checklists
       const checklists = task.checklists || task.parentTask?.checklists || [];
 
-      // ✅ Calculate checklist count
+      // Calculate checklist count
       const checklistCount = checklists.length;
 
-      // ✅ Get priority from assignmentDetails
+      // Get priority
       const priority = task.assignmentDetails?.priority || "medium";
 
-      // ✅ Get template priority from parent
+      // Get parent priority
       const parentPriority = task.parentTask?.templatePriority || "low";
+
+      // ✅ Get client/prospect details
+      const clientDetails = task.assignmentDetails?.assignedClients || [];
+      const prospectDetails = task.assignmentDetails?.assignedProspects || [];
 
       return {
         id: task._id,
+        _id: task._id,
         name: task.name,
         company: task.sub,
         product: task.cat?.name,
-        priority, // ✅ ACTUAL assigned priority
+        priority,
         dueDate: task.assignmentDetails?.dueDate,
         assignedAt: task.assignmentDetails?.assignedAt,
         remarks: task.assignmentDetails?.remarks,
-        checklistCount, // ✅ Count of checklists
-        checklists, // ✅ ACTUAL checklist items array
-        parentTask: task.parentTask?.name,
+        checklistCount,
+        checklists,
+        parentTask: task.parentTask,
+        type: task.parentTask?.type || task.type,
         parentPriority,
-        parentChecklists: task.parentTask?.checklists || [], // ✅ Explicitly include
+        parentChecklists: task.parentTask?.checklists || [],
         status: task.status,
         estimatedDays:
           task.estimatedDays || task.parentTask?.estimatedDays || 1,
         assignmentDetails: task.assignmentDetails || {},
         cat: task.cat || { name: "General" },
+        // ✅ IMPORTANT: Yeh fields frontend ke liye
+        assignedClients: clientDetails,
+        assignedProspects: prospectDetails,
+        clientCount: clientDetails.length,
+        prospectCount: prospectDetails.length,
       };
     });
 
@@ -636,10 +790,11 @@ export const getTasksByEmployeeRole = async (req, res) => {
   }
 };
 
-// ✅ Keep other functions as they are (with success field added)
+// TaskCtrl.js - getTaskById function UPDATE
+
 export const getTaskById = async (req, res) => {
   try {
-    const type = req.query.type || "composite";
+    const type = req.query.type || "individual"; // Default individual rakh lo
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -650,10 +805,36 @@ export const getTaskById = async (req, res) => {
     }
 
     const TaskModel = GetModelByType(type);
-    const task = await TaskModel.findById(id)
-      .populate("cat", "name category description")
-      .populate("assignments.employeeId", "name role employeeCode")
-      .populate("assignments.assignedBy", "name");
+
+    // ✅ DIFFERENT POPULATE FOR DIFFERENT TASK TYPES
+    let query = TaskModel.findById(id);
+
+    if (type === "composite" || type === "marketing" || type === "service") {
+      // Composite/Marketing/Service tasks ke liye
+      query = query
+        .populate("cat", "name category description")
+        .populate("assignments.employeeId", "name role employeeCode")
+        .populate("assignments.assignedBy", "name")
+        .populate("createdBy", "name");
+    } else {
+      // Individual task ke liye
+      query = query
+        .populate("cat", "name category description")
+        .populate("assignedTo", "name role employeeCode email") // ✅ Yeh field IndividualTask mein hai
+        .populate("assignmentDetails.assignedBy", "name email")
+        .populate(
+          "assignmentDetails.assignedClients",
+          "personalDetails.groupName personalDetails.groupCode personalDetails.mobileNo personalDetails.emailId status"
+        )
+        .populate(
+          "assignmentDetails.assignedProspects",
+          "personalDetails.groupName personalDetails.groupCode personalDetails.mobileNo personalDetails.emailId personalDetails.leadSource status"
+        )
+        .populate("createdBy", "name")
+        .populate("parentTask", "name templatePriority");
+    }
+
+    const task = await query;
 
     if (!task) {
       return res.status(404).json({
@@ -662,9 +843,31 @@ export const getTaskById = async (req, res) => {
       });
     }
 
+    // ✅ Format response based on type
+    let formattedTask = task.toObject ? task.toObject() : task;
+
+    if (type === "individual") {
+      // Individual task ke liye extra formatting
+      formattedTask = {
+        ...formattedTask,
+        // Ensure these arrays exist
+        assignedClients: formattedTask.assignmentDetails?.assignedClients || [],
+        assignedProspects:
+          formattedTask.assignmentDetails?.assignedProspects || [],
+        clientCount: (formattedTask.assignmentDetails?.assignedClients || [])
+          .length,
+        prospectCount: (
+          formattedTask.assignmentDetails?.assignedProspects || []
+        ).length,
+        // Add client/prospect remarks
+        clientAssignmentRemarks: formattedTask.clientAssignmentRemarks,
+        prospectAssignmentRemarks: formattedTask.prospectAssignmentRemarks,
+      };
+    }
+
     res.status(200).json({
       success: true,
-      task,
+      task: formattedTask,
     });
   } catch (err) {
     console.error("Error fetching task:", err);
@@ -818,7 +1021,7 @@ export const getMarketingTemplates = async (req, res) => {
   }
 };
 
-// ✅ Assign Marketing Task (SINGLE EMPLOYEE ONLY)
+// ✅ UPDATED: Assign Marketing Task with Client/Prospect Support
 export const assignMarketingTask = async (req, res) => {
   try {
     const {
@@ -829,12 +1032,20 @@ export const assignMarketingTask = async (req, res) => {
       remarks,
       dueDate,
       assignedBy,
+      // ✅ NEW: Client/Prospect fields
+      clients = [],
+      prospects = [],
+      clientAssignmentRemarks = "",
+      prospectAssignmentRemarks = "",
     } = req.body;
 
     console.log(
       `🎯 Assigning marketing task ${taskId} to employee ${employeeId}`
     );
 
+    console.log(
+      `📊 Clients: ${clients.length}, Prospects: ${prospects.length}`
+    );
     const MarketingTask = GetModelByType("marketing");
     const IndividualTask = GetModelByType("individual");
 
@@ -844,6 +1055,26 @@ export const assignMarketingTask = async (req, res) => {
         success: false,
         message: "Marketing task not found",
       });
+    }
+
+    // ✅ Validate clients/prospects if provided
+    let validatedClients = [];
+    let validatedProspects = [];
+
+    if (clients.length > 0) {
+      const clientDocs = await SusProsClient.find({
+        _id: { $in: clients },
+        status: "client",
+      });
+      validatedClients = clientDocs.map((c) => c._id);
+    }
+
+    if (prospects.length > 0) {
+      const prospectDocs = await SusProsClient.find({
+        _id: { $in: prospects },
+        status: "prospect",
+      });
+      validatedProspects = prospectDocs.map((p) => p._id);
     }
 
     // Validate employee
@@ -862,19 +1093,19 @@ export const assignMarketingTask = async (req, res) => {
       });
     }
 
-    // Check if employee is already assigned to this task
-    const alreadyAssigned = task.assignments?.some(
-      (assignment) => assignment.employeeId.toString() === employeeId
-    );
+    // // Check if employee is already assigned to this task
+    // const alreadyAssigned = task.assignments?.some(
+    //   (assignment) => assignment.employeeId.toString() === employeeId
+    // );
 
-    if (alreadyAssigned) {
-      return res.status(400).json({
-        success: false,
-        message: `Employee ${employee.name} is already assigned to this task`,
-      });
-    }
+    // if (alreadyAssigned) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Employee ${employee.name} is already assigned to this task`,
+    //   });
+    // }
 
-    // Create assignment
+    // Create assignment with client/prospect data
     const assignment = {
       employeeId,
       employeeRole,
@@ -888,16 +1119,29 @@ export const assignMarketingTask = async (req, res) => {
             Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
           ),
       status: "pending",
+      // ✅ NEW: Add client/prospect references
+      assignedClients: validatedClients,
+      assignedProspects: validatedProspects,
+      clientAssignmentRemarks,
+      prospectAssignmentRemarks,
     };
-
-    // ✅ IMPORTANT: Marketing task ka status TEMPLATE ही रहने दें
-    // task.status = "assigned"; // ❌ DON'T CHANGE STATUS
 
     // Update marketing task - assignments array में add करें
     task.assignments = [...(task.assignments || []), assignment];
+
+    // ✅ NEW: Also store client/prospect references at task level
+    if (validatedClients.length > 0 || validatedProspects.length > 0) {
+      task.assignedClients = [
+        ...new Set([...(task.assignedClients || []), ...validatedClients]),
+      ];
+      task.assignedProspects = [
+        ...new Set([...(task.assignedProspects || []), ...validatedProspects]),
+      ];
+    }
+
     await task.save();
 
-    // Create individual task
+    // Create individual task with client/prospect data
     const individualTask = new IndividualTask({
       cat: task.cat,
       sub: task.sub,
@@ -919,20 +1163,100 @@ export const assignMarketingTask = async (req, res) => {
         dueDate: assignment.dueDate,
         assignedBy: assignment.assignedBy,
         assignedAt: assignment.assignedAt,
+        // ✅ NEW: Add client/prospect data
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
+        clientAssignmentRemarks: assignment.clientAssignmentRemarks,
+        prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
       },
       createdBy: assignedBy,
-      type: "marketing", // ✅ Set type to marketing
+      type: "marketing",
     });
 
     await individualTask.save();
 
+    // ✅ OPTIONAL: Also update client/prospect documents with task reference
+    if (validatedClients.length > 0) {
+      await SusProsClient.updateMany(
+        { _id: { $in: validatedClients } },
+        {
+          $addToSet: {
+            taskHistory: {
+              taskId: individualTask._id,
+              taskName: task.name,
+              taskType: "MarketingTask",
+              assignedTo: employeeId,
+              assignedToName: employee.name,
+              assignedAt: assignment.assignedAt,
+              dueDate: assignment.dueDate,
+              priority: assignment.priority,
+              status: "pending",
+              statusUpdates: [
+                {
+                  status: "pending",
+                  remarks: assignment.remarks || "Marketing task assigned",
+                  updatedBy: assignedBy,
+                  updatedByName: "System",
+                  updatedAt: assignment.assignedAt,
+                },
+              ],
+              currentStatus: "pending",
+              assignmentRemarks: assignment.remarks,
+            },
+          },
+        }
+      );
+    }
+
+    if (validatedProspects.length > 0) {
+      await SusProsClient.updateMany(
+        { _id: { $in: validatedProspects } },
+        {
+          $addToSet: {
+            taskHistory: {
+              taskId: individualTask._id,
+              taskName: task.name,
+              taskType: "MarketingTask",
+              assignedTo: employeeId,
+              assignedToName: employee.name,
+              assignedAt: assignment.assignedAt,
+              dueDate: assignment.dueDate,
+              priority: assignment.priority,
+              status: "pending",
+              statusUpdates: [
+                {
+                  status: "pending",
+                  remarks: assignment.remarks || "Marketing task assigned",
+                  updatedBy: assignedBy,
+                  updatedByName: "System",
+                  updatedAt: assignment.assignedAt,
+                },
+              ],
+              currentStatus: "pending",
+              assignmentRemarks: assignment.remarks,
+            },
+          },
+        }
+      );
+    }
+
     res.status(200).json({
       success: true,
-      message: `Marketing task assigned to ${employee.name}`,
+      message: `Marketing task assigned to ${employee.name} ${
+        validatedClients.length > 0
+          ? `for ${validatedClients.length} client(s)`
+          : ""
+      } ${
+        validatedProspects.length > 0
+          ? `for ${validatedProspects.length} prospect(s)`
+          : ""
+      }`,
       data: {
         task: task,
         assignment: assignment,
         individualTaskId: individualTask._id,
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
       },
     });
   } catch (error) {
@@ -1400,7 +1724,7 @@ export const getServiceTemplates = async (req, res) => {
   }
 };
 
-// ✅ Assign Service Task (SINGLE EMPLOYEE ONLY)
+// ✅ UPDATED: Assign Service Task with Client/Prospect Support
 export const assignServiceTask = async (req, res) => {
   try {
     const {
@@ -1411,6 +1735,11 @@ export const assignServiceTask = async (req, res) => {
       remarks,
       dueDate,
       assignedBy,
+      // ✅ NEW: Client/Prospect fields
+      clients = [],
+      prospects = [],
+      clientAssignmentRemarks = "",
+      prospectAssignmentRemarks = "",
     } = req.body;
 
     console.log(
@@ -1426,6 +1755,26 @@ export const assignServiceTask = async (req, res) => {
         success: false,
         message: "Service task not found",
       });
+    }
+
+    // ✅ Validate clients/prospects if provided
+    let validatedClients = [];
+    let validatedProspects = [];
+
+    if (clients.length > 0) {
+      const clientDocs = await SusProsClient.find({
+        _id: { $in: clients },
+        status: "client",
+      });
+      validatedClients = clientDocs.map((c) => c._id);
+    }
+
+    if (prospects.length > 0) {
+      const prospectDocs = await SusProsClient.find({
+        _id: { $in: prospects },
+        status: "prospect",
+      });
+      validatedProspects = prospectDocs.map((p) => p._id);
     }
 
     // Validate employee
@@ -1444,19 +1793,19 @@ export const assignServiceTask = async (req, res) => {
       });
     }
 
-    // Check if employee is already assigned to this task
-    const alreadyAssigned = task.assignments?.some(
-      (assignment) => assignment.employeeId.toString() === employeeId
-    );
+    // // Check if employee is already assigned to this task
+    // const alreadyAssigned = task.assignments?.some(
+    //   (assignment) => assignment.employeeId.toString() === employeeId
+    // );
 
-    if (alreadyAssigned) {
-      return res.status(400).json({
-        success: false,
-        message: `Employee ${employee.name} is already assigned to this task`,
-      });
-    }
+    // if (alreadyAssigned) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Employee ${employee.name} is already assigned to this task`,
+    //   });
+    // }
 
-    // Create assignment
+    // Create assignment with client/prospect data
     const assignment = {
       employeeId,
       employeeRole,
@@ -1470,16 +1819,29 @@ export const assignServiceTask = async (req, res) => {
             Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
           ),
       status: "pending",
+      // ✅ NEW: Add client/prospect references
+      assignedClients: validatedClients,
+      assignedProspects: validatedProspects,
+      clientAssignmentRemarks,
+      prospectAssignmentRemarks,
     };
-
-    // ✅ IMPORTANT: Service task ka status TEMPLATE ही रहने दें
-    // task.status = "assigned"; // ❌ DON'T CHANGE STATUS
 
     // Update service task - assignments array में add करें
     task.assignments = [...(task.assignments || []), assignment];
+
+    // ✅ NEW: Also store client/prospect references at task level
+    if (validatedClients.length > 0 || validatedProspects.length > 0) {
+      task.assignedClients = [
+        ...new Set([...(task.assignedClients || []), ...validatedClients]),
+      ];
+      task.assignedProspects = [
+        ...new Set([...(task.assignedProspects || []), ...validatedProspects]),
+      ];
+    }
+
     await task.save();
 
-    // Create individual task
+    // Create individual task with client/prospect data
     const individualTask = new IndividualTask({
       cat: task.cat,
       sub: task.sub,
@@ -1501,20 +1863,100 @@ export const assignServiceTask = async (req, res) => {
         dueDate: assignment.dueDate,
         assignedBy: assignment.assignedBy,
         assignedAt: assignment.assignedAt,
+        // ✅ NEW: Add client/prospect data
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
+        clientAssignmentRemarks: assignment.clientAssignmentRemarks,
+        prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
       },
       createdBy: assignedBy,
-      type: "service", // ✅ Set type to service
+      type: "service",
     });
 
     await individualTask.save();
 
+    // ✅ OPTIONAL: Also update client/prospect documents with task reference
+    if (validatedClients.length > 0) {
+      await SusProsClient.updateMany(
+        { _id: { $in: validatedClients } },
+        {
+          $addToSet: {
+            taskHistory: {
+              taskId: individualTask._id,
+              taskName: task.name,
+              taskType: "ServiceTask",
+              assignedTo: employeeId,
+              assignedToName: employee.name,
+              assignedAt: assignment.assignedAt,
+              dueDate: assignment.dueDate,
+              priority: assignment.priority,
+              status: "pending",
+              statusUpdates: [
+                {
+                  status: "pending",
+                  remarks: assignment.remarks || "Service task assigned",
+                  updatedBy: assignedBy,
+                  updatedByName: "System",
+                  updatedAt: assignment.assignedAt,
+                },
+              ],
+              currentStatus: "pending",
+              assignmentRemarks: assignment.remarks,
+            },
+          },
+        }
+      );
+    }
+
+    if (validatedProspects.length > 0) {
+      await SusProsClient.updateMany(
+        { _id: { $in: validatedProspects } },
+        {
+          $addToSet: {
+            taskHistory: {
+              taskId: individualTask._id,
+              taskName: task.name,
+              taskType: "ServiceTask",
+              assignedTo: employeeId,
+              assignedToName: employee.name,
+              assignedAt: assignment.assignedAt,
+              dueDate: assignment.dueDate,
+              priority: assignment.priority,
+              status: "pending",
+              statusUpdates: [
+                {
+                  status: "pending",
+                  remarks: assignment.remarks || "Service task assigned",
+                  updatedBy: assignedBy,
+                  updatedByName: "System",
+                  updatedAt: assignment.assignedAt,
+                },
+              ],
+              currentStatus: "pending",
+              assignmentRemarks: assignment.remarks,
+            },
+          },
+        }
+      );
+    }
+
     res.status(200).json({
       success: true,
-      message: `Service task assigned to ${employee.name}`,
+      message: `Service task assigned to ${employee.name} ${
+        validatedClients.length > 0
+          ? `for ${validatedClients.length} client(s)`
+          : ""
+      } ${
+        validatedProspects.length > 0
+          ? `for ${validatedProspects.length} prospect(s)`
+          : ""
+      }`,
       data: {
         task: task,
         assignment: assignment,
         individualTaskId: individualTask._id,
+        assignedClients: validatedClients,
+        assignedProspects: validatedProspects,
       },
     });
   } catch (error) {
@@ -1935,6 +2377,489 @@ export const deleteServiceTask = async (req, res) => {
       success: false,
       message: "Delete failed",
       error: err.message,
+    });
+  }
+};
+
+export const updateEntityTaskStatus = async (req, res) => {
+  try {
+    const { entityId, taskId } = req.params;
+    const {
+      status,
+      remarks,
+      employeeId, // ✅ REQUIRED: Frontend se bhejna hoga
+      employeeName, // ✅ Optional: Employee name
+      files = [],
+    } = req.body;
+
+    console.log(
+      `🔄 Updating task ${taskId} status for entity ${entityId} to ${status} by employee: ${employeeId}`
+    );
+
+    // ✅ VALIDATE: Employee ID is REQUIRED
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Employee ID is required. Please provide employeeId in request body.",
+      });
+    }
+
+    // 1. First, find the task
+    const IndividualTask = GetModelByType("individual");
+    const task = await IndividualTask.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // Check if entity is assigned to this task
+    const isClient = task.assignmentDetails?.assignedClients?.some(
+      (id) => id.toString() === entityId
+    );
+    const isProspect = task.assignmentDetails?.assignedProspects?.some(
+      (id) => id.toString() === entityId
+    );
+
+    if (!isClient && !isProspect) {
+      return res.status(400).json({
+        success: false,
+        message: "This entity is not assigned to this task",
+      });
+    }
+
+    const entityType = isClient ? "client" : "prospect";
+
+    // 2. Update the task's status array
+    const statusEntry = {
+      entityId,
+      entityType,
+      status,
+      remarks,
+      updatedBy: employeeId, // ✅ Use employeeId from frontend
+      updatedAt: new Date(),
+      files: files.map((file) => ({
+        filename: file.filename,
+        originalName: file.originalName,
+        uploadedAt: new Date(),
+      })),
+    };
+
+    // Update or add status in task
+    if (!task.clientProspectStatuses) {
+      task.clientProspectStatuses = [];
+    }
+
+    const existingIndex = task.clientProspectStatuses.findIndex(
+      (entry) => entry.entityId.toString() === entityId
+    );
+
+    if (existingIndex > -1) {
+      task.clientProspectStatuses[existingIndex] = statusEntry;
+    } else {
+      task.clientProspectStatuses.push(statusEntry);
+    }
+
+    await task.save();
+
+    // 3. Now update the client/prospect document with COMPLETE HISTORY
+    const SusProsClient = mongoose.model("testSchema");
+    const Employee = mongoose.model("Employee");
+
+    // Get employee details (optional)
+    const employee = await Employee.findById(employeeId)
+      .select("name email")
+      .lean();
+
+    // First try to update existing task history entry
+    const updateResult = await SusProsClient.findOneAndUpdate(
+      {
+        _id: entityId,
+        "taskHistory.taskId": taskId,
+      },
+      {
+        $push: {
+          "taskHistory.$.statusUpdates": {
+            status: status,
+            remarks: remarks,
+            updatedBy: employeeId,
+            updatedByName: employee?.name || employeeName || "Employee",
+            updatedAt: new Date(),
+            files: files.map((file) => ({
+              filename: file.filename,
+              originalName: file.originalName,
+              uploadedAt: new Date(),
+            })),
+          },
+        },
+        $set: {
+          "taskHistory.$.currentStatus": status,
+          "taskHistory.$.updatedAt": new Date(),
+          ...(status === "completed" && {
+            "taskHistory.$.completedAt": new Date(),
+            "taskHistory.$.completionRemarks": remarks,
+          }),
+        },
+      },
+      { new: true }
+    );
+
+    // If task history doesn't exist, create it
+    if (!updateResult) {
+      // Get employee name who's assigned to the task
+      const assignedEmployee = await Employee.findById(task.assignedTo)
+        .select("name")
+        .lean();
+
+      await SusProsClient.findByIdAndUpdate(
+        entityId,
+        {
+          $addToSet: {
+            taskHistory: {
+              taskId: taskId,
+              taskName: task.name,
+              taskType:
+                task.type === "marketing"
+                  ? "MarketingTask"
+                  : task.type === "service"
+                  ? "ServiceTask"
+                  : "CompositeTask",
+              assignedTo: task.assignedTo,
+              assignedToName: assignedEmployee?.name || "Unknown",
+              assignedAt: task.assignmentDetails?.assignedAt || new Date(),
+              dueDate: task.assignmentDetails?.dueDate,
+              priority: task.assignmentDetails?.priority || "medium",
+              statusUpdates: [
+                {
+                  status: status,
+                  remarks: remarks,
+                  updatedBy: employeeId,
+                  updatedByName: employee?.name || employeeName || "Employee",
+                  updatedAt: new Date(),
+                  files: files.map((file) => ({
+                    filename: file.filename,
+                    originalName: file.originalName,
+                    uploadedAt: new Date(),
+                  })),
+                },
+              ],
+              currentStatus: status,
+              ...(status === "completed" && {
+                completedAt: new Date(),
+                completionRemarks: remarks,
+              }),
+            },
+          },
+        },
+        { new: true }
+      );
+    }
+
+    // 4. Check if all entities are completed
+    const allEntities = [
+      ...(task.assignmentDetails?.assignedClients || []),
+      ...(task.assignmentDetails?.assignedProspects || []),
+    ];
+
+    const completedEntities =
+      task.clientProspectStatuses?.filter(
+        (entry) => entry.status === "completed"
+      ).length || 0;
+
+    // Update task status if all entities completed
+    if (completedEntities === allEntities.length && allEntities.length > 0) {
+      task.status = "completed";
+      task.completedAt = new Date();
+      await task.save();
+    }
+
+    console.log(
+      `✅ Task status updated for ${entityType} ${entityId} by employee ${employeeId}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Task status updated for ${entityType}`,
+      data: {
+        entityType,
+        status,
+        remarks,
+        updatedBy: employeeId,
+        updatedByName: employeeName || employee?.name || "Employee",
+        updatedAt: new Date(),
+        taskProgress: {
+          completed: completedEntities,
+          total: allEntities.length,
+          percentage:
+            allEntities.length > 0
+              ? Math.round((completedEntities / allEntities.length) * 100)
+              : 0,
+        },
+        task: {
+          id: task._id,
+          name: task.name,
+          status: task.status,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error updating entity task status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update task status",
+      error: error.message,
+    });
+  }
+};
+
+// TaskCtrl.js - getEntityTaskHistory function FIX KARO:
+
+export const getEntityTaskHistory = async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const {
+      taskId,
+      status,
+      startDate,
+      endDate,
+      limit = 50,
+      page = 1,
+    } = req.query;
+
+    console.log(
+      `📊 Fetching task history for entity: ${entityId}, taskId: ${taskId}`
+    );
+
+    const SusProsClient = mongoose.model("testSchema");
+
+    // Build query
+    let query = { _id: entityId };
+
+    // Fetch the entity
+    const entity = await SusProsClient.findById(entityId)
+      .populate("taskHistory.assignedTo", "name email employeeCode")
+      .populate("taskHistory.statusUpdates.updatedBy", "name email")
+      .lean();
+
+    if (!entity) {
+      return res.status(404).json({
+        success: false,
+        message: "Client/Prospect not found",
+      });
+    }
+
+    let taskHistory = entity.taskHistory || [];
+
+    // ✅ FIXED: Filter by taskId if provided
+    if (taskId && taskId.trim() !== "") {
+      taskHistory = taskHistory.filter((task) => {
+        // Compare string representations
+        const taskIdStr = task.taskId ? task.taskId.toString() : "";
+        return taskIdStr === taskId.toString();
+      });
+    }
+
+    // Apply other filters
+    if (status && status.trim() !== "") {
+      taskHistory = taskHistory.filter((task) => task.currentStatus === status);
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      taskHistory = taskHistory.filter(
+        (task) => new Date(task.assignedAt) >= start
+      );
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      taskHistory = taskHistory.filter(
+        (task) => new Date(task.assignedAt) <= end
+      );
+    }
+
+    // Sort by latest update
+    taskHistory.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.assignedAt) -
+        new Date(a.updatedAt || a.assignedAt)
+    );
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const paginatedHistory = taskHistory.slice(skip, skip + parseInt(limit));
+
+    // Calculate statistics
+    const stats = {
+      totalTasks: taskHistory.length,
+      completed: taskHistory.filter((t) => t.currentStatus === "completed")
+        .length,
+      pending: taskHistory.filter((t) => t.currentStatus === "pending").length,
+      inProgress: taskHistory.filter((t) => t.currentStatus === "in-progress")
+        .length,
+      cancelled: taskHistory.filter((t) => t.currentStatus === "cancelled")
+        .length,
+      overdue: taskHistory.filter((t) => {
+        if (!t.dueDate) return false;
+        return (
+          new Date(t.dueDate) < new Date() && t.currentStatus !== "completed"
+        );
+      }).length,
+    };
+
+    console.log(
+      `✅ Found ${taskHistory.length} task history records for entity ${entityId}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Task history fetched successfully",
+      data: {
+        entity: {
+          id: entity._id,
+          name: entity.personalDetails?.name,
+          type: entity.status,
+          mobile: entity.personalDetails?.mobileNo,
+          email: entity.personalDetails?.emailId,
+          company: entity.personalDetails?.organisation,
+        },
+        taskHistory: paginatedHistory,
+        stats,
+        pagination: {
+          current: parseInt(page),
+          total: Math.ceil(taskHistory.length / limit),
+          totalItems: taskHistory.length,
+          hasNext: skip + parseInt(limit) < taskHistory.length,
+          hasPrev: page > 1,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching entity task history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch task history",
+      error: error.message,
+      stack: error.stack, // ✅ For debugging
+    });
+  }
+};
+
+// ✅ GET SPECIFIC TASK STATUS FOR ENTITY (ALSO FIX THIS ONE)
+export const getEntityTaskStatus = async (req, res) => {
+  try {
+    const { entityId, taskId } = req.params;
+
+    console.log(
+      `🔍 Fetching task status for entity: ${entityId}, task: ${taskId}`
+    );
+
+    const SusProsClient = mongoose.model("testSchema");
+
+    // ✅ FIXED: Find entity and filter taskHistory manually
+    const entity = await SusProsClient.findById(entityId)
+      .populate("taskHistory.assignedTo", "name email")
+      .populate("taskHistory.statusUpdates.updatedBy", "name email")
+      .lean();
+
+    if (!entity) {
+      return res.status(404).json({
+        success: false,
+        message: "Client/Prospect not found",
+      });
+    }
+
+    // Filter task history for specific task
+    const taskHistory =
+      entity.taskHistory?.filter((task) => {
+        const taskIdStr = task.taskId ? task.taskId.toString() : "";
+        return taskIdStr === taskId.toString();
+      }) || [];
+
+    if (taskHistory.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found for this entity",
+      });
+    }
+
+    const task = taskHistory[0];
+
+    res.status(200).json({
+      success: true,
+      message: "Task status fetched successfully",
+      data: {
+        entity: {
+          id: entity._id,
+          name: entity.personalDetails?.name,
+          type: entity.status,
+          mobile: entity.personalDetails?.mobileNo,
+        },
+        task: task,
+        currentStatus: task.currentStatus,
+        latestUpdate:
+          task.statusUpdates?.length > 0
+            ? task.statusUpdates[task.statusUpdates.length - 1]
+            : null,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching entity task status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch task status",
+      error: error.message,
+    });
+  }
+};
+// TaskCtrl.js mein yeh function add karo:
+
+// TaskCtrl.js mein simple status update function:
+export const updateTaskStatus = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status, remarks, employeeId, employeeName } = req.body;
+
+    console.log(`🔄 Updating task ${taskId} status to ${status}`);
+
+    const IndividualTask = GetModelByType("individual");
+    const task = await IndividualTask.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // Update task status
+    task.status = status;
+    task.completedAt = new Date();
+    if (remarks) {
+      task.assignmentDetails.completionRemarks = remarks;
+    }
+
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Task marked as ${status}`,
+      task: {
+        id: task._id,
+        name: task.name,
+        status: task.status,
+        completedAt: task.completedAt,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error updating task status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update task status",
+      error: error.message,
     });
   }
 };

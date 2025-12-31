@@ -222,27 +222,77 @@ exports.getAllProspects = async (req, res) => {
   }
 };
 
-// Get a single prospect by ID
+// ✅ CORRECTED getProspectById
 exports.getProspectById = async (req, res) => {
   try {
     const { id } = req.params;
+
     if (!id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Prospect ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Prospect ID is required",
+      });
     }
-    const prospect = await prospectModel.findById(id);
+
+    // Bas REAL models ka hi reference do
+    const prospect = await prospectModel
+      .findById(id)
+      // Task history ko populate karna hai to pehle check kar tere paas yeh models hai ki nahi
+      .populate({
+        path: "taskHistory.taskId",
+        // Agar tere paas sirf CompositeTask model hai
+        model: "CompositeTask", // YAHA TERA SAHI MODEL KA NAAM DAAL
+        select: "title description status priority dueDate",
+      })
+      .populate({
+        path: "taskHistory.assignedTo",
+        model: "Employee", // YAHA TERA EMPLOYEE MODEL KA NAAM
+        select: "name email employeeCode",
+      })
+      .populate({
+        path: "assignedTo",
+        model: "Telecaller", // Schema mein dekh raha hoon 'Telecaller' reference hai
+        select: "name employeeCode",
+      })
+      .populate({
+        path: "assignedToRM",
+        model: "Employee",
+        select: "name employeeCode",
+      })
+      .populate({
+        path: "kycs",
+        model: "Kyc",
+        select: "name status documentNumber",
+      });
+
     if (!prospect) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Prospect not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Prospect not found",
+      });
     }
-    res.status(200).json({ success: true, prospect });
+
+    res.status(200).json({
+      success: true,
+      prospect,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error in getProspectById:", error);
+
+    // Agar model error hai to yeh bata
+    if (error.name === "MissingSchemaError") {
+      console.error("⚠️ Model registration error. Check these models exist:");
+      console.error("- CompositeTask");
+      console.error("- MarketingTask");
+      console.error("- ServiceTask");
+      console.error("- Employee");
+      console.error("- Telecaller");
+      console.error("- Kyc");
+    }
+
     res.status(500).json({
       success: false,
-      message: "Server error while fetching suspects",
+      message: "Server error while fetching prospect",
       error: error.message,
     });
   }

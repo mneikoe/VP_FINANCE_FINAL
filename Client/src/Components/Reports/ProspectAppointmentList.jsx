@@ -1,46 +1,38 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Button, Spinner, Card } from "react-bootstrap";
+import DataTable from "react-data-table-component";
+import { useNavigate } from "react-router-dom";
 import {
-  Table,
-  Button,
-  Space,
-  Tag,
-  Card,
-  Input,
-  message,
-  Modal,
-  Row,
-  Col,
-  Tooltip,
-} from "antd";
-import {
-  SearchOutlined,
   EyeOutlined,
-  CalendarOutlined,
   EditOutlined,
   DeleteOutlined,
-  UserOutlined,
   PhoneOutlined,
   MailOutlined,
   EnvironmentOutlined,
+  UserOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
-import axiosInstance from "../../config/axios";
 import dayjs from "dayjs";
+import axiosInstance from "../../config/axios";
+import { Modal, message, Tag } from "antd";
 
-const ProspectAppointmentList = () => {
+function ProspectAppointmentList() {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const navigate = useNavigate();
 
-  const fetchProspects = useCallback(async () => {
+  useEffect(() => {
+    fetchProspects();
+  }, []);
+
+  const fetchProspects = async () => {
     setLoading(true);
     try {
-      console.log("📡 Fetching Prospects...");
-
       const response = await axiosInstance.get("/api/prospect/all");
-
-      console.log("📦 API Response:", response.data);
 
       if (response.data && response.data.success) {
         const prospectsData = response.data.prospects || [];
@@ -49,42 +41,29 @@ const ProspectAppointmentList = () => {
           const personalDetails = prospect.personalDetails || {};
 
           return {
-            key: prospect._id || index,
-            id: prospect._id,
+            id: prospect._id || index,
             sn: index + 1,
-
-            // Basic Details
             groupCode: personalDetails.groupCode || "-",
             groupName: personalDetails.groupName || "-",
             name: personalDetails.name || "-",
             gender: personalDetails.gender || "-",
-
-            // Contact Details
             mobile: personalDetails.mobileNo || "-",
             whatsapp: personalDetails.whatsappNo || "-",
             contact: personalDetails.contactNo || "-",
             email: personalDetails.emailId || "-",
-
-            // Professional Details
             organisation: personalDetails.organisation || "-",
             designation: personalDetails.designation || "-",
             annualIncome: personalDetails.annualIncome || "-",
             grade: personalDetails.grade || "-",
-
-            // Location Details
             city: personalDetails.city || "-",
             preferredMeetingArea: personalDetails.preferredMeetingArea || "-",
             resiAddr: personalDetails.resiAddr || "-",
             officeAddr: personalDetails.officeAddr || "-",
-
-            // Lead Details
             leadSource: personalDetails.leadSource || "-",
             leadName: personalDetails.leadName || "-",
             leadOccupation: personalDetails.leadOccupation || "-",
             leadOccupationType: personalDetails.leadOccupationType || "-",
             callingPurpose: personalDetails.callingPurpose || "-",
-
-            // Other Details
             allocatedCRE: personalDetails.allocatedCRE || "-",
             allocatedRM: personalDetails.allocatedRM || "-",
             adharNumber: personalDetails.adharNumber || "-",
@@ -96,522 +75,438 @@ const ProspectAppointmentList = () => {
             bestTime: personalDetails.bestTime || "-",
             time: personalDetails.time || "-",
             remark: personalDetails.remark || "-",
-
-            // Timestamps
             createdAt: prospect.createdAt
               ? dayjs(prospect.createdAt).format("DD/MM/YYYY")
               : "-",
-
             rawData: prospect,
           };
         });
 
-        console.log(`✅ Processed ${processedProspects.length} prospects`);
         setProspects(processedProspects);
+        setFilteredData(processedProspects);
       } else {
         message.error(response.data?.message || "Failed to fetch prospects");
         setProspects([]);
+        setFilteredData([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching prospects:", error);
+      console.error("Error fetching prospects:", error);
       message.error(
         error.response?.data?.message ||
           error.message ||
           "Error loading prospects."
       );
       setProspects([]);
+      setFilteredData([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const filteredProspects = useMemo(() => {
-    if (!searchText) return prospects;
+  useEffect(() => {
+    if (!searchText) {
+      setFilteredData(prospects);
+      return;
+    }
 
-    const searchTerm = searchText.toLowerCase();
-    return prospects.filter((prospect) => {
+    const lowerCaseSearch = searchText.toLowerCase();
+    const filtered = prospects.filter((item) => {
       const searchableFields = [
-        prospect.groupCode,
-        prospect.groupName,
-        prospect.name,
-        prospect.mobile,
-        prospect.whatsapp,
-        prospect.contact,
-        prospect.email,
-        prospect.organisation,
-        prospect.designation,
-        prospect.city,
-        prospect.leadSource,
-        prospect.leadName,
-        prospect.callingPurpose,
-        prospect.allocatedCRE,
+        item.groupCode,
+        item.groupName,
+        item.name,
+        item.mobile,
+        item.whatsapp,
+        item.contact,
+        item.email,
+        item.organisation,
+        item.designation,
+        item.city,
+        item.leadSource,
+        item.leadName,
+        item.callingPurpose,
+        item.allocatedCRE,
       ]
         .filter(Boolean)
         .map((field) => field.toString().toLowerCase());
 
-      return searchableFields.some((field) => field.includes(searchTerm));
+      return searchableFields.some((field) => field.includes(lowerCaseSearch));
     });
-  }, [prospects, searchText]);
+    setFilteredData(filtered);
+  }, [searchText, prospects]);
 
-  useEffect(() => {
-    fetchProspects();
-  }, [fetchProspects]);
-
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchText("");
-  };
-
-  const viewProspectDetails = (record) => {
-    setSelectedProspect(record);
-    setModalVisible(true);
+  const handleDelete = (prospect) => {
+    if (window.confirm(`Are you sure you want to delete ${prospect.name}?`)) {
+      axiosInstance
+        .delete(`/api/prospect/delete/${prospect.id}`)
+        .then(() => {
+          message.success("Prospect deleted successfully");
+          fetchProspects();
+        })
+        .catch((error) => {
+          message.error("Failed to delete prospect");
+        });
+    }
   };
 
   const handleEdit = (prospect) => {
-    // Implement edit functionality
-    message.info(`Edit prospect: ${prospect.name}`);
-    // navigate(`/prospect/edit/${prospect.id}`);
+    navigate(`/prospect/edit/${prospect.id}`);
   };
 
-  const handleDelete = (prospect) => {
-    Modal.confirm({
-      title: "Delete Prospect",
-      content: `Are you sure you want to delete ${prospect.name}?`,
-      okText: "Yes",
-      okType: "danger",
-      cancelText: "No",
-      onOk: async () => {
-        try {
-          await axiosInstance.delete(`/api/prospect/delete/${prospect.id}`);
-          message.success("Prospect deleted successfully");
-          fetchProspects();
-        } catch (error) {
-          message.error("Failed to delete prospect");
-        }
-      },
-    });
+  const handleView = (id) => {
+    navigate(`/prospect/detail/${id}`);
   };
 
   const handleConvertToClient = (prospect) => {
-    Modal.confirm({
-      title: "Convert to Client",
-      content: `Convert ${prospect.name} to Client?`,
-      okText: "Convert",
-      onOk: async () => {
-        try {
-          await axiosInstance.put(`/api/prospect/convert/${prospect.id}`, {
-            status: "client",
-          });
+    if (window.confirm(`Convert ${prospect.name} to Client?`)) {
+      axiosInstance
+        .put(`/api/prospect/convert/${prospect.id}`, {
+          status: "client",
+        })
+        .then(() => {
           message.success("Converted to Client successfully");
           fetchProspects();
-        } catch (error) {
+        })
+        .catch((error) => {
           message.error("Failed to convert");
-        }
-      },
-    });
+        });
+    }
   };
 
   const columns = [
     {
-      title: "S.N",
-      dataIndex: "sn",
-      key: "sn",
-      width: 60,
-      align: "center",
+      name: "#",
+      cell: (row) => row.sn,
+      sortable: true,
+      width: "60px",
+      center: true,
     },
     {
-      title: "Group Code",
-      dataIndex: "groupCode",
-      key: "groupCode",
-      width: 100,
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      name: "Group Code",
+      selector: (row) => row.groupCode,
+      sortable: true,
+      cell: (row) => (
+        <span style={{ fontWeight: "bold", color: "#1890ff" }}>
+          {row.groupCode}
+        </span>
+      ),
+      width: "120px",
     },
     {
-      title: "Group Head",
-      dataIndex: "groupName",
-      key: "groupName",
-      width: 150,
+      name: "Group Head",
+      selector: (row) => row.groupName,
+      sortable: true,
+      width: "150px",
     },
     {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      width: 150,
-      render: (text, record) => (
+      name: "Name",
+      selector: (row) => row.name,
+      sortable: true,
+      cell: (row) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{text}</div>
-          <div style={{ fontSize: "11px", color: "#666" }}>{record.gender}</div>
+          <div style={{ fontWeight: 500 }}>{row.name}</div>
+          <div style={{ fontSize: "12px", color: "#666" }}>{row.gender}</div>
         </div>
       ),
+      width: "150px",
     },
     {
-      title: "Contact",
-      dataIndex: "mobile",
-      key: "mobile",
-      width: 120,
-      render: (text, record) => (
+      name: "Contact",
+      selector: (row) => row.mobile,
+      sortable: true,
+      cell: (row) => (
         <div>
           <div>
             <PhoneOutlined style={{ marginRight: 5 }} />
-            {text}
+            {row.mobile}
           </div>
-          {record.whatsapp !== "-" && (
-            <div style={{ fontSize: "11px", color: "#666" }}>
-              WA: {record.whatsapp}
+          {row.whatsapp !== "-" && (
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              WA: {row.whatsapp}
             </div>
           )}
         </div>
       ),
+      width: "150px",
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      width: 180,
-      render: (text) => (
+      name: "Email",
+      selector: (row) => row.email,
+      sortable: true,
+      cell: (row) => (
         <div>
           <MailOutlined style={{ marginRight: 5 }} />
-          {text}
+          {row.email}
         </div>
       ),
+      width: "200px",
     },
     {
-      title: "Organisation",
-      dataIndex: "organisation",
-      key: "organisation",
-      width: 150,
+      name: "Organisation",
+      selector: (row) => row.organisation,
+      sortable: true,
+      width: "150px",
     },
     {
-      title: "Designation",
-      dataIndex: "designation",
-      key: "designation",
-      width: 120,
+      name: "Designation",
+      selector: (row) => row.designation,
+      sortable: true,
+      width: "120px",
     },
     {
-      title: "Annual Income",
-      dataIndex: "annualIncome",
-      key: "annualIncome",
-      width: 120,
-      render: (text, record) => (
+      name: "Annual Income",
+      selector: (row) => row.annualIncome,
+      sortable: true,
+      cell: (row) => (
         <div>
-          <div>{text}</div>
-          <Tag color="green" style={{ fontSize: "10px" }}>
-            Grade: {record.grade}
-          </Tag>
+          <div>{row.annualIncome}</div>
+          <span
+            style={{
+              fontSize: "12px",
+              backgroundColor: "#52c41a",
+              color: "white",
+              padding: "2px 8px",
+              borderRadius: "4px",
+            }}
+          >
+            Grade: {row.grade}
+          </span>
         </div>
       ),
+      width: "150px",
     },
     {
-      title: "Location",
-      dataIndex: "city",
-      key: "city",
-      width: 120,
-      render: (text, record) => (
+      name: "Location",
+      selector: (row) => row.city,
+      sortable: true,
+      cell: (row) => (
         <div>
           <EnvironmentOutlined style={{ marginRight: 5 }} />
-          {text}
-          {record.preferredMeetingArea !== "-" && (
-            <div style={{ fontSize: "11px", color: "#666" }}>
-              Area: {record.preferredMeetingArea}
+          {row.city}
+          {row.preferredMeetingArea !== "-" && (
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              Area: {row.preferredMeetingArea}
             </div>
           )}
         </div>
       ),
+      width: "150px",
     },
     {
-      title: "Lead Source",
-      dataIndex: "leadSource",
-      key: "leadSource",
-      width: 120,
-      render: (text, record) => (
+      name: "Lead Source",
+      selector: (row) => row.leadSource,
+      sortable: true,
+      cell: (row) => (
         <div>
-          <div>{text}</div>
-          {record.leadName !== "-" && (
-            <div style={{ fontSize: "11px", color: "#666" }}>
-              {record.leadName}
+          <div>{row.leadSource}</div>
+          {row.leadName !== "-" && (
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              {row.leadName}
             </div>
           )}
         </div>
       ),
+      width: "150px",
     },
     {
-      title: "Allocated CRE",
-      dataIndex: "allocatedCRE",
-      key: "allocatedCRE",
-      width: 120,
+      name: "Allocated CRE",
+      selector: (row) => row.allocatedCRE,
+      sortable: true,
+      width: "120px",
     },
     {
-      title: "Created At",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 100,
+      name: "Created At",
+      selector: (row) => row.createdAt,
+      sortable: true,
+      width: "120px",
     },
     {
-      title: "Actions",
-      key: "actions",
-      width: 180,
-      fixed: "right",
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="View Details">
-            <Button
-              type="link"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => viewProspectDetails(record)}
-              style={{ color: "#1890ff" }}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-              style={{ color: "#52c41a" }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              type="link"
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-              style={{ color: "#ff4d4f" }}
-            />
-          </Tooltip>
+      name: "Actions",
+      cell: (row) => (
+        <div className="d-flex flex-wrap gap-1">
           <Button
-            type="primary"
-            size="small"
-            onClick={() => handleConvertToClient(record)}
-            style={{ fontSize: "11px" }}
+            variant="info"
+            size="sm"
+            onClick={() => handleView(row.id)}
+            className="text-nowrap"
+            style={{
+              backgroundColor: "#1890ff",
+              borderColor: "#1890ff",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
           >
-            To Client
+            <EyeOutlined /> View
           </Button>
-        </Space>
+          <Button
+            variant="warning"
+            size="sm"
+            onClick={() => handleEdit(row)}
+            className="text-nowrap"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            <EditOutlined /> Edit
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => handleDelete(row)}
+            className="text-nowrap"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            <DeleteOutlined /> Delete
+          </Button>
+        </div>
       ),
+      ignoreRowClick: true,
+      width: "220px",
+    },
+    {
+      name: "Convert",
+      cell: (row) => (
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => handleConvertToClient(row)}
+          className="text-nowrap"
+          style={{
+            backgroundColor: "#52c41a",
+            borderColor: "#52c41a",
+            fontWeight: "bold",
+          }}
+        >
+          To Client
+        </Button>
+      ),
+      ignoreRowClick: true,
+      width: "120px",
     },
   ];
 
+  if (loading)
+    return (
+      <div className="text-center mt-4">
+        <Spinner animation="border" />
+      </div>
+    );
+
   return (
-    <div className="prospect-list">
-      <Card
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <UserOutlined style={{ color: "#1890ff" }} />
-            <span>Prospects List</span>
-            <Tag color="green" style={{ marginLeft: "10px" }}>
-              {filteredProspects.length} Prospects
-            </Tag>
-          </div>
-        }
-        extra={
-          <Button
-            type="primary"
-            onClick={fetchProspects}
-            loading={loading}
-            icon={<CalendarOutlined />}
-          >
-            Refresh
-          </Button>
-        }
-        style={{ marginBottom: "20px", borderRadius: "8px" }}
-      >
-        <Row gutter={[16, 16]} style={{ marginBottom: "20px" }}>
-          <Col span={24}>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <Input
-                placeholder="Search prospects by name, mobile, email, organisation, etc..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={handleSearchChange}
-                allowClear
-                style={{ flex: 1 }}
-              />
-              {searchText && <Button onClick={handleClearSearch}>Clear</Button>}
-            </div>
-          </Col>
-        </Row>
-      </Card>
-
-      <Card style={{ borderRadius: "8px" }}>
-        <Table
-          columns={columns}
-          dataSource={filteredProspects}
-          loading={loading}
-          scroll={{ x: 1800 }}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} prospects`,
-            showQuickJumper: true,
-          }}
-          rowKey="id"
+    <div className="w-100 p-2 mt-4">
+      <div className="d-flex align-items-center mb-3">
+        <UserOutlined
+          style={{ fontSize: "24px", color: "#1890ff", marginRight: "10px" }}
         />
-      </Card>
+        <h3 style={{ margin: 0 }}>Prospects List</h3>
+        <span
+          style={{
+            marginLeft: "15px",
+            backgroundColor: "#52c41a",
+            color: "white",
+            padding: "4px 12px",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "bold",
+          }}
+        >
+          {filteredData.length} Prospects
+        </span>
+        <div className="ms-auto">
+          <Button
+            variant="primary"
+            onClick={fetchProspects}
+            disabled={loading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            {loading ? <Spinner size="sm" /> : "Refresh"}
+          </Button>
+        </div>
+      </div>
 
-      {/* Details Modal */}
-      <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <UserOutlined style={{ color: "#1890ff" }} />
-            <span>Prospect Details - {selectedProspect?.name}</span>
-          </div>
-        }
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setModalVisible(false)}>
-            Close
-          </Button>,
-        ]}
-        width={800}
-      >
-        {selectedProspect && (
-          <div>
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Card size="small" title="Basic Information">
-                  <p>
-                    <strong>Group Code:</strong> {selectedProspect.groupCode}
-                  </p>
-                  <p>
-                    <strong>Group Head:</strong> {selectedProspect.groupName}
-                  </p>
-                  <p>
-                    <strong>Name:</strong> {selectedProspect.name}
-                  </p>
-                  <p>
-                    <strong>Gender:</strong> {selectedProspect.gender}
-                  </p>
-                  <p>
-                    <strong>Annual Income:</strong>{" "}
-                    {selectedProspect.annualIncome}
-                  </p>
-                  <p>
-                    <strong>Grade:</strong> {selectedProspect.grade}
-                  </p>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" title="Contact Information">
-                  <p>
-                    <strong>Mobile:</strong> {selectedProspect.mobile}
-                  </p>
-                  <p>
-                    <strong>WhatsApp:</strong> {selectedProspect.whatsapp}
-                  </p>
-                  <p>
-                    <strong>Contact:</strong> {selectedProspect.contact}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {selectedProspect.email}
-                  </p>
-                  <p>
-                    <strong>Aadhar:</strong> {selectedProspect.adharNumber}
-                  </p>
-                  <p>
-                    <strong>PAN:</strong> {selectedProspect.panCardNumber}
-                  </p>
-                </Card>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-              <Col span={12}>
-                <Card size="small" title="Professional Details">
-                  <p>
-                    <strong>Organisation:</strong>{" "}
-                    {selectedProspect.organisation}
-                  </p>
-                  <p>
-                    <strong>Designation:</strong> {selectedProspect.designation}
-                  </p>
-                  <p>
-                    <strong>Lead Source:</strong> {selectedProspect.leadSource}
-                  </p>
-                  <p>
-                    <strong>Lead Name:</strong> {selectedProspect.leadName}
-                  </p>
-                  <p>
-                    <strong>Lead Occupation:</strong>{" "}
-                    {selectedProspect.leadOccupation}
-                  </p>
-                  <p>
-                    <strong>Occupation Type:</strong>{" "}
-                    {selectedProspect.leadOccupationType}
-                  </p>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" title="Location Details">
-                  <p>
-                    <strong>City:</strong> {selectedProspect.city}
-                  </p>
-                  <p>
-                    <strong>Meeting Area:</strong>{" "}
-                    {selectedProspect.preferredMeetingArea}
-                  </p>
-                  <p>
-                    <strong>Residential Address:</strong>{" "}
-                    {selectedProspect.resiAddr}
-                  </p>
-                  <p>
-                    <strong>Office Address:</strong>{" "}
-                    {selectedProspect.officeAddr}
-                  </p>
-                  <p>
-                    <strong>Best Time:</strong> {selectedProspect.bestTime}
-                  </p>
-                  <p>
-                    <strong>Time:</strong> {selectedProspect.time}
-                  </p>
-                </Card>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-              <Col span={24}>
-                <Card size="small" title="Additional Information">
-                  <p>
-                    <strong>Allocated CRE:</strong>{" "}
-                    {selectedProspect.allocatedCRE}
-                  </p>
-                  <p>
-                    <strong>Allocated RM:</strong>{" "}
-                    {selectedProspect.allocatedRM}
-                  </p>
-                  <p>
-                    <strong>Calling Purpose:</strong>{" "}
-                    {selectedProspect.callingPurpose}
-                  </p>
-                  <p>
-                    <strong>Hobbies:</strong> {selectedProspect.hobbies}
-                  </p>
-                  <p>
-                    <strong>Native Place:</strong>{" "}
-                    {selectedProspect.nativePlace}
-                  </p>
-                  <p>
-                    <strong>Habits:</strong> {selectedProspect.habits}
-                  </p>
-                  <p>
-                    <strong>Social Link:</strong> {selectedProspect.socialLink}
-                  </p>
-                  <p>
-                    <strong>Remark:</strong> {selectedProspect.remark}
-                  </p>
-                </Card>
-              </Col>
-            </Row>
-          </div>
-        )}
-      </Modal>
+      <div className="card shadow-sm">
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          pagination
+          defaultSortFieldId="createdAt"
+          defaultSortAsc={false}
+          highlightOnHover
+          responsive
+          striped
+          bordered
+          fixedHeader
+          fixedHeaderScrollHeight="600px"
+          progressPending={loading}
+          progressComponent={
+            <div className="py-5">
+              <Spinner animation="border" />
+            </div>
+          }
+          subHeader
+          subHeaderComponent={
+            <div className="w-100 d-flex justify-content-between">
+              <div className="input-group" style={{ maxWidth: "600px" }}>
+                <span className="input-group-text">
+                  <SearchOutlined />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search prospects by name, mobile, email, organisation, etc..."
+                  className="form-control"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+              <div className="ms-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setSearchText("")}
+                  disabled={!searchText}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          }
+          customStyles={{
+            headCells: {
+              style: {
+                backgroundColor: "#f8f9fa",
+                fontWeight: "bold",
+                fontSize: "14px",
+              },
+            },
+            cells: {
+              style: {
+                padding: "12px",
+                verticalAlign: "middle",
+                fontSize: "14px",
+              },
+            },
+            rows: {
+              style: {
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              },
+            },
+          }}
+        />
+      </div>
     </div>
   );
-};
+}
 
 export default ProspectAppointmentList;

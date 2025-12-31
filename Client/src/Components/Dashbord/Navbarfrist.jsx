@@ -473,47 +473,18 @@ const Navbarfristn = () => {
                           HR Department
                         </h6>
                         <div className="space-y-1">
-                          {[
-                            {
-                              name: "Employee Recruitment",
-                              to: "/employee-recruitment",
-                            },
-                            { name: "Vacancy Notice", to: "/vacancy-notice" },
-                            { name: "Add Candidate", to: "/addcandidate" },
-                            { name: "Career Enquiry", to: "/career-enquiry" },
-                            {
-                              name: "Resume Shortlist",
-                              to: "/resume-shortlist",
-                            },
-                            {
-                              name: "Interview Process",
-                              to: "/interview-process",
-                            },
-                            {
-                              name: "Internship Candidate",
-                              to: "/internship-candidate",
-                            },
-                            { name: "Add Employee", to: "/add-employee" },
-                            { name: "Joining Data", to: "/joining-data" },
-                            {
-                              name: "Job Profile & Target",
-                              to: "/job-profile-target",
-                            },
-                            { name: "HR Rules & Regulations", to: "/hr-rules" },
-                            {
-                              name: "Employee Training",
-                              to: "/employee-training",
-                            },
-                          ].map((item, idx) => (
-                            <Link
-                              key={idx}
-                              to={item.to}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item.name}
-                            </Link>
-                          ))}
+                          {[{ name: "All Employees", to: "/add-employee" }].map(
+                            (item, idx) => (
+                              <Link
+                                key={idx}
+                                to={item.to}
+                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                                onClick={closeAllDropdowns}
+                              >
+                                {item.name}
+                              </Link>
+                            )
+                          )}
                         </div>
                       </div>
 
@@ -619,7 +590,7 @@ const Navbarfristn = () => {
                         </div>
 
                         <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
-                          CRM
+                          RM
                         </h6>
                         <div className="space-y-1">
                           <Link
@@ -627,7 +598,7 @@ const Navbarfristn = () => {
                             className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
                             onClick={closeAllDropdowns}
                           >
-                            CRM Department
+                            RM Department
                           </Link>
                         </div>
                       </div>
@@ -675,36 +646,22 @@ const Navbarfristn = () => {
 
                           {/* Mutual Fund Submenu */}
                           <div className="relative">
-                            <button
-                              onClick={toggleMutualFund}
-                              className="flex items-center justify-between w-full text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            >
-                              <span>Mutual Fund</span>
-                              <FiChevronDown
-                                className={`transform ${
-                                  openMutualFund ? "rotate-180" : ""
-                                }`}
-                              />
-                            </button>
-
-                            {openMutualFund && (
-                              <div className="ml-4 mt-1 space-y-1">
-                                <Link
-                                  to="/mutual-fund/registrar"
-                                  className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                                  onClick={closeAllDropdowns}
-                                >
-                                  Registrar
-                                </Link>
-                                <Link
-                                  to="/mutual-fund/amc"
-                                  className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                                  onClick={closeAllDropdowns}
-                                >
-                                  AMC Name
-                                </Link>
-                              </div>
-                            )}
+                            <div className="ml-4 mt-1 space-y-1">
+                              <Link
+                                to="/mutual-fund/registrar"
+                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                                onClick={closeAllDropdowns}
+                              >
+                                MF Registrar
+                              </Link>
+                              <Link
+                                to="/mutual-fund/amc"
+                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                                onClick={closeAllDropdowns}
+                              >
+                                MF AMC Name
+                              </Link>
+                            </div>
                           </div>
 
                           <Link
@@ -759,7 +716,7 @@ const Navbarfristn = () => {
                 >
                   <FiMessageSquare className="text-lg mb-1" />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">CRM</span>
+                    <span className="text-xs font-medium">RM</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
