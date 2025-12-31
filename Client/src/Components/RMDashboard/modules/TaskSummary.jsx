@@ -12,9 +12,15 @@ import {
   Alert,
   Tooltip,
   OverlayTrigger,
+  Row,
+  Col,
+  ListGroup,
+  Accordion,
+  Spinner,
+  Tabs,
+  Tab,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-import DOMPurify from "dompurify";
 import axios from "axios";
 import {
   FaEye,
@@ -26,21 +32,39 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
-  FaCalendarDay,
   FaExclamationCircle,
   FaFlag,
-  FaCalendarCheck,
   FaCheck,
   FaList,
-  FaChartLine,
-  FaUserClock,
   FaTasks,
-  FaLayerGroup,
+  FaUserClock,
   FaAngleRight,
   FaBuilding,
   FaBox,
+  FaUserFriends,
+  FaUsers,
+  FaInfoCircle,
+  FaCalendarDay,
+  FaFileSignature,
+  FaClipboardList,
+  FaCalendarCheck,
+  FaUserTie,
+  FaBriefcase,
+  FaMobileAlt,
+  FaEnvelope,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaIdCard,
+  FaLayerGroup,
+  FaHistory,
+  FaStickyNote,
+  FaPaperclip,
+  FaArrowRight,
+  FaShareAlt,
+  FaSync,
 } from "react-icons/fa";
-import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const TaskSummary = () => {
   const [tasks, setTasks] = useState([]);
@@ -59,6 +83,15 @@ const TaskSummary = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [checklistStatus, setChecklistStatus] = useState({});
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [taskClients, setTaskClients] = useState([]);
+  const [taskProspects, setTaskProspects] = useState([]);
+  const [showClientsModal, setShowClientsModal] = useState(false);
+
+  // ✅ NEW: Complete Task Modal State
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completionRemarks, setCompletionRemarks] = useState("");
+  const [completingTask, setCompletingTask] = useState(false);
 
   // Get current user
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -66,36 +99,37 @@ const TaskSummary = () => {
   const employeeName = user?.username || "Employee";
   const employeeRole = user?.role || "";
   const employeeCode = user?.employeeCode || "";
+  const navigate = useNavigate();
 
   // ✅ Priority configuration
   const priorityConfig = {
     urgent: {
       bg: "#dc3545",
-      color: "#fff",
-      icon: <FaExclamationCircle />,
+      textColor: "#fff",
       text: "URGENT",
       order: 0,
+      className: "bg-danger text-white",
     },
     high: {
       bg: "#fd7e14",
-      color: "#fff",
-      icon: <FaFlag />,
+      textColor: "#000",
       text: "HIGH",
       order: 1,
+      className: "bg-warning text-dark",
     },
     medium: {
       bg: "#0d6efd",
-      color: "#fff",
-      icon: null,
+      textColor: "#fff",
       text: "MEDIUM",
       order: 2,
+      className: "bg-primary text-white",
     },
     low: {
       bg: "#6c757d",
-      color: "#fff",
-      icon: null,
+      textColor: "#fff",
       text: "LOW",
       order: 3,
+      className: "bg-secondary text-white",
     },
   };
 
@@ -103,31 +137,31 @@ const TaskSummary = () => {
   const statusConfig = {
     pending: {
       bg: "#6c757d",
-      color: "#fff",
+      textColor: "#fff",
       text: "PENDING",
-      icon: <FaClock />,
+      className: "bg-secondary text-white",
     },
     "in-progress": {
       bg: "#0dcaf0",
-      color: "#fff",
+      textColor: "#000",
       text: "IN PROGRESS",
-      icon: <FaUserClock />,
+      className: "bg-info text-dark",
     },
     completed: {
       bg: "#198754",
-      color: "#fff",
+      textColor: "#fff",
       text: "COMPLETED",
-      icon: <FaCheckCircle />,
+      className: "bg-success text-white",
     },
     overdue: {
       bg: "#dc3545",
-      color: "#fff",
+      textColor: "#fff",
       text: "OVERDUE",
-      icon: <FaExclamationCircle />,
+      className: "bg-danger text-white",
     },
   };
 
-  // ✅ FIXED: Fetch employee's assigned tasks with proper data mapping
+  // ✅ Fetch employee's assigned tasks
   const fetchTasks = async () => {
     setLoading(true);
     try {
@@ -139,106 +173,77 @@ const TaskSummary = () => {
         const assignedTasks = response.data.data?.tasks || [];
         console.log(`✅ Found ${assignedTasks.length} assigned tasks`);
 
-        // ✅ DEBUG: Log first task to see structure
-        if (assignedTasks.length > 0) {
-          console.log("🔍 API Response Task Structure:", {
-            task: assignedTasks[0],
-            checklistsSource: assignedTasks[0].checklists,
-            parentChecklists: assignedTasks[0].parentTask?.checklists,
-            allKeys: Object.keys(assignedTasks[0]),
-          });
-        }
-
-        // ✅ FIXED: Properly map all fields
+        // ✅ Process and enhance tasks
         const enhancedTasks = assignedTasks.map((task) => {
-          // ✅ Get checklists - check multiple sources
+          // Get checklists
           const checklists =
-            task.checklists || // From individual task
-            task.parentTask?.checklists || // From parent composite task
-            [];
+            task.checklists || task.parentTask?.checklists || [];
 
-          // ✅ Get company name
+          // Get company name
           const companyName = task.company || task.sub || "No Company";
 
-          // ✅ Get product name
+          // Get product name
           const productName = task.product || task.cat?.name || "General";
 
-          // ✅ Get priority - from assignmentDetails (ACTUAL assigned priority)
+          // Get priority
           const priority =
             task.assignmentDetails?.priority || task.priority || "medium";
 
-          // ✅ Get due date - from assignmentDetails
+          // Get due date
           const dueDate = task.assignmentDetails?.dueDate || task.dueDate;
 
-          // ✅ Get status
+          // Get status
           const status =
             task.status || task.assignmentDetails?.status || "pending";
 
-          // ✅ Get estimated days
+          // Get estimated days
           const estimatedDays =
             task.estimatedDays || task.parentTask?.estimatedDays || 1;
 
-          // ✅ Get task name
+          // Get task name
           const taskName = task.name || task.parentTask?.name || "Unnamed Task";
 
-          // ✅ Calculate days left
+          // Calculate days left
           const daysLeft = calculateDaysLeft(dueDate);
 
-          // ✅ Calculate progress
+          // Calculate progress
           const progress = calculateProgress(task, checklists);
+          const type = task.parentTask?.type || task.type;
+          // Get assigned clients/prospects
+          const assignedClients = task.assignmentDetails?.assignedClients || [];
+          const assignedProspects =
+            task.assignmentDetails?.assignedProspects || [];
 
           return {
-            // Preserve original task data
             ...task,
-
-            // ✅ FIXED: Map all required fields properly
             _id: task.id || task._id,
             name: taskName,
-            sub: companyName, // Company name
-            company: companyName, // Also store as company for reference
-            cat: { name: productName },
+            company: companyName,
             product: productName,
-            priority, // ✅ This will show URGENT if assigned as urgent
-            dueDate, // ✅ This will show actual due date
+            priority,
+            dueDate,
             daysLeft,
             status,
             estimatedDays,
-            checklists, // ✅ This will now have checklist items
+            checklists,
             progress,
+            type,
+            assignedClients,
+            assignedProspects,
             assignmentDetails: task.assignmentDetails || {},
             parentTask: task.parentTask || {},
             remarks: task.assignmentDetails?.remarks || "",
-
-            // Store original data for debugging
-            _original: {
-              task: task,
-              checklistsSource: task.checklists,
-              parentChecklists: task.parentTask?.checklists,
-            },
           };
         });
-
-        console.log(`📊 Enhanced tasks sample:`, enhancedTasks[0]);
 
         setTasks(enhancedTasks);
         setFilteredTasks(enhancedTasks);
       } else {
-        console.error("❌ API returned unsuccessful:", response.data);
         setTasks([]);
         setFilteredTasks([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching assigned tasks:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      // Show user-friendly message
-      if (error.response?.status === 404) {
-        console.log("ℹ️ No assigned tasks found for this employee");
-      }
-
+      console.error("❌ Error fetching assigned tasks:", error);
       setTasks([]);
       setFilteredTasks([]);
     } finally {
@@ -246,11 +251,10 @@ const TaskSummary = () => {
     }
   };
 
-  // ✅ FIXED: Calculate progress with checklists
+  // ✅ Calculate progress with checklists
   const calculateProgress = (task, checklists) => {
     if (!checklists || checklists.length === 0) return 0;
 
-    // Get completed checklist items from localStorage
     const completedCount = checklists.filter((_, idx) => {
       const key = `checklist_${task.id || task._id}-${idx}`;
       return localStorage.getItem(key) === "completed";
@@ -259,14 +263,12 @@ const TaskSummary = () => {
     return Math.round((completedCount / checklists.length) * 100);
   };
 
-  // ✅ FIXED: Calculate days left
+  // ✅ Calculate days left
   const calculateDaysLeft = (dueDate) => {
     if (!dueDate) return null;
 
     try {
       let due;
-
-      // Handle different date formats
       if (dueDate instanceof Date) {
         due = dueDate;
       } else if (typeof dueDate === "string") {
@@ -281,22 +283,141 @@ const TaskSummary = () => {
 
       return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
     } catch (error) {
-      console.error("❌ Error calculating days left:", error);
       return null;
     }
   };
 
-  // ✅ Calculate task status
-  const calculateTaskStatus = (task, dueDate) => {
-    if (task.status === "completed") return "completed";
+  // ✅ NEW: Complete Task Function
+  const handleCompleteTask = async () => {
+    if (!selectedTask) return;
 
-    const daysLeft = calculateDaysLeft(dueDate);
+    if (!completionRemarks.trim()) {
+      alert("Please add completion remarks before marking as complete");
+      return;
+    }
 
-    if (daysLeft < 0) return "overdue";
-    if (daysLeft <= 1) return "urgent";
-    if (task.status === "in-progress") return "in-progress";
+    setCompletingTask(true);
+    try {
+      // ✅ Simple API call to update task status
+      const response = await axios.put(`/api/Task/${selectedTask._id}/status`, {
+        status: "completed",
+        remarks: completionRemarks,
+        employeeId: employeeId,
+        employeeName: employeeName,
+      });
 
-    return "pending";
+      if (response.data.success) {
+        alert(`✅ Task "${selectedTask.name}" marked as completed!`);
+
+        // Clear form
+        setCompletionRemarks("");
+        setShowCompleteModal(false);
+
+        // Refresh tasks list (completed task will be filtered out)
+        fetchTasks();
+      } else {
+        alert("Failed to complete task: " + response.data.message);
+      }
+    } catch (error) {
+      console.error("Error completing task:", error);
+      alert(
+        "Failed to complete task: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setCompletingTask(false);
+    }
+  };
+
+  // ✅ Load task details including clients/prospects
+  const loadTaskDetails = async (task) => {
+    setLoadingDetails(true);
+    setSelectedTask(task);
+
+    try {
+      // Load clients if assigned
+      if (task.assignedClients?.length > 0) {
+        const clientsResponse = await axios.post("/api/client/get-by-ids", {
+          ids: task.assignedClients,
+        });
+        setTaskClients(clientsResponse.data?.clients || []);
+      } else {
+        setTaskClients([]);
+      }
+
+      // Load prospects if assigned
+      if (task.assignedProspects?.length > 0) {
+        const prospectsResponse = await axios.post("/api/prospect/get-by-ids", {
+          ids: task.assignedProspects,
+        });
+        setTaskProspects(prospectsResponse.data?.prospects || []);
+      } else {
+        setTaskProspects([]);
+      }
+    } catch (error) {
+      console.error("Error loading client/prospect details:", error);
+      setTaskClients([]);
+      setTaskProspects([]);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // ✅ Handle view task
+  const handleViewTask = (task) => {
+    loadTaskDetails(task);
+    setShowTaskDetail(true);
+  };
+
+  // ✅ Handle view clients/prospects
+  const handleViewClientsProspects = (task) => {
+    loadTaskDetails(task);
+    setShowClientsModal(true);
+  };
+
+  // ✅ Format date
+  const formatDate = (date) => {
+    if (!date) return "Not set";
+    try {
+      if (date instanceof Date) {
+        return format(date, "dd MMM yyyy");
+      }
+      if (typeof date === "string") {
+        return format(parseISO(date), "dd MMM yyyy");
+      }
+      return "Invalid date";
+    } catch {
+      return "Invalid date";
+    }
+  };
+
+  // ✅ Days left display
+  const renderDaysLeft = (days) => {
+    if (days === null || days === undefined) {
+      return <span className="text-muted">-</span>;
+    }
+
+    if (days < 0) {
+      return (
+        <span className="text-danger fw-semibold">
+          {Math.abs(days)} days late
+        </span>
+      );
+    } else if (days === 0) {
+      return <span className="text-warning fw-semibold">Due today</span>;
+    } else if (days <= 2) {
+      return (
+        <span className="text-warning fw-semibold">
+          {days} day{days !== 1 ? "s" : ""} left
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-success">
+          {days} day{days !== 1 ? "s" : ""} left
+        </span>
+      );
+    }
   };
 
   useEffect(() => {
@@ -347,70 +468,11 @@ const TaskSummary = () => {
     setCurrentPage(1);
   }, [tasks, filterStatus, filterPriority, sortConfig]);
 
-  // ✅ Request sort
-  const requestSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // ✅ Get sort icon
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <FaSort className="text-muted" />;
-    return sortConfig.direction === "asc" ? (
-      <FaSortUp className="text-primary" />
-    ) : (
-      <FaSortDown className="text-primary" />
-    );
-  };
-
   // ✅ Pagination
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentTasks = filteredTasks.slice(indexOfFirstEntry, indexOfLastEntry);
   const totalPages = Math.ceil(filteredTasks.length / entriesPerPage);
-
-  // ✅ Task actions
-  const handleViewTask = (task) => {
-    setSelectedTask(task);
-    setShowTaskDetail(true);
-  };
-
-  const handleChecklistView = (task) => {
-    setSelectedTask(task);
-    setSelectedChecklist(task.checklists || []);
-    setShowChecklistModal(true);
-  };
-
-  const updateChecklistItem = (itemIndex, status) => {
-    if (!selectedTask) return;
-
-    const key = `checklist_${selectedTask._id}-${itemIndex}`;
-    localStorage.setItem(key, status);
-
-    // Update progress in UI
-    fetchTasks();
-  };
-
-  const markTaskAsCompleted = async (taskId) => {
-    try {
-      // Call your backend API to mark task as completed
-      const response = await axios.patch(`/api/Task/${taskId}/complete`, {
-        completedBy: employeeId,
-        completedAt: new Date().toISOString(),
-      });
-
-      if (response.data.success) {
-        alert("✅ Task marked as completed!");
-        fetchTasks(); // Refresh list
-      }
-    } catch (error) {
-      console.error("Error completing task:", error);
-      alert("Failed to mark task as completed: " + error.message);
-    }
-  };
 
   // ✅ Calculate statistics
   const stats = {
@@ -420,49 +482,8 @@ const TaskSummary = () => {
     completed: tasks.filter((t) => t.status === "completed").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
     urgentPriority: tasks.filter((t) => t.priority === "urgent").length,
-  };
-
-  // ✅ Format date
-  const formatDate = (date) => {
-    if (!date) return "Not set";
-    try {
-      if (date instanceof Date) {
-        return format(date, "MMM dd, yyyy");
-      }
-      if (typeof date === "string") {
-        return format(parseISO(date), "MMM dd, yyyy");
-      }
-      return "Invalid date";
-    } catch {
-      return "Invalid date";
-    }
-  };
-
-  // ✅ Days left display
-  const renderDaysLeft = (days) => {
-    if (days === null || days === undefined) {
-      return <span className="text-muted">-</span>;
-    }
-
-    if (days < 0) {
-      return (
-        <span className="text-danger fw-bold">{Math.abs(days)} days late</span>
-      );
-    } else if (days === 0) {
-      return <span className="text-warning fw-bold">Due today</span>;
-    } else if (days <= 2) {
-      return (
-        <span className="text-warning">
-          {days} day{days !== 1 ? "s" : ""} left
-        </span>
-      );
-    } else {
-      return (
-        <span className="text-success">
-          {days} day{days !== 1 ? "s" : ""} left
-        </span>
-      );
-    }
+    withClients: tasks.filter((t) => t.assignedClients?.length > 0).length,
+    withProspects: tasks.filter((t) => t.assignedProspects?.length > 0).length,
   };
 
   // Loading state
@@ -471,12 +492,10 @@ const TaskSummary = () => {
       <div className="container-fluid mt-4">
         <Card className="border-0 shadow-sm">
           <Card.Body className="text-center py-5">
-            <div className="spinner-border text-primary mb-3" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <h5 className="text-muted">Loading your tasks...</h5>
+            <Spinner animation="border" variant="primary" className="mb-3" />
+            <h5 className="text-dark mb-2">Loading your tasks...</h5>
             <p className="text-muted small">
-              Fetching assigned tasks for {employeeName}
+              Please wait while we fetch your assigned tasks
             </p>
           </Card.Body>
         </Card>
@@ -485,188 +504,93 @@ const TaskSummary = () => {
   }
 
   return (
-    <div className="container-fluid mt-3 relative bottom-7">
+    <div className="container-fluid mt-3">
       {/* Header */}
-      <div className="d-flex  justify-content-between align-items-center mb-4">
-        <div>
-          <p className="text-muted mb-0">
-            {employeeName} • {employeeRole} • {employeeCode}
-          </p>
-        </div>
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-2">
           <Button
             variant="outline-primary"
-            size="sm"
             onClick={fetchTasks}
             className="border"
           >
-            ↻ Refresh
+            <FaSync className="me-2" />
+            Refresh Tasks
           </Button>
-          <Dropdown>
-            <Dropdown.Toggle variant="light" size="sm" className="border">
-              <FaFilter className="me-2" />
-              Filters
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Header>Status</Dropdown.Header>
-              {Object.entries(statusConfig).map(([key, config]) => (
-                <Dropdown.Item
-                  key={key}
-                  active={filterStatus === key}
-                  onClick={() =>
-                    setFilterStatus(filterStatus === key ? "all" : key)
-                  }
-                >
-                  <Badge
-                    bg={config.bg}
-                    className="me-2"
-                    pill
-                    style={{ width: "10px", height: "10px" }}
-                  />
-                  {config.text}
-                </Dropdown.Item>
-              ))}
-              <Dropdown.Divider />
-              <Dropdown.Header>Priority</Dropdown.Header>
-              {Object.entries(priorityConfig).map(([key, config]) => (
-                <Dropdown.Item
-                  key={key}
-                  active={filterPriority === key}
-                  onClick={() =>
-                    setFilterPriority(filterPriority === key ? "all" : key)
-                  }
-                >
-                  <Badge
-                    bg={config.bg}
-                    className="me-2"
-                    pill
-                    style={{ width: "10px", height: "10px" }}
-                  />
-                  {config.text}
-                </Dropdown.Item>
-              ))}
-              <Dropdown.Divider />
-              <Dropdown.Item
-                onClick={() => {
-                  setFilterStatus("all");
-                  setFilterPriority("all");
-                }}
-              >
-                Clear All Filters
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="row g-3 mb-4">
-        {[
-          {
-            label: "Total Tasks",
-            value: stats.total,
-            icon: <FaTasks />,
-            color: "dark",
-          },
-          {
-            label: "Pending",
-            value: stats.pending,
-            icon: <FaClock />,
-            color: "primary",
-          },
-          {
-            label: "In Progress",
-            value: stats.inProgress,
-            icon: <FaUserClock />,
-            color: "info",
-          },
-          {
-            label: "Completed",
-            value: stats.completed,
-            icon: <FaCheckCircle />,
-            color: "success",
-          },
-          {
-            label: "Overdue",
-            value: stats.overdue,
-            icon: <FaExclamationCircle />,
-            color: "danger",
-          },
-          {
-            label: "Urgent",
-            value: stats.urgentPriority,
-            icon: <FaFlag />,
-            color: "warning",
-          },
-        ].map((stat, idx) => (
-          <div key={idx} className="col-md-2 col-6">
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body className="p-3">
-                <div className="d-flex align-items-center">
-                  <div
-                    className={`bg-${stat.color} bg-opacity-10 rounded p-2 me-3`}
-                  >
-                    <div className={`text-${stat.color}`}>{stat.icon}</div>
-                  </div>
-                  <div>
-                    <h3 className="fw-bold mb-0">{stat.value}</h3>
-                    <p className="text-muted small mb-0">{stat.label}</p>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </div>
-        ))}
       </div>
 
       {/* Tasks Table */}
       <Card className="border-0 shadow-sm">
         <Card.Header className="bg-white border-0 py-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 className="fw-bold text-dark mb-0">
+          <Row className="align-items-center">
+            <Col md={6}>
+              <h5 className="fw-bold text-dark mb-0">
                 Assigned Tasks ({filteredTasks.length})
-              </h6>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-muted small">Show:</span>
-              <Form.Select
-                size="sm"
-                className="w-auto border"
-                value={entriesPerPage}
-                onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </Form.Select>
-            </div>
-          </div>
+              </h5>
+            </Col>
+            <Col md={6}>
+              <div className="d-flex justify-content-end gap-2">
+                <Dropdown>
+                  <Dropdown.Toggle variant="light" size="sm" className="border">
+                    Status: {filterStatus === "all" ? "All" : filterStatus}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => setFilterStatus("all")}>
+                      All Status
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <Dropdown.Item
+                        key={key}
+                        active={filterStatus === key}
+                        onClick={() => setFilterStatus(key)}
+                      >
+                        <Badge className={config.className} pill>
+                          {config.text}
+                        </Badge>
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+
+                <Dropdown>
+                  <Dropdown.Toggle variant="light" size="sm" className="border">
+                    Priority:{" "}
+                    {filterPriority === "all" ? "All" : filterPriority}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => setFilterPriority("all")}>
+                      All Priorities
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                    {Object.entries(priorityConfig).map(([key, config]) => (
+                      <Dropdown.Item
+                        key={key}
+                        active={filterPriority === key}
+                        onClick={() => setFilterPriority(key)}
+                      >
+                        <Badge className={config.className} pill>
+                          {config.text}
+                        </Badge>
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
+            </Col>
+          </Row>
         </Card.Header>
 
         <Card.Body className="p-0">
           {filteredTasks.length === 0 ? (
             <div className="text-center py-5">
               <FaTasks size={48} className="text-muted mb-3" />
-              <h5 className="text-muted mb-2">No assigned tasks</h5>
+              <h5 className="text-dark mb-2">No tasks found</h5>
               <p className="text-muted small mb-4">
                 {tasks.length === 0
                   ? "You don't have any tasks assigned yet."
                   : "No tasks match your current filters."}
               </p>
-              {tasks.length > 0 && (
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => {
-                    setFilterStatus("all");
-                    setFilterPriority("all");
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
             </div>
           ) : (
             <>
@@ -674,173 +598,104 @@ const TaskSummary = () => {
                 <Table hover className="mb-0">
                   <thead className="bg-light">
                     <tr>
-                      <th
-                        className="py-3 px-3 border-bottom"
-                        style={{ width: "5%" }}
-                      >
-                        <span className="text-muted">#</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom"
-                        style={{ width: "25%" }}
-                      >
-                        <Button
-                          variant="link"
-                          className="text-dark fw-bold p-0 text-decoration-none"
-                        >
-                          Task Name
-                        </Button>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom"
-                        style={{ width: "15%" }}
-                      >
-                        <span className="text-muted">Company</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom"
-                        style={{ width: "12%" }}
-                      >
-                        <span className="text-muted">Product</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "10%" }}
-                      >
-                        <Button
-                          variant="link"
-                          className="text-dark fw-bold p-0 text-decoration-none"
-                        >
-                          Priority
-                        </Button>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "12%" }}
-                      >
-                        <Button
-                          variant="link"
-                          className="text-dark fw-bold p-0 text-decoration-none"
-                        >
-                          Due Date
-                        </Button>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "8%" }}
-                      >
-                        <span className="text-muted">Checklist</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "8%" }}
-                      >
-                        <span className="text-muted">Progress</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "10%" }}
-                      >
-                        <span className="text-muted">Status</span>
-                      </th>
-                      <th
-                        className="py-3 px-3 border-bottom text-center"
-                        style={{ width: "5%" }}
-                      >
-                        <span className="text-muted">Actions</span>
-                      </th>
+                      <th className="px-3 py-3">Task Category</th>
+                      <th className="py-3 px-3">Task Name</th>
+                      <th className="py-3 px-3">Company</th>
+                      <th className="py-3 px-3">Priority</th>
+                      <th className="py-3 px-3">Due Date</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3">Checklists</th>
+                      <th className="py-3 px-3">Progress</th>
+                      <th className="py-3 px-3">Client/Prospect</th>
+                      <th className="py-3 px-3 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {currentTasks.map((task, index) => (
+                    {currentTasks.map((task) => (
                       <tr key={task._id}>
-                        <td className="py-3 px-3 align-middle">
-                          <div className="text-muted fw-medium">
-                            {indexOfFirstEntry + index + 1}
-                          </div>
+                        <td className="py-3 px-3">
+                          <span className="text-dark">{task.type || "-"}</span>
                         </td>
-                        <td className="py-3 px-3 align-middle">
+                        <td className="py-3 px-3">
                           <div>
                             <h6 className="fw-semibold text-dark mb-1">
                               {task.name}
                             </h6>
                             {task.remarks && (
                               <small className="text-muted d-block">
-                                <FaFileAlt size={10} className="me-1" />
-                                {task.remarks.length > 30
-                                  ? `${task.remarks.substring(0, 30)}...`
+                                {task.remarks.length > 40
+                                  ? `${task.remarks.substring(0, 40)}...`
                                   : task.remarks}
                               </small>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-3 align-middle">
-                          <div className="text-dark">
-                            {task.company || task.sub || "-"}
-                          </div>
+                        <td className="py-3 px-3">
+                          <span className="text-dark">
+                            {task.company || "-"}
+                          </span>
                         </td>
-                        <td className="py-3 px-3 align-middle">
-                          <Badge bg="light" text="dark" className="px-2 py-1">
-                            {task.product || task.cat?.name || "General"}
+                        <td className="py-3 px-3">
+                          <Badge
+                            className={`px-3 py-1 ${
+                              priorityConfig[task.priority]?.className ||
+                              "bg-secondary text-white"
+                            }`}
+                            style={{
+                              backgroundColor:
+                                priorityConfig[task.priority]?.bg,
+                              color: priorityConfig[task.priority]?.textColor,
+                            }}
+                          >
+                            {priorityConfig[task.priority]?.text || "MEDIUM"}
                           </Badge>
                         </td>
-                        <td className="py-3 px-3 text-center align-middle">
-                          {priorityConfig[task.priority || "medium"]?.text}
-                        </td>
-                        <td className="py-3 px-3 text-center align-middle">
+                        <td className="py-3 px-3">
                           <div>
                             <div className="text-dark small">
                               {task.dueDate ? formatDate(task.dueDate) : "-"}
                             </div>
-                            <div className="text-muted extra-small">
+                            <div className="small">
                               {renderDaysLeft(task.daysLeft)}
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-center align-middle">
-                          <OverlayTrigger
-                            placement="top"
-                            overlay={
-                              <Tooltip>
-                                <strong>Checklist Items:</strong>
-                                {task.checklists &&
-                                task.checklists.length > 0 ? (
-                                  task.checklists.map((item, idx) => (
-                                    <div key={idx} className="small">
-                                      •{" "}
-                                      {item.length > 30
-                                        ? `${item.substring(0, 30)}...`
-                                        : item}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="small">
-                                    No checklist items
-                                  </div>
-                                )}
-                              </Tooltip>
-                            }
+                        <td className="py-3 px-3">
+                          <Badge
+                            className={`px-3 py-1 ${
+                              statusConfig[task.status]?.className ||
+                              "bg-secondary text-white"
+                            }`}
+                            style={{
+                              backgroundColor: statusConfig[task.status]?.bg,
+                              color: statusConfig[task.status]?.textColor,
+                            }}
                           >
-                            <Button
-                              variant={
-                                task.checklists?.length > 0
-                                  ? "outline-primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              onClick={() => handleChecklistView(task)}
-                              disabled={
-                                !task.checklists || task.checklists.length === 0
-                              }
-                              className="px-2 py-1"
-                            >
-                              <FaList size={12} className="me-1" />
-                              {task.checklists?.length || 0}
-                            </Button>
-                          </OverlayTrigger>
+                            {statusConfig[task.status]?.text || "PENDING"}
+                          </Badge>
                         </td>
-                        <td className="py-3 px-3 text-center align-middle">
-                          <div className="d-flex align-items-center justify-content-center">
+                        <td className="py-3 px-3">
+                          <Button
+                            variant={
+                              task.checklists?.length > 0
+                                ? "outline-primary"
+                                : "outline-secondary"
+                            }
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setSelectedChecklist(task.checklists || []);
+                              setShowChecklistModal(true);
+                            }}
+                            disabled={!task.checklists?.length}
+                            className="px-3"
+                          >
+                            <FaList className="me-1" />
+                            {task.checklists?.length || 0} items
+                          </Button>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="d-flex align-items-center">
                             <ProgressBar
                               now={task.progress || 0}
                               className="flex-grow-1 me-2"
@@ -854,41 +709,56 @@ const TaskSummary = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-center align-middle">
-                          <Badge
-                            bg={statusConfig[task.status]?.bg}
-                            className="px-3 py-1"
-                            style={{ minWidth: "100px" }}
-                          >
-                            {statusConfig[task.status]?.icon && (
-                              <span className="me-1">
-                                {statusConfig[task.status].icon}
-                              </span>
+                        <td className="py-3 px-3">
+                          <div>
+                            {task.assignedClients?.length > 0 && (
+                              <div className="mb-1">
+                                <Badge bg="success" className="me-1">
+                                  {task.assignedClients.length} Client(s)
+                                </Badge>
+                              </div>
                             )}
-                            {statusConfig[task.status]?.text ||
-                              task.status?.toUpperCase()}
-                          </Badge>
+                            {task.assignedProspects?.length > 0 && (
+                              <div>
+                                <Badge bg="info">
+                                  {task.assignedProspects.length} Prospect(s)
+                                </Badge>
+                              </div>
+                            )}
+                            {task.assignedClients?.length === 0 &&
+                              task.assignedProspects?.length === 0 && (
+                                <span className="text-muted small">None</span>
+                              )}
+                          </div>
                         </td>
-                        <td className="py-3 px-3 text-center align-middle">
-                          <div className="d-flex justify-content-center gap-1">
+                        <td className="py-3 px-3 text-center">
+                          <div className="d-flex justify-content-center gap-2">
                             <Button
                               variant="outline-primary"
                               size="sm"
-                              onClick={() => handleViewTask(task)}
+                              onClick={() => navigate(`/rm/task/${task._id}`)}
                               title="View Details"
-                              className="px-2 py-1"
+                              className="px-3"
                             >
-                              <FaEye size={12} />
+                              <FaEye className="me-1" />
+                              View
                             </Button>
+
+                            {/* ✅ NEW: Complete Task Button */}
                             <Button
-                              variant="outline-success"
+                              variant="success"
                               size="sm"
-                              onClick={() => markTaskAsCompleted(task._id)}
-                              title="Mark Complete"
+                              onClick={() => {
+                                setSelectedTask(task);
+                                setCompletionRemarks("");
+                                setShowCompleteModal(true);
+                              }}
                               disabled={task.status === "completed"}
-                              className="px-2 py-1"
+                              title="Mark as Completed"
+                              className="px-3"
                             >
-                              <FaCheckCircle size={12} />
+                              <FaCheckCircle className="me-1" />
+                              Complete
                             </Button>
                           </div>
                         </td>
@@ -939,183 +809,388 @@ const TaskSummary = () => {
         </Card.Body>
       </Card>
 
-      {/* Task Detail Modal */}
+      {/* ✅ NEW: Complete Task Modal */}
+      <Modal
+        show={showCompleteModal}
+        onHide={() => setShowCompleteModal(false)}
+        centered
+      >
+        <Modal.Header className="border-bottom py-3">
+          <Modal.Title className="fw-bold text-dark">
+            <FaCheckCircle className="me-2 text-success" />
+            Complete Task
+          </Modal.Title>
+          <Button
+            variant="link"
+            className="p-0 ms-auto"
+            onClick={() => setShowCompleteModal(false)}
+          >
+            ×
+          </Button>
+        </Modal.Header>
+
+        <Modal.Body>
+          {selectedTask && (
+            <div>
+              <div className="mb-4">
+                <h6 className="text-dark fw-semibold">{selectedTask.name}</h6>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  <Badge bg="light" text="dark">
+                    {selectedTask.company}
+                  </Badge>
+                  <Badge bg="info">{selectedTask.type || "Task"}</Badge>
+                  {selectedTask.dueDate && (
+                    <Badge bg="warning">
+                      <FaCalendarAlt className="me-1" />
+                      Due: {formatDate(selectedTask.dueDate)}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <Form.Group className="mb-4">
+                <Form.Label className="fw-semibold">
+                  <FaStickyNote className="me-2" />
+                  Completion Remarks *
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={4}
+                  placeholder="Describe what was completed, any challenges faced, results achieved..."
+                  value={completionRemarks}
+                  onChange={(e) => setCompletionRemarks(e.target.value)}
+                />
+                <Form.Text className="text-muted">
+                  Please provide details about task completion
+                </Form.Text>
+              </Form.Group>
+
+              <Alert variant="warning">
+                <FaExclamationCircle className="me-2" />
+                <strong>Note:</strong> Once completed, this task will be removed
+                from your active tasks list.
+              </Alert>
+            </div>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer className="border-top">
+          <Button
+            variant="light"
+            onClick={() => setShowCompleteModal(false)}
+            disabled={completingTask}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="success"
+            onClick={handleCompleteTask}
+            disabled={completingTask || !completionRemarks.trim()}
+          >
+            {completingTask ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Completing...
+              </>
+            ) : (
+              <>
+                <FaCheckCircle className="me-2" />
+                Mark as Completed
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ✅ Task Details Modal */}
       <Modal
         show={showTaskDetail}
         onHide={() => setShowTaskDetail(false)}
         size="lg"
         centered
+        scrollable
       >
-        <Modal.Header closeButton className="border-0">
-          <Modal.Title className="fw-bold">Task Details</Modal.Title>
+        <Modal.Header className="border-bottom py-3">
+          <Modal.Title className="fw-bold text-dark">Task Details</Modal.Title>
+          <Button
+            variant="link"
+            className="p-0 ms-auto"
+            onClick={() => setShowTaskDetail(false)}
+          >
+            ×
+          </Button>
         </Modal.Header>
-        <Modal.Body>
-          {selectedTask && (
-            <div>
-              <h4 className="fw-bold text-dark mb-4">{selectedTask.name}</h4>
 
-              <div className="row g-3 mb-4">
-                <div className="col-md-6">
+        <Modal.Body>
+          {loadingDetails ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-3 text-muted">Loading task details...</p>
+            </div>
+          ) : selectedTask ? (
+            <div>
+              {/* Task Header */}
+              <div className="mb-4">
+                <h4 className="fw-bold text-dark mb-2">{selectedTask.name}</h4>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  <Badge
+                    className={priorityConfig[selectedTask.priority]?.className}
+                  >
+                    {priorityConfig[selectedTask.priority]?.text}
+                  </Badge>
+                  <Badge
+                    className={statusConfig[selectedTask.status]?.className}
+                  >
+                    {statusConfig[selectedTask.status]?.text}
+                  </Badge>
+                  <Badge bg="light" text="dark">
+                    {selectedTask.company}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Task Information Grid */}
+              <Row className="g-3 mb-4">
+                <Col md={6}>
                   <Card className="border h-100">
                     <Card.Body>
-                      <h6 className="text-muted mb-3">Task Information</h6>
+                      <h6 className="text-dark fw-semibold mb-3">
+                        Task Information
+                      </h6>
                       <div className="mb-2">
                         <small className="text-muted d-block">Company</small>
                         <span className="fw-semibold">
-                          {selectedTask.company || selectedTask.sub || "N/A"}
+                          {selectedTask.company}
                         </span>
                       </div>
                       <div className="mb-2">
                         <small className="text-muted d-block">Product</small>
-                        <Badge bg="light" text="dark">
-                          {selectedTask.product ||
-                            selectedTask.cat?.name ||
-                            "General"}
-                        </Badge>
+                        <span className="fw-semibold">
+                          {selectedTask.product}
+                        </span>
+                      </div>
+                      <div className="mb-2">
+                        <small className="text-muted d-block">Duration</small>
+                        <span className="fw-semibold">
+                          {selectedTask.estimatedDays} day
+                          {selectedTask.estimatedDays !== 1 ? "s" : ""}
+                        </span>
                       </div>
                       <div className="mb-2">
                         <small className="text-muted d-block">
-                          Estimated Duration
+                          Checklist Items
                         </small>
                         <span className="fw-semibold">
-                          <FaClock className="me-1" />
-                          {selectedTask.estimatedDays || 1} day
-                          {selectedTask.estimatedDays !== 1 ? "s" : ""}
+                          {selectedTask.checklists?.length || 0}
                         </span>
                       </div>
                     </Card.Body>
                   </Card>
-                </div>
-                <div className="col-md-6">
+                </Col>
+
+                <Col md={6}>
                   <Card className="border h-100">
                     <Card.Body>
-                      <h6 className="text-muted mb-3">Assignment Details</h6>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Priority</small>
-                        <Badge
-                          bg={
-                            priorityConfig[selectedTask.priority || "medium"]
-                              ?.bg
-                          }
-                        >
-                          {
-                            priorityConfig[selectedTask.priority || "medium"]
-                              ?.text
-                          }
-                        </Badge>
-                      </div>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Status</small>
-                        <Badge bg={statusConfig[selectedTask.status]?.bg}>
-                          {statusConfig[selectedTask.status]?.text ||
-                            selectedTask.status}
-                        </Badge>
-                      </div>
+                      <h6 className="text-dark fw-semibold mb-3">
+                        Assignment Details
+                      </h6>
                       <div className="mb-2">
                         <small className="text-muted d-block">Due Date</small>
                         <span className="fw-semibold">
-                          <FaCalendarAlt className="me-1" />
                           {selectedTask.dueDate
                             ? formatDate(selectedTask.dueDate)
                             : "Not set"}
                         </span>
+                        <div className="small">
+                          {renderDaysLeft(selectedTask.daysLeft)}
+                        </div>
                       </div>
-                      {selectedTask.assignmentDetails?.remarks && (
+                      <div className="mb-2">
+                        <small className="text-muted d-block">Progress</small>
+                        <div className="d-flex align-items-center">
+                          <ProgressBar
+                            now={selectedTask.progress || 0}
+                            className="flex-grow-1 me-2"
+                            style={{ height: "8px" }}
+                            variant={
+                              selectedTask.progress === 100
+                                ? "success"
+                                : "primary"
+                            }
+                          />
+                          <span className="fw-semibold">
+                            {selectedTask.progress || 0}%
+                          </span>
+                        </div>
+                      </div>
+                      {selectedTask.remarks && (
                         <div>
                           <small className="text-muted d-block">Remarks</small>
                           <span className="fw-semibold">
-                            {selectedTask.assignmentDetails.remarks}
+                            {selectedTask.remarks}
                           </span>
                         </div>
                       )}
                     </Card.Body>
                   </Card>
-                </div>
-              </div>
+                </Col>
+              </Row>
 
-              {/* Progress */}
-              <div className="mb-4">
-                <h6 className="text-dark mb-2">
-                  Progress: {selectedTask.progress || 0}%
-                </h6>
-                <ProgressBar
-                  now={selectedTask.progress || 0}
-                  variant={
-                    selectedTask.progress === 100 ? "success" : "primary"
-                  }
-                  style={{ height: "10px" }}
-                />
-              </div>
+              {/* Checklists Section */}
+              {selectedTask.checklists?.length > 0 && (
+                <Card className="border mb-4">
+                  <Card.Header className="bg-light">
+                    <h6 className="text-dark fw-semibold mb-0">
+                      Checklist Items
+                    </h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <ListGroup variant="flush">
+                      {selectedTask.checklists.map((item, index) => {
+                        const key = `checklist_${selectedTask._id}-${index}`;
+                        const status = localStorage.getItem(key) || "pending";
 
-              {/* Actions */}
-              <div className="d-flex gap-2">
+                        return (
+                          <ListGroup.Item key={index} className="border-0 px-0">
+                            <div className="d-flex align-items-center">
+                              <Form.Check
+                                type="checkbox"
+                                checked={status === "completed"}
+                                onChange={(e) => {
+                                  const newStatus = e.target.checked
+                                    ? "completed"
+                                    : "pending";
+                                  localStorage.setItem(key, newStatus);
+                                  fetchTasks();
+                                }}
+                                className="me-3"
+                                id={`check-${selectedTask._id}-${index}`}
+                              />
+                              <label
+                                htmlFor={`check-${selectedTask._id}-${index}`}
+                                className={`flex-grow-1 mb-0 ${
+                                  status === "completed"
+                                    ? "text-decoration-line-through text-muted"
+                                    : "text-dark"
+                                }`}
+                                style={{ cursor: "pointer" }}
+                              >
+                                {item}
+                              </label>
+                              <Badge
+                                bg={
+                                  status === "completed" ? "success" : "light"
+                                }
+                                text={status === "completed" ? "white" : "dark"}
+                                className="ms-2"
+                              >
+                                {status === "completed"
+                                  ? "Completed"
+                                  : "Pending"}
+                              </Badge>
+                            </div>
+                          </ListGroup.Item>
+                        );
+                      })}
+                    </ListGroup>
+                  </Card.Body>
+                </Card>
+              )}
+
+              {/* Action Buttons */}
+              <div className="d-flex gap-2 mt-4 pt-3 border-top">
                 <Button
                   variant="primary"
-                  onClick={() => handleChecklistView(selectedTask)}
-                  disabled={
-                    !selectedTask.checklists ||
-                    selectedTask.checklists.length === 0
-                  }
+                  onClick={() => {
+                    setShowTaskDetail(false);
+                    setShowChecklistModal(true);
+                  }}
+                  disabled={!selectedTask.checklists?.length}
                 >
-                  <FaList className="me-2" />
-                  View Checklist ({selectedTask.checklists?.length || 0})
+                  Manage Checklists
                 </Button>
                 <Button
                   variant="success"
                   onClick={() => {
-                    markTaskAsCompleted(selectedTask._id);
                     setShowTaskDetail(false);
+                    setCompletionRemarks("");
+                    setShowCompleteModal(true);
                   }}
                   disabled={selectedTask.status === "completed"}
                 >
                   <FaCheckCircle className="me-2" />
-                  Mark Complete
+                  Complete Task
+                </Button>
+                <Button
+                  variant="light"
+                  onClick={() => setShowTaskDetail(false)}
+                >
+                  Close
                 </Button>
               </div>
+            </div>
+          ) : (
+            <div className="text-center py-5">
+              <FaExclamationCircle size={48} className="text-muted mb-3" />
+              <h5 className="text-muted mb-2">Task not found</h5>
             </div>
           )}
         </Modal.Body>
       </Modal>
 
-      {/* Checklist Modal */}
+      {/* ✅ Checklist Modal */}
       <Modal
         show={showChecklistModal}
         onHide={() => setShowChecklistModal(false)}
         centered
       >
-        <Modal.Header closeButton className="border-0">
-          <Modal.Title className="fw-bold">
-            <FaList className="me-2" />
+        <Modal.Header className="border-bottom py-3">
+          <Modal.Title className="fw-bold text-dark">
             Checklist Items
           </Modal.Title>
+          <Button
+            variant="link"
+            className="p-0 ms-auto"
+            onClick={() => setShowChecklistModal(false)}
+          >
+            ×
+          </Button>
         </Modal.Header>
+
         <Modal.Body>
           {selectedTask && selectedChecklist.length > 0 ? (
             <div>
-              <h6 className="mb-3 text-dark">{selectedTask.name}</h6>
-              <div className="list-group">
+              <h6 className="text-dark fw-semibold mb-3">
+                {selectedTask.name}
+              </h6>
+              <ListGroup variant="flush">
                 {selectedChecklist.map((item, index) => {
                   const key = `checklist_${selectedTask._id}-${index}`;
                   const status = localStorage.getItem(key) || "pending";
 
                   return (
-                    <div key={index} className="list-group-item border-0 p-3">
+                    <ListGroup.Item key={index} className="border-0 px-0 py-2">
                       <div className="d-flex align-items-center">
                         <Form.Check
                           type="checkbox"
                           checked={status === "completed"}
-                          onChange={(e) =>
-                            updateChecklistItem(
-                              index,
-                              e.target.checked ? "completed" : "pending"
-                            )
-                          }
+                          onChange={(e) => {
+                            const newStatus = e.target.checked
+                              ? "completed"
+                              : "pending";
+                            localStorage.setItem(key, newStatus);
+                            fetchTasks();
+                          }}
                           className="me-3"
-                          id={`check-${selectedTask._id}-${index}`}
+                          id={`modal-check-${selectedTask._id}-${index}`}
                         />
                         <label
-                          htmlFor={`check-${selectedTask._id}-${index}`}
-                          className="flex-grow-1 mb-0"
+                          htmlFor={`modal-check-${selectedTask._id}-${index}`}
+                          className={`flex-grow-1 mb-0 ${
+                            status === "completed"
+                              ? "text-decoration-line-through text-muted"
+                              : "text-dark"
+                          }`}
                           style={{ cursor: "pointer" }}
                         >
                           {item}
@@ -1125,32 +1200,36 @@ const TaskSummary = () => {
                           text={status === "completed" ? "white" : "dark"}
                           className="ms-2"
                         >
-                          {status === "completed" ? "✓ Done" : "Pending"}
+                          {status === "completed" ? "Completed" : "Pending"}
                         </Badge>
                       </div>
-                    </div>
+                    </ListGroup.Item>
                   );
                 })}
-              </div>
+              </ListGroup>
             </div>
           ) : (
-            <div className="text-center py-4">
+            <div className="text-center py-5">
               <FaList size={32} className="text-muted mb-3" />
-              <h5 className="text-muted">No checklist items</h5>
+              <h5 className="text-muted mb-2">No checklist items</h5>
               <p className="text-muted small">
                 This task doesn't have any checklist items.
               </p>
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-0">
+
+        <Modal.Footer className="border-top">
           <Button variant="light" onClick={() => setShowChecklistModal(false)}>
             Close
           </Button>
           {selectedChecklist.length > 0 && (
             <Button
               variant="primary"
-              onClick={() => setShowChecklistModal(false)}
+              onClick={() => {
+                fetchTasks();
+                setShowChecklistModal(false);
+              }}
             >
               Save Changes
             </Button>
@@ -1159,11 +1238,9 @@ const TaskSummary = () => {
       </Modal>
 
       {/* Footer */}
-      <div className="mt-4 text-center">
-        <p className="text-muted small">
+      <div className="mt-4 pt-3 border-top">
+        <p className="text-muted small text-center">
           Task Management System • {employeeRole} Dashboard • {employeeName}
-          <br />
-          Last updated: {format(new Date(), "PPpp")}
         </p>
       </div>
     </div>

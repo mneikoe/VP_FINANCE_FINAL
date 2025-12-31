@@ -151,7 +151,77 @@ const personalDetailsSchema = new mongoose.Schema({
   dom: Date,
   profilepic: String,
 });
-
+// Models/SusProsClientSchema.js mein NAYA SCHEMA ADD KARO
+const taskHistorySchema = new mongoose.Schema(
+  {
+    taskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "taskHistory.taskType",
+      required: true,
+    },
+    taskType: {
+      type: String,
+      enum: ["CompositeTask", "MarketingTask", "ServiceTask"],
+      required: true,
+    },
+    taskName: {
+      type: String,
+      required: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+    },
+    assignedToName: String,
+    assignedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    dueDate: Date,
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+    },
+    statusUpdates: [
+      {
+        status: {
+          type: String,
+          enum: ["pending", "in-progress", "completed", "cancelled"],
+          required: true,
+        },
+        remarks: String,
+        updatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Employee",
+        },
+        updatedByName: String,
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        files: [
+          {
+            filename: String,
+            originalName: String,
+            uploadedAt: Date,
+          },
+        ],
+      },
+    ],
+    currentStatus: {
+      type: String,
+      enum: ["pending", "in-progress", "completed", "cancelled"],
+      default: "pending",
+    },
+    completedAt: Date,
+    completionRemarks: String,
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true }
+);
 // Models/SusProsClientSchema.js में callTaskSchema update करो
 const callTaskSchema = new mongoose.Schema(
   {
@@ -225,6 +295,7 @@ const TestShema = new mongoose.Schema({
     enum: ["suspect", "prospect", "client"],
   },
   personalDetails: personalDetailsSchema,
+  taskHistory: [taskHistorySchema],
   education: {
     types: {
       type: String,

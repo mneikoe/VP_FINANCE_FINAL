@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const employeeModel = require("../Models/employeeModel");
-
+const mongoose = require("mongoose");
 exports.addEmployee = async (req, res) => {
   try {
     const employeeData = req.body;
@@ -581,6 +581,253 @@ exports.getEmployeeAreas = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching employee areas",
+      error: error.message,
+    });
+  }
+};
+// employeeController.js mein ye function add karo
+
+// Get clients/prospects by employee's work area
+exports.getClientsByEmployeeArea = async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID is required",
+      });
+    }
+
+    // Step 1: Find employee details
+    const employee = await employeeModel.findById(employeeId);
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    // Step 2: Get employee's work area and subarea
+    const workArea = employee.workArea;
+    const workSubArea = employee.workSubArea;
+
+    if (!workArea) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee does not have a work area assigned",
+      });
+    }
+
+    // Step 3: Fetch TestSchema model
+    const TestModel = require("../Models/SusProsClientSchema");
+
+    // Step 4: Build filter based on employee's area
+    let areaFilter = {};
+
+    if (workArea) {
+      areaFilter["personalDetails.preferredMeetingArea"] = workArea;
+    }
+
+    if (workSubArea && workSubArea !== "") {
+      areaFilter["personalDetails.subArea"] = workSubArea;
+    }
+
+    // Step 5: Find clients/prospects in that area
+    const clients = await TestModel.find(areaFilter)
+      .select("status personalDetails assignedToRM assignedToRMName")
+      .populate("assignedToRM", "name employeeCode")
+      .sort({ createdAt: -1 });
+
+    // Step 6: Format response
+    const formattedClients = clients.map((client) => ({
+      _id: client._id,
+      status: client.status,
+      name: client.personalDetails?.name || "N/A",
+      mobileNo: client.personalDetails?.mobileNo || "N/A",
+      preferredMeetingArea:
+        client.personalDetails?.preferredMeetingArea || "N/A",
+      subArea: client.personalDetails?.subArea || "N/A",
+      city: client.personalDetails?.city || "N/A",
+      assignedToRMName: client.assignedToRMName || "Not Assigned",
+      assignedToRMCode: client.assignedToRM?.employeeCode || "N/A",
+    }));
+
+    // Step 7: Calculate stats
+    const stats = {
+      total: clients.length,
+      suspects: clients.filter((c) => c.status === "suspect").length,
+      prospects: clients.filter((c) => c.status === "prospect").length,
+      clients: clients.filter((c) => c.status === "client").length,
+      employeeArea: workArea,
+      employeeSubArea: workSubArea || "Not specified",
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Clients fetched by employee area successfully",
+      data: {
+        employee: {
+          name: employee.name,
+          employeeCode: employee.employeeCode,
+          role: employee.role,
+          workArea: workArea,
+          workSubArea: workSubArea || "Not specified",
+          workCity: employee.workCity,
+        },
+        stats: stats,
+        clients: formattedClients,
+        count: clients.length,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching clients by employee area:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching clients by employee area",
+      error: error.message,
+    });
+  }
+};
+
+// NEW: Get clients by area/subarea (for any user)
+exports.getClientsByArea = async (req, res) => {
+  try {
+    const { area, subArea, status } = req.query;
+
+    let filter = {};
+
+    if (area && area !== "") {
+      filter["personalDetails.preferredMeetingArea"] = area;
+    }
+
+    if (subArea && subArea !== "") {
+      filter["personalDetails.subArea"] = subArea;
+    }
+
+    if (status && status !== "") {
+      filter.status = status;
+    }
+
+    const TestModel = require("../Models/SusProsClientSchema");
+    const clients = await TestModel.find(filter)
+      .select("status personalDetails")
+      .sort({ createdAt: -1 });
+
+    const formattedClients = clients.map((client) => ({
+      _id: client._id,
+      status: client.status,
+      name: client.personalDetails?.name || "N/A",
+      mobileNo: client.personalDetails?.mobileNo || "N/A",
+      emailId: client.personalDetails?.emailId || "N/A",
+      area: client.personalDetails?.preferredMeetingArea || "N/A",
+      subArea: client.personalDetails?.subArea || "N/A",
+      city: client.personalDetails?.city || "N/A",
+      groupCode: client.personalDetails?.groupCode || "N/A",
+      organisation: client.personalDetails?.organisation || "N/A",
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Clients fetched by area successfully",
+      data: formattedClients,
+      count: clients.length,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching clients by area:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching clients by area",
+      error: error.message,
+    });
+  }
+};
+exports.getClientsByAllocatedRM = async (req, res) => {
+  try {
+    const { allocatedRM } = req.query;
+
+    console.log("🔍 [API] Received allocatedRM:", allocatedRM);
+
+    // Step 1: Find RM
+    const employeeModel = require("../Models/employeeModel");
+    const TestModel = require("../Models/SusProsClientSchema");
+
+    let rmFilter = {};
+
+    // Agar ObjectId format mein hai
+    if (mongoose.Types.ObjectId.isValid(allocatedRM.trim())) {
+      rmFilter._id = allocatedRM.trim();
+    } else {
+      // Agar name ya code search kar rahe ho
+      rmFilter.$or = [
+        { name: { $regex: allocatedRM.trim(), $options: "i" } },
+        { employeeCode: { $regex: allocatedRM.trim(), $options: "i" } },
+      ];
+    }
+
+    rmFilter.role = "RM";
+
+    const rm = await employeeModel
+      .findOne(rmFilter)
+      .select("_id name employeeCode");
+
+    if (!rm) {
+      console.log(`❌ RM not found: ${allocatedRM}`);
+      return res.status(200).json({
+        success: true,
+        message: `RM "${allocatedRM}" not found`,
+        data: { clients: [], count: 0 },
+      });
+    }
+
+    console.log(`✅ Found RM: ${rm.name} (${rm.employeeCode})`);
+
+    // ✅ STEP 2: CORRECT FILTER - Search inside personalDetails
+    const filter = {
+      "personalDetails.allocatedRM": rm._id.toString(),
+      status: { $in: ["client", "prospect"] },
+    };
+
+    console.log("📋 Correct filter:", JSON.stringify(filter));
+
+    // Step 3: Execute query
+    const clients = await TestModel.find(filter).sort({ createdAt: -1 });
+
+    console.log(`📊 Found ${clients.length} clients/prospects`);
+
+    // Step 4: Format response
+    const formattedClients = clients.map((client) => ({
+      _id: client._id,
+      status: client.status,
+      name: client.personalDetails?.name || "N/A",
+      mobileNo: client.personalDetails?.mobileNo || "N/A",
+      emailId: client.personalDetails?.emailId || "N/A",
+      area: client.personalDetails?.preferredMeetingArea || "N/A",
+      subArea: client.personalDetails?.subArea || "N/A",
+      city: client.personalDetails?.city || "N/A",
+      groupCode: client.personalDetails?.groupCode || "N/A",
+      allocatedRM: client.personalDetails?.allocatedRM || "N/A",
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${formattedClients.length} clients/prospects for RM ${rm.name}`,
+      data: {
+        rm: {
+          id: rm._id,
+          name: rm.name,
+          employeeCode: rm.employeeCode,
+        },
+        clients: formattedClients,
+        count: formattedClients.length,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
       error: error.message,
     });
   }
