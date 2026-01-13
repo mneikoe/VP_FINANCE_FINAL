@@ -61,11 +61,13 @@ const LeadsTableLayout = ({ title, data, columns, onActionClick }) => {
         </thead>
         <tbody>
           {paginatedData.length > 0 ? (
+            
             paginatedData.map((row, idx) => (
+              
               <tr key={idx}>
                 {columns.map((col, ci) => {
                   const cellValue = row[col.key];
-
+                     
                   // Action column ke liye special rendering
                   if (col.key === "action" && cellValue) {
                     return (
@@ -89,7 +91,12 @@ const LeadsTableLayout = ({ title, data, columns, onActionClick }) => {
                   }
 
                   // Normal cells
-                  return <td key={ci}>{cellValue || "-"}</td>;
+                  return <td key={ci}>
+                    {cellValue !== undefined && cellValue !== null && cellValue !== ""
+                      ? cellValue
+                      : "-"}
+                  </td>
+
                 })}
               </tr>
             ))

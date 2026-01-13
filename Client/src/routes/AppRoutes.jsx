@@ -53,7 +53,7 @@ import OfficePurchase from "../Components/Offices/Other/OfficePurchase";
 import ImpDocument from "../Components/Offices/Other/ImportantDocument/ImpDocument";
 import Registertelecaller from "../pages/telecaller/Register";
 import TelecallerPanel from "../Components/EmployeeDashboard/TelecallerDashboard/telecallerDashboard";
-import LoginTelecaller from "../pages/telecaller/login";
+import LoginTelecaller from "../pages/telecaller/Login";
 import Registertelemarketer from "../pages/telemarketer/Register";
 import RegisterOE from "../pages/OE/Register";
 import RegisterOA from "../pages/OA/Register";

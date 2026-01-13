@@ -190,6 +190,7 @@ const AppointmentsScheduledPage = () => {
   const tableData = useMemo(() => {
     return appointments.map((appointment, index) => {
       const personalDetails = appointment.personalDetails || {};
+      
 
       return {
         key: appointment._id,
@@ -201,6 +202,7 @@ const AppointmentsScheduledPage = () => {
         contactNo: personalDetails.contactNo || "-",
         leadSource: personalDetails.leadSource || "-",
         leadOccupation: personalDetails.leadOccupation || "-",
+        callingPurpose: personalDetails.callingPurpose || '-',
         area: personalDetails.city || "-",
         appointmentDate: formatDate(appointment.appointmentDate),
         appointmentTime: formatTimeAMPM(appointment.appointmentTime),
@@ -212,7 +214,7 @@ const AppointmentsScheduledPage = () => {
 
   const columns = [
     {
-      header: "Task Date",
+      header: "Last Call Date",
       key: "taskDate",
       width: "110px",
     },
@@ -227,12 +229,12 @@ const AppointmentsScheduledPage = () => {
       width: "150px",
     },
     {
-      header: "Mobile No",
+      header: "Mobile Number",
       key: "mobileNo",
       width: "110px",
     },
     {
-      header: "Contact No",
+      header: "Phone Number",
       key: "contactNo",
       width: "120px",
     },
@@ -247,6 +249,11 @@ const AppointmentsScheduledPage = () => {
       width: "130px",
     },
     {
+      header: "Calling Purpose", //i have added this
+      key: "callingPurpose",
+      width: "130px",
+    },
+    {
       header: "Area",
       key: "area",
       width: "100px",
@@ -257,7 +264,7 @@ const AppointmentsScheduledPage = () => {
       width: "120px",
     },
     {
-      header: "Time",
+      header: " Appointment Time",
       key: "appointmentTime",
       width: "130px",
       align: "center",
@@ -785,14 +792,16 @@ const AppointmentsScheduledPage = () => {
               </thead>
               <tbody>
                 {tableData.map((row) => (
+                
                   <tr
-                    key={row.key}
-                    style={{
-                      borderBottom: "1px solid #f0f0f0",
-                      backgroundColor: "#fff",
-                      transition: "background-color 0.2s",
-                    }}
+                  key={row.key}
+                  style={{
+                    borderBottom: "1px solid #f0f0f0",
+                    backgroundColor: "#fff",
+                    transition: "background-color 0.2s",
+                  }}
                   >
+                
                     <td
                       style={{
                         padding: "12px 16px",
@@ -895,6 +904,18 @@ const AppointmentsScheduledPage = () => {
                     >
                       {row.leadOccupation}
                     </td>
+                    <td
+  style={{
+    padding: "12px 16px",
+    fontSize: "13px",
+    color: "#bfbfbf",
+    fontStyle: "italic",
+    textAlign: "center",
+  }}
+>
+ 
+  {row.callingPurpose}
+</td>
                     <td
                       style={{
                         padding: "12px 16px",

@@ -446,7 +446,7 @@ const PersonalDetailsForm = ({
         </Col>
         <Col md={5}>
           <Form.Group controlId="groupName">
-            <Form.Label>Group Head</Form.Label>
+            <Form.Label>Group Name</Form.Label>
             <Form.Control
               name="groupName"
               type="text"
@@ -1049,7 +1049,7 @@ const PersonalDetailsForm = ({
         {/* ✅ NEW ALLOCATED RM FIELD */}
         <Col md={2}>
           <Form.Group controlId="allocatedRM">
-            <Form.Label>Allocated RM</Form.Label>
+            <Form.Label>Allocated R. Manager</Form.Label>
             <Form.Select
               name="allocatedRM"
               value={formData.allocatedRM ?? ""}

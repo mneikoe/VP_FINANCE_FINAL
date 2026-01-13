@@ -37,6 +37,7 @@ function ProspectAppointmentList() {
       if (response.data && response.data.success) {
         const prospectsData = response.data.prospects || [];
 
+
         const processedProspects = prospectsData.map((prospect, index) => {
           const personalDetails = prospect.personalDetails || {};
 
@@ -93,8 +94,8 @@ function ProspectAppointmentList() {
       console.error("Error fetching prospects:", error);
       message.error(
         error.response?.data?.message ||
-          error.message ||
-          "Error loading prospects."
+        error.message ||
+        "Error loading prospects."
       );
       setProspects([]);
       setFilteredData([]);
