@@ -477,7 +477,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
           </Col>
           <Col md={5}>
             <Form.Group controlId="groupName">
-              <Form.Label>Group Head</Form.Label>
+              <Form.Label>Group Name</Form.Label>
               <Form.Control
                 name="groupName"
                 type="text"

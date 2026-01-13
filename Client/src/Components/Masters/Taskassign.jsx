@@ -43,6 +43,7 @@ const TaskAssign = () => {
       setLoadingEmployees(true);
       const response = await axiosInstance.get("/api/telecaller");
       const telecallers = response.data.telecallers || [];
+     console.log(response)
 
       const groupedEmployees = {
         Telecaller: telecallers.map((tc) => ({
@@ -537,18 +538,20 @@ const TaskAssign = () => {
                       }
                     />
                   </th>
-                  <th>#</th>
+                  {/* <th>#</th> */}
+                  <th>First Assign Date</th>
                   <th>Group Code</th>
-                  <th>Grade</th>
                   <th>Group Name</th>
-                  <th>Name</th>
-                  <th>Contact Numbers</th>
+                  <th>Mobile Numbers</th>
+                  <th>Phone Numbers</th>
                   <th>Lead Source</th>
-                  <th>Lead Name</th>
+                  <th>Lead Occupation</th>
                   <th>Calling Purpose</th>
+                  <th>Area</th>
+                  <th>Assigned Telecaller Task</th>
                   <th>Status</th>
-                  <th>Assigned To</th>
-                  <th>Assigned At</th>
+                  {/* <th>Assigned To</th>
+                  <th>Assigned At</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -607,27 +610,43 @@ const TaskAssign = () => {
                             }
                           />
                         </td>
-                        <td className="index-column">{index + 1}</td>
+                        {/* <td className="index-column">{index + 1}</td> */}
+                        <td></td>
+                        <td>{personal.groupName || "-"}</td>
                         <td>{personal.groupCode || "-"}</td>
                         <td>{personal.grade || "-"}</td>
-                        <td>{personal.groupName || "-"}</td>
                         <td>{personal.name || "-"}</td>
-                        <td>
-                          <div className="contact-info">
-                            {personal.mobileNo && (
-                              <div>📱 {personal.mobileNo}</div>
+                        <td>📱 {suspect.mobileNo}
+                        {/* <div className="contact-info">
+                          {suspect.mobileNo && suspect.mobileNo !== "-" && (
+                            <div>📱 {suspect.mobileNo}</div>
+                          )}
+                          {suspect.contactNo &&
+                            suspect.contactNo !== "-" &&
+                            suspect.contactNo !== suspect.mobileNo && (
+                              <div>📞 {suspect.contactNo}</div>
                             )}
-                            {personal.contactNo &&
-                              personal.contactNo !== personal.mobileNo && (
-                                <div>📞 {personal.contactNo}</div>
-                              )}
-                          </div>
-                        </td>
+                        </div> */}
+                      </td>
+                      <td>📞 {suspect.contactNo}</td>
                         <td>{personal.leadSource || "-"}</td>
-                        <td>{personal.leadName || "-"}</td>
+                        {/* <td>{personal.leadName || "-"}</td> */}
+                        <td>{personal.leadOccupation || "-"}</td>
                         <td>{personal.callingPurpose || "-"}</td>
+                        <td>{personal.area || "-"}</td>
+                        <td>{/* assigned telecaller taskd */}</td>
                         <td>{getStatusBadge(suspect.status || "suspect")}</td>
-                        <td>
+                       
+                        {/* <td>
+                          {assignedDate ? (
+                            <div className="assigned-date">
+                              {formatDate(assignedDate)}
+                            </div>
+                          ) : (
+                            <span className="no-date">-</span>
+                          )}
+                        </td>
+                         <td>
                           {isAssigned ? (
                             <div className="assigned-info">
                               <div className="assigned-person">
@@ -641,16 +660,7 @@ const TaskAssign = () => {
                           ) : (
                             <span className="not-assigned">-</span>
                           )}
-                        </td>
-                        <td>
-                          {assignedDate ? (
-                            <div className="assigned-date">
-                              {formatDate(assignedDate)}
-                            </div>
-                          ) : (
-                            <span className="no-date">-</span>
-                          )}
-                        </td>
+                        </td> */}
                       </tr>
                     );
                   })

@@ -117,7 +117,7 @@ const RMAssignment = () => {
 
       if (response.data && response.data.success) {
         const suspectsData = response.data.data || [];
-
+console.log(suspectsData)
         const processedSuspects = suspectsData.map((suspect, index) => {
           const assignedTo = suspect.assignedTo || {};
           return {
@@ -497,20 +497,24 @@ const RMAssignment = () => {
                     }
                   />
                 </th>
-                <th>#</th>
+                {/* <th>#</th> */}
+                <th>Last Call Date</th>
+                <th>Telecaller Name</th>
                 <th>Group Code</th>
-                <th>Grade</th>
+                {/* <th>Grade</th> */}
                 <th>Group Name</th>
-                <th>Name</th>
-                <th>Gender</th>
-                <th>Contact Numbers</th>
+                {/* <th>Name</th> */}
+                {/* <th>Gender</th> */}
+                <th>Mobile Numbers</th>
+                <th>Phone Numbers</th>
                 <th>Lead Source</th>
-                <th>Lead Name</th>
+                <th>Lead Occupation</th>
+                <th>Calling Purpose</th>
                 <th>Area</th>
                 <th>Calling Purpose</th>
                 <th>Appointment Date</th>
                 <th>Appointment Time</th>
-                <th>Scheduled On</th>
+                
 
                 <th>Status</th>
                 <th>Assigned To</th>
@@ -561,14 +565,26 @@ const RMAssignment = () => {
                           }
                         />
                       </td>
-                      <td className="index-column">{index + 1}</td>
+                         <td>
+                        {suspect.scheduledOn ? (
+                          <div className="scheduled-on-info">
+                            <div className="scheduled-date">
+                              {formatDate(suspect.scheduledOn)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="not-scheduled">-</span>
+                        )}
+                      </td>
+                      <td>{/* telecaller name from backend */}</td>
+                      {/* <td className="index-column">{index + 1}</td> */}
                       <td>{suspect.groupCode}</td>
-                      <td>{suspect.grade}</td>
+                      {/* <td>{suspect.grade}</td> */}
                       <td>{suspect.groupName}</td>
-                      <td>{suspect.name}</td>
-                      <td>{suspect.gender}</td>
-                      <td>
-                        <div className="contact-info">
+                      {/* <td>{suspect.name}</td> */}
+                      {/* <td>{suspect.gender}</td> */}
+                      <td>📱 {suspect.mobileNo}
+                        {/* <div className="contact-info">
                           {suspect.mobileNo && suspect.mobileNo !== "-" && (
                             <div>📱 {suspect.mobileNo}</div>
                           )}
@@ -577,10 +593,12 @@ const RMAssignment = () => {
                             suspect.contactNo !== suspect.mobileNo && (
                               <div>📞 {suspect.contactNo}</div>
                             )}
-                        </div>
+                        </div> */}
                       </td>
+                      <td>📞 {suspect.contactNo}</td>
                       <td>{suspect.leadSource}</td>
-                      <td>{suspect.leadName}</td>
+                      <td> {/* lead occupation from backend */} </td>
+                      <td> {suspect.callingPurpose} </td>
                       <td>{suspect.area}</td>
                       <td>{suspect.callingPurpose}</td>
                       <td>
@@ -603,17 +621,7 @@ const RMAssignment = () => {
                           <span className="no-time">-</span>
                         )}
                       </td>
-                      <td>
-                        {suspect.scheduledOn ? (
-                          <div className="scheduled-on-info">
-                            <div className="scheduled-date">
-                              {formatDate(suspect.scheduledOn)}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="not-scheduled">-</span>
-                        )}
-                      </td>
+                   
 
                       <td>{getStatusBadge(suspect.status || "suspect")}</td>
                       <td>

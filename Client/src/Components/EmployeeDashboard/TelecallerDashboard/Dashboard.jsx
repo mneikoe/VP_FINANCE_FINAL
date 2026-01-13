@@ -102,6 +102,7 @@ const DashboardPage = () => {
         });
         setAssignedSuspects(sortedData);
         calculateRealTimeStats(sortedData);
+        
       } else {
         setAssignedError(
           response.data.message || "Failed to fetch assigned suspects"
@@ -349,9 +350,8 @@ const DashboardPage = () => {
           type: "call",
           date: followUpDate.toLocaleDateString("en-GB"),
           time: latestTask.nextFollowUpTime || "-",
-          displayText: `Call on ${followUpDate.toLocaleDateString("en-GB")} ${
-            latestTask.nextFollowUpTime || ""
-          }`,
+          displayText: `Call on ${followUpDate.toLocaleDateString("en-GB")} ${latestTask.nextFollowUpTime || ""
+            }`,
         };
       }
 
@@ -580,19 +580,22 @@ const DashboardPage = () => {
           <p>No data available.</p>
         </div>
       );
+      
     }
+    
 
     return (
       <table className="task-table ">
         <thead>
           <tr>
-            <th>Task Date</th>
+            <th>Previous Call Date</th>
             <th>Group Code</th>
             <th>Group Name</th>
             <th>Mobile No</th>
-            <th>Contact No</th>
+            <th>Phone No</th>
             <th>Lead Source</th>
             <th>Lead Occupation</th>
+            <th>Calling Purpose</th>
             <th>Area</th>
             <th>Status</th>
             {showNextAction && <th>Next Action</th>}
@@ -601,6 +604,7 @@ const DashboardPage = () => {
         </thead>
         <tbody>
           {filteredData.map((suspect) => {
+            console.log(suspect)
             const personal = suspect.personalDetails || {};
             const latestStatus = getLatestCallStatus(suspect);
             const statusBadgeClass = getStatusBadgeColor(latestStatus);
@@ -761,6 +765,20 @@ const DashboardPage = () => {
                   </div>
                 </td>
 
+                {/* Calling Purpose (empty for now) */}
+                <td className="calling-purpose-cell">
+                  <div
+                    className="cell-content"
+                    style={{
+                      textAlign: "center",
+                      color: "#bfbfbf",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    {personal.callingPurpose}
+                  </div>
+                </td>
+
                 {/* Area */}
                 <td>
                   <span className="area-badge">{personal.city || "-"}</span>
@@ -905,17 +923,10 @@ const DashboardPage = () => {
       <div className="today-call-cards">
         <div className="card total">
           <h3>{realTimeStats.total}</h3>
-          <p>Total Assigned</p>
+          <p>All Assign Leads</p>
           <div className="card-subtitle">All Leads</div>
         </div>
-        <div
-          className="card balance"
-          onClick={() => navigate("/telecaller/balance-leads?filter=today")}
-        >
-          <h3>{realTimeStats.notContacted}</h3>
-          <p>Balance Leads</p>
-          <div className="card-subtitle">Not Contacted Today</div>
-        </div>
+
         <div
           className="card forwarded"
           onClick={() => navigate("/telecaller/forwarded-leads?filter=today")}
@@ -924,14 +935,14 @@ const DashboardPage = () => {
           <p>Forwarded Leads</p>
           <div className="card-subtitle">Today's Follow-ups</div>
         </div>
-        <div
+        {/* <div
           className="card callback"
           onClick={() => navigate("/telecaller/callback?filter=today")}
         >
           <h3>{realTimeStats.callback}</h3>
           <p>Callbacks</p>
           <div className="card-subtitle">Today's Scheduled</div>
-        </div>
+        </div> */}
         <div
           className="card success"
           onClick={() =>
@@ -941,6 +952,14 @@ const DashboardPage = () => {
           <h3>{realTimeStats.appointmentScheduled}</h3>
           <p>Successful</p>
           <div className="card-subtitle">Today's Appointments</div>
+        </div>
+        <div
+          className="card balance"
+          onClick={() => navigate("/telecaller/balance-leads?filter=today")}
+        >
+          <h3>{realTimeStats.notContacted}</h3>
+          <p>Balance Leads</p>
+          <div className="card-subtitle">Not Contacted Today</div>
         </div>
       </div>
 
@@ -1166,32 +1185,32 @@ const DashboardPage = () => {
               "Busy on Another Call",
               "Others",
             ].includes(formData.status) && (
-              <>
-                <div className="form-row">
-                  <label>Next Call Date *</label>
-                  <input
-                    type="date"
-                    name="nextCallDate"
-                    value={formData.nextCallDate}
-                    onChange={handleFormChange}
-                    min={new Date().toISOString().split("T")[0]}
-                    required
-                    disabled={isAssigning}
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Next Call Time *</label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={formData.time}
-                    onChange={handleFormChange}
-                    required
-                    disabled={isAssigning}
-                  />
-                </div>
-              </>
-            )}
+                <>
+                  <div className="form-row">
+                    <label>Next Call Date *</label>
+                    <input
+                      type="date"
+                      name="nextCallDate"
+                      value={formData.nextCallDate}
+                      onChange={handleFormChange}
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                      disabled={isAssigning}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Next Call Time *</label>
+                    <input
+                      type="time"
+                      name="time"
+                      value={formData.time}
+                      onChange={handleFormChange}
+                      required
+                      disabled={isAssigning}
+                    />
+                  </div>
+                </>
+              )}
 
             {formData.status === "Callback" && (
               <>
@@ -1266,10 +1285,10 @@ const DashboardPage = () => {
                   formData.status === "Not Interested"
                     ? "Please specify reason for not interest..."
                     : formData.status === "Wrong Number"
-                    ? "Please provide details..."
-                    : formData.status === "Not Reachable"
-                    ? "Please specify reachability issues..."
-                    : "Enter remarks..."
+                      ? "Please provide details..."
+                      : formData.status === "Not Reachable"
+                        ? "Please specify reachability issues..."
+                        : "Enter remarks..."
                 }
                 style={{ width: "100%", minHeight: "80px", resize: "vertical" }}
                 required={[

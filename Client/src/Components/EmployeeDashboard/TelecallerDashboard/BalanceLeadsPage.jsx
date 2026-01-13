@@ -43,6 +43,7 @@ const BalanceLeadsPage = () => {
           contactNo: personal.contactNo || "-",
           leadSource: personal.leadSource || "-",
           leadOccupation: personal.leadOccupation || "-",
+          callingPurpose: personal.callingPurpose || "-",
           area: personal.city || "-",
           currentStatus: "Not Contacted",
           // Action cell: yahan se hum button render karenge LeadsTableLayout me
@@ -61,13 +62,14 @@ const BalanceLeadsPage = () => {
 
   // Columns config – exactly as required
   const columns = [
-    { header: "Task Date", key: "taskDate", width: "100px" },
+    { header: "Assign Date", key: "taskDate", width: "100px" },
     { header: "Group Code", key: "groupCode", width: "120px" },
     { header: "Group Name", key: "groupName", width: "140px" },
     { header: "Mobile No", key: "mobileNo", width: "130px" },
-    { header: "Contact No", key: "contactNo", width: "130px" },
+    { header: "Phone No", key: "contactNo", width: "130px" },
     { header: "Lead Source", key: "leadSource", width: "110px" },
     { header: "Lead Occupation", key: "leadOccupation", width: "130px" },
+    { header: "Calling Purpose", key: "callingPurpose", width: "130px" },
     { header: "Area", key: "area", width: "100px" },
     { header: "Status", key: "currentStatus", width: "120px" },
     { header: "Action", key: "action", width: "120px" },

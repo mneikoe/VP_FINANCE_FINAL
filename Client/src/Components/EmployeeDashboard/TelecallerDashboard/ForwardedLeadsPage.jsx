@@ -119,8 +119,16 @@ const ForwardedLeadsPage = () => {
     };
   };
 
-  // OLD FILTERING LOGIC (Same as before)
   useEffect(() => {
+    // 🛑 Guard: wait until suspects are actually loaded
+    if (!Array.isArray(suspects) || suspects.length === 0 || !telecallerId) {
+      setFilteredLeads([]);
+      dispatch(setforwardedleadCount(0));
+      return;
+    }
+
+    setIsLoading(true); // 🔄 start loading
+
     let rlcnt = 0;
 
     const filteredData = suspects.filter((suspect) => {
@@ -160,7 +168,7 @@ const ForwardedLeadsPage = () => {
 
       const isForwarded = forwardedStatuses.includes(latestTask.taskStatus);
 
-      // Apply date filter if selected (NEW - but optional)
+      // Apply date filter
       if (dateFilter !== "all" && latestTask.taskDate) {
         const taskDate = new Date(latestTask.taskDate);
         const today = new Date();
@@ -169,14 +177,20 @@ const ForwardedLeadsPage = () => {
           return (
             taskDate.toDateString() === today.toDateString() && isForwarded
           );
-        } else if (dateFilter === "this_week") {
+        }
+
+        if (dateFilter === "this_week") {
           const weekStart = new Date(today);
           weekStart.setDate(today.getDate() - today.getDay());
           return taskDate >= weekStart && taskDate <= today && isForwarded;
-        } else if (dateFilter === "this_month") {
+        }
+
+        if (dateFilter === "this_month") {
           const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
           return taskDate >= monthStart && taskDate <= today && isForwarded;
-        } else if (dateFilter === "custom" && dateRange.length === 2) {
+        }
+
+        if (dateFilter === "custom" && dateRange.length === 2) {
           const startDate = new Date(dateRange[0]);
           const endDate = new Date(dateRange[1]);
           startDate.setHours(0, 0, 0, 0);
@@ -191,7 +205,10 @@ const ForwardedLeadsPage = () => {
     rlcnt = filteredData.length;
     setFilteredLeads(filteredData);
     dispatch(setforwardedleadCount(rlcnt));
+
+    setIsLoading(false); // ✅ end loading
   }, [suspects, telecallerId, dateFilter, dateRange, dispatch]);
+
 
   // Calculate stats (NEW - for UI)
   const stats = useMemo(() => {
@@ -287,11 +304,12 @@ const ForwardedLeadsPage = () => {
       const callInfo = getLatestCallInfo(lead);
       const latestTask = callInfo.latestTask;
 
+
       // Status Updated At - Task Date + Time
       const statusUpdatedAt = latestTask
         ? `${formatDate(
-            latestTask.taskDate || latestTask.createdAt
-          )} ${formatTimeAMPM(latestTask.createdAt || latestTask.taskDate)}`
+          latestTask.taskDate || latestTask.createdAt
+        )} ${formatTimeAMPM(latestTask.createdAt || latestTask.taskDate)}`
         : "-";
 
       let nextActionText = "-";
@@ -302,7 +320,7 @@ const ForwardedLeadsPage = () => {
       }
 
       return {
-        key: lead._id,
+        // key: lead._id,
         taskDate: formatDate(lead.assignedAt), // ✅ Assigned date
         groupCode: (
           <span
@@ -317,6 +335,7 @@ const ForwardedLeadsPage = () => {
             {personal.groupCode || "-"}
           </span>
         ),
+
         groupName: personal.groupName || "-",
 
         mobileNo:
@@ -353,8 +372,9 @@ const ForwardedLeadsPage = () => {
 
         leadSource: personal.leadSource || "-",
         leadOccupation: personal.leadOccupation || "-",
-        area: personal.city || "-",
-        currentStatus: callInfo.currentStatus,
+        callingPurpose: personal.callingPurpose || '-',
+        area: personal.area || '-',
+        // currentStatus: callInfo.currentStatus,
         nextAction: nextActionText, // SIRF DATE
         statusUpdatedAt: statusUpdatedAt, // ✅ Task Date + Time (both)
         lastStatus: callInfo.lastStatus, // ✅ Previous status
@@ -364,16 +384,17 @@ const ForwardedLeadsPage = () => {
 
   // Columns - Updated with new requirements
   const columns = [
-    { header: "Task Date", key: "taskDate", width: "100px" }, // Assigned date
+    { header: "Previous Call Date", key: "taskDate", width: "100px" }, // Assigned date
     { header: "Group Code", key: "groupCode", width: "120px" },
     { header: "Group Name", key: "groupName", width: "140px" },
-    { header: "Mobile No", key: "mobileNo", width: "130px" },
-    { header: "Contact No", key: "contactNo", width: "130px" },
+    { header: "Mobile Number", key: "mobileNo", width: "130px" },
+    { header: "Phone Number", key: "contactNo", width: "130px" },
     { header: "Lead Source", key: "leadSource", width: "110px" },
     { header: "Lead Occupation", key: "leadOccupation", width: "130px" },
+    { header: "Calling Purpose", key: "callingPurpose", width: "130px" },
     { header: "Area", key: "area", width: "100px" },
-    { header: "Status", key: "currentStatus", width: "120px" },
-    { header: "Next Action", key: "nextAction", width: "100px" },
+    // { header: "Status", key: "currentStatus", width: "120px" },
+    { header: "Next Call Date", key: "nextAction", width: "100px" },
     { header: "Call Time", key: "statusUpdatedAt", width: "150px" }, // Task Date + Time
     { header: "Last Status", key: "lastStatus", width: "120px" },
   ];
