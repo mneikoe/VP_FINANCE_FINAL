@@ -373,20 +373,17 @@ const CompositeAssignments = () => {
         prospectAssignmentRemarks: assignForm.prospectRemarks || "",
       };
 
-      const confirmMessage = `Assign "${selectedTask.name}" to ${
-        assignments.length
-      } employee(s)?
+      const confirmMessage = `Assign "${selectedTask.name}" to ${assignments.length
+        } employee(s)?
       
-      ${
-        assignForm.selectedClients?.length > 0
+      ${assignForm.selectedClients?.length > 0
           ? `• For ${assignForm.selectedClients.length} client(s)\n`
           : ""
-      }
-      ${
-        assignForm.selectedProspects?.length > 0
+        }
+      ${assignForm.selectedProspects?.length > 0
           ? `• For ${assignForm.selectedProspects.length} prospect(s)`
           : ""
-      }
+        }
       
       Do you want to proceed?`;
 
@@ -403,15 +400,13 @@ const CompositeAssignments = () => {
       });
 
       if (response.data.success) {
-        const successMsg = `Task assigned to ${assignments.length} employee(s)${
-          assignForm.selectedClients?.length > 0
-            ? ` for ${assignForm.selectedClients.length} client(s)`
-            : ""
-        }${
-          assignForm.selectedProspects?.length > 0
+        const successMsg = `Task assigned to ${assignments.length} employee(s)${assignForm.selectedClients?.length > 0
+          ? ` for ${assignForm.selectedClients.length} client(s)`
+          : ""
+          }${assignForm.selectedProspects?.length > 0
             ? ` and ${assignForm.selectedProspects.length} prospect(s)`
             : ""
-        }!`;
+          }!`;
 
         setSuccessMessage(successMsg);
         setTimeout(() => setSuccessMessage(""), 3000);
@@ -434,22 +429,72 @@ const CompositeAssignments = () => {
     setSortConfig({ key, direction });
   };
 
+  const parseSearchQuery = (input) => {
+  const parts = input.toLowerCase().split(" ");
+  const filters = {};
+  const normalTerms = [];
+
+  parts.forEach((p) => {
+    if (p.includes(":")) {
+      const [key, value] = p.split(":");
+      if (key && value) filters[key] = value;
+    } else {
+      normalTerms.push(p);
+    }
+  });
+
+  return { filters, normalTerms };
+};
+
+
   // Filter and sort tasks
-  const filteredTasks = compositeTasks
-    .filter((task) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.sub?.toLowerCase().includes(searchTerm.toLowerCase());
+const filteredTasks = compositeTasks
+  .filter((task) => {
+    const { filters, normalTerms } = parseSearchQuery(searchTerm);
 
-      const matchesStatus =
-        filterStatus === "all" ||
-        (filterStatus === "urgent" && task.templatePriority === "urgent") ||
-        (filterStatus === "multi-role" && task.depart?.length > 1);
+    const name = (task.name || "").toLowerCase();
+    const company = (task.sub || "").toLowerCase();
+    const priority = (task.templatePriority || "").toLowerCase();
+    const roles = (task.depart || []).map(r => r.toLowerCase());
+    const days = String(task.estimatedDays || 0);
+    const checklistCount = String(task.checklists?.length || 0);
+    const assignedCount = String(task.assignments?.length || 0);
+    const clientCount = String(task.assignedClients?.length || 0);
+    const prospectCount = String(task.assignedProspects?.length || 0);
 
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
+    // Column-based filters
+    if (filters.name && !name.includes(filters.name)) return false;
+    if (filters.company && !company.includes(filters.company)) return false;
+    if (filters.priority && priority !== filters.priority) return false;
+    if (filters.role && !roles.some(r => r.includes(filters.role))) return false;
+    if (filters.days && days !== filters.days) return false;
+    if (filters.checklists && checklistCount !== filters.checklists) return false;
+    if (filters.assigned && assignedCount !== filters.assigned) return false;
+    if (filters.clients && clientCount !== filters.clients) return false;
+    if (filters.prospects && prospectCount !== filters.prospects) return false;
+
+    // Normal text search (fallback)
+    if (normalTerms.length > 0) {
+      const searchableText = `
+        ${name} ${company} ${priority}
+        ${roles.join(" ")}
+        ${days} days
+        ${checklistCount} checklists
+        ${assignedCount} assigned
+        ${clientCount} clients
+        ${prospectCount} prospects
+      `.toLowerCase();
+
+      return normalTerms.every(term => searchableText.includes(term));
+    }
+
+    const matchesStatus =
+      filterStatus === "all" ||
+      (filterStatus === "urgent" && task.templatePriority === "urgent") ||
+      (filterStatus === "multi-role" && task.depart?.length > 1);
+
+    return matchesStatus;
+  }).sort((a, b) => {
       if (!sortConfig.key) return 0;
 
       let aValue = a[sortConfig.key];
@@ -661,10 +706,10 @@ const CompositeAssignments = () => {
                     {filterStatus === "all"
                       ? "All Templates"
                       : filterStatus === "urgent"
-                      ? "Urgent"
-                      : filterStatus === "multi-role"
-                      ? "Multi-Role"
-                      : filterStatus}
+                        ? "Urgent"
+                        : filterStatus === "multi-role"
+                          ? "Multi-Role"
+                          : filterStatus}
                   </Dropdown.Toggle>
                   <Dropdown.Menu>
                     <Dropdown.Item onClick={() => setFilterStatus("all")}>
@@ -1037,15 +1082,16 @@ const CompositeAssignments = () => {
       <Modal
         show={showAssignModal}
         onHide={() => setShowAssignModal(false)}
-        size="lg"
+        size="xl"
         centered
         backdrop="static"
+        dialogClassName="assign-modal-wide"
       >
-        <Modal.Header className="bg-light border-bottom py-3">
+        <Modal.Header className="bg-white border-bottom py-4 px-5">
           <Modal.Title className="d-flex align-items-center w-100">
-            <FaUserCheck className="me-3 text-primary" />
+            <FaUserCheck className="me-3 text-primary fs-4" />
             <div className="flex-grow-1">
-              <h5 className="mb-0 fw-bold">Assign Task to Employees</h5>
+              <h5 className="mb-1 fw-bold">Assign Task to Employees</h5>
               <small className="text-muted">
                 Select employees to assign this composite task
               </small>
@@ -1053,31 +1099,33 @@ const CompositeAssignments = () => {
             <Button
               variant="link"
               onClick={() => setShowAssignModal(false)}
-              className="p-0 ms-auto"
+              className="p-0 ms-auto fs-5"
             >
               <FaTimes />
             </Button>
           </Modal.Title>
         </Modal.Header>
+        
 
-        <Modal.Body className="p-4">
+        <Modal.Body className="px-5 py-4">
+
           {selectedTask && (
             <>
               {/* Task Info */}
-              <div className="mb-4 p-3 border flex-grow-1 rounded bg-light">
-                <Row className="align-items-center">
+              <div className="mb-5 p-4 rounded-3" style={{ background: "#f9fafb" }}>
+                <Row className="align-items-center g-4">
                   <Col md={8}>
-                    <h5 className="mb-2 fw-bold text-dark">
+                    <h5 className="mb-3 fw-bold text-dark">
                       {selectedTask.name}
                     </h5>
-                    <div className="d-flex flex-wrap gap-3">
+                    <div className="d-flex flex-wrap gap-4">
                       <div>
                         <small className="text-muted d-block">Company</small>
                         <span className="fw-semibold">{selectedTask.sub}</span>
                       </div>
                       <div>
                         <small className="text-muted d-block">Days</small>
-                        <span className="fw-semibold">
+                        <span className="fw-semibold d-flex justify-content-between align-items-center">
                           <FaClock className="me-1" />
                           {selectedTask.estimatedDays || 1}
                         </span>
@@ -1097,10 +1145,8 @@ const CompositeAssignments = () => {
                       {selectedTask.assignments &&
                         selectedTask.assignments.length > 0 && (
                           <div>
-                            <small className="text-muted d-block">
-                              Assigned
-                            </small>
-                            <span className="fw-semibold text-primary">
+                            <small className="text-muted d-block">Assigned</small>
+                            <span className="fw-semibold text-primary d-flex justify-content-evenly align-items-center">
                               <FaUserFriends className="me-1" />
                               {selectedTask.assignments.length}
                             </span>
@@ -1109,67 +1155,71 @@ const CompositeAssignments = () => {
                     </div>
                   </Col>
                   <Col md={4} className="text-end">
-                    <div>
-                      <small className="text-muted d-block">Due Date</small>
-                      <h6 className="mb-0">
-                        <FaCalendarDay className="me-2" />
-                        {assignForm.dueDate}
-                      </h6>
-                    </div>
+                    <small className="text-muted d-block">Due Date</small>
+                    <h6 className="mb-0">
+                      <FaCalendarDay className="me-2" />
+                      {assignForm.dueDate}
+                    </h6>
                   </Col>
                 </Row>
               </div>
+               <hr className="my-5" />
 
               {/* Assignment Settings */}
-              <div className="mb-4">
-                <h6 className="mb-3 fw-bold border-bottom pb-2">
+              <div className="mb-5">
+                <h6 className="mb-3 fw-semibold text-dark">
+
                   Assignment Settings
                 </h6>
-                <Row className="g-3">
+                <Row className="g-4">
                   <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Priority</label>
-                      <Form.Select
-                        value={assignForm.priority}
-                        onChange={handlePriorityChange}
-                      >
-                        <option value="low">Low Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="high">High Priority</option>
-                        <option value="urgent">Urgent Priority</option>
-                      </Form.Select>
-                      <small className="text-muted">
-                        Template priority:{" "}
-                        {selectedTask.templatePriority || "medium"}
-                      </small>
-                    </div>
+                  <div className="d-flex flex-column gap-2">
+                    <label className="form-label fw-semibold">Priority</label>
+                    <Form.Select
+                      value={assignForm.priority}
+                      onChange={handlePriorityChange}
+                    >
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                      <option value="urgent">Urgent Priority</option>
+                    </Form.Select>
+                    <small className="text-muted">
+                      Template priority:{" "}
+                      {selectedTask.templatePriority || "medium"}
+                    </small>
+
+                  </div>
                   </Col>
                   <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Due Date</label>
-                      <Form.Control
-                        type="date"
-                        value={assignForm.dueDate}
-                        onChange={(e) =>
-                          setAssignForm({
-                            ...assignForm,
-                            dueDate: e.target.value,
-                          })
-                        }
-                        min={new Date().toISOString().split("T")[0]}
-                      />
-                      <small className="text-muted">
-                        Based on {selectedTask.estimatedDays || 1} day(s)
-                      </small>
+                    <div className="d-flex flex-column gap-2">
+
+                    <label className="form-label fw-semibold">Due Date</label>
+                    <Form.Control
+                      type="date"
+                      value={assignForm.dueDate}
+                      onChange={(e) =>
+                        setAssignForm({
+                          ...assignForm,
+                          dueDate: e.target.value,
+                        })
+                      }
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                    <small className="text-muted">
+                      Based on {selectedTask.estimatedDays || 1} day(s)
+                    </small>
                     </div>
                   </Col>
                 </Row>
               </div>
+              <hr className="my-5" />
 
-              {/* ✅ NEW: Client & Prospect Selection Section */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Client & Prospect Selection</h6>
+              {/* Client & Prospect */}
+              <div className="mb-5">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h6 className="mb-3 fw-semibold text-dark">
+                    Client & Prospect Selection</h6>
                   <small className="text-muted">
                     {getTotalSelectedClientProspects()} selected
                   </small>
@@ -1185,65 +1235,15 @@ const CompositeAssignments = () => {
                     ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
                     : "Select Clients & Prospects (Optional)"}
                 </Button>
-
-                {/* Show selected counts */}
-                {getTotalSelectedClientProspects() > 0 && (
-                  <div className="mt-3">
-                    <Row>
-                      {assignForm.selectedClients?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="success" className="py-2">
-                            <FaUserFriends className="me-2" />
-                            <strong>
-                              {assignForm.selectedClients.length}
-                            </strong>{" "}
-                            client(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                      {assignForm.selectedProspects?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="info" className="py-2">
-                            <FaUsers className="me-2" />
-                            <strong>
-                              {assignForm.selectedProspects.length}
-                            </strong>{" "}
-                            prospect(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                    </Row>
-
-                    {/* Show remarks if any */}
-                    {assignForm.clientRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-success fw-bold">
-                          Client Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.clientRemarks}</p>
-                      </Alert>
-                    )}
-
-                    {assignForm.prospectRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-info fw-bold">
-                          Prospect Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.prospectRemarks}</p>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-                <small className="text-muted d-block mt-1">
-                  Optional - You can select clients and/or prospects for whom
-                  this task is being assigned
-                </small>
               </div>
+              <hr className="my-5" />
 
-              {/* Employee Selection */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Select Employees by Role</h6>
+              {/* Employees */}
+
+
+               <div className="mb-5">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h6 className="mb-3 fw-semibold">Select Employees by Role</h6>
                   <small className="text-muted">
                     {Object.keys(assignForm.selectedEmployees).length} role(s)
                     selected
@@ -1383,16 +1383,18 @@ const CompositeAssignments = () => {
                     })}
                   </div>
                 )}
-              </div>
+              </div> 
+              <hr className="my-5" />
+
 
               {/* Remarks */}
-              <div className="mb-4">
+              <div className="mb-5">
                 <label className="form-label fw-semibold">
                   Additional Instructions
                 </label>
                 <Form.Control
                   as="textarea"
-                  rows={2}
+                  rows={3}
                   placeholder="Add any notes or instructions for employees..."
                   value={assignForm.remarks}
                   onChange={(e) =>
@@ -1403,68 +1405,15 @@ const CompositeAssignments = () => {
                   Optional - These notes will be visible to assigned employees
                 </small>
               </div>
-
-              {/* Selected Employees Summary */}
-              {Object.keys(assignForm.selectedEmployees).length > 0 && (
-                <Alert variant="light" className="border">
-                  <div className="d-flex align-items-center mb-2">
-                    <FaCheckCircle className="me-2 text-success" />
-                    <h6 className="mb-0">Selected Employees</h6>
-                  </div>
-
-                  <div className="row g-2">
-                    {Object.entries(assignForm.selectedEmployees).map(
-                      ([role, employeeValue]) => {
-                        const selectedCount =
-                          getEmployeeValueCount(employeeValue);
-
-                        return (
-                          <div key={role} className="col-md-6">
-                            <div className="bg-white p-2 rounded border">
-                              <div className="d-flex justify-content-between align-items-center">
-                                <span className="fw-medium">{role}</span>
-                                <Badge bg="dark">
-                                  {selectedCount} selected
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-
-                  <div className="mt-3 pt-3 border-top">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <span className="fw-bold">
-                          Total New Assignments:{" "}
-                          {Object.values(assignForm.selectedEmployees).reduce(
-                            (total, val) => total + getEmployeeValueCount(val),
-                            0
-                          )}{" "}
-                          employee(s)
-                        </span>
-                      </div>
-                      <div className="text-end">
-                        <small className="text-muted">
-                          Priority: {assignForm.priority} • Due:{" "}
-                          {assignForm.dueDate}
-                        </small>
-                      </div>
-                    </div>
-                  </div>
-                </Alert>
-              )}
             </>
           )}
         </Modal.Body>
 
-        <Modal.Footer className="bg-light border-top">
+        <Modal.Footer className="bg-light border-top px-4 py-3 d-flex justify-content-between">
           <Button
             variant="outline-secondary"
             onClick={() => setShowAssignModal(false)}
-            className="border"
+            className="border px-4"
           >
             Cancel
           </Button>
@@ -1472,18 +1421,19 @@ const CompositeAssignments = () => {
             variant="primary"
             onClick={handleAssignSubmit}
             disabled={Object.keys(assignForm.selectedEmployees).length === 0}
-            className="fw-semibold"
+            className="fw-semibold px-4 d-flex justify-content-between align-items-center"
           >
             <FaPaperPlane className="me-2" />
             {Object.keys(assignForm.selectedEmployees).length === 0
               ? "Select Employees First"
               : `Assign to ${Object.values(assignForm.selectedEmployees).reduce(
-                  (total, val) => total + getEmployeeValueCount(val),
-                  0
-                )} Employee(s)`}
+                (total, val) => total + getEmployeeValueCount(val),
+                0
+              )} Employee(s)`}
           </Button>
         </Modal.Footer>
       </Modal>
+
 
       <style jsx global>{`
         .spin {

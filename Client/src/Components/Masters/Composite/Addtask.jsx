@@ -31,12 +31,12 @@ const Addtask = ({ on, data, onSuccess }) => {
   // Flatten the data for easier access
   const flat = data?.task
     ? {
-        ...data.task,
-        category: data.task?.cat?.category,
-        productName: data.task?.cat?.name,
-        descText: data.task?.descp?.text,
-        descImage: data.task?.descp?.image,
-      }
+      ...data.task,
+      category: data.task?.cat?.category,
+      productName: data.task?.cat?.name,
+      descText: data.task?.descp?.text,
+      descImage: data.task?.descp?.image,
+    }
     : null;
 
   const { loading, error, successMessage } = useSelector(
@@ -358,13 +358,13 @@ const Addtask = ({ on, data, onSuccess }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="max-w-[95rem] mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-10 py-10">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white">
+                <h1 className="text-4xl font-bold text-white">
                   {data ? "Edit Composite Task" : "Create Composite Task"}
                 </h1>
                 <p className="text-blue-100 mt-2">
@@ -374,7 +374,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                 </p>
               </div>
               <div className="mt-4 md:mt-0">
-                <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white text-sm font-medium">
+                <span className="px-5 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white text-sm font-medium">
                   {formData.type.toUpperCase()} TASK
                 </span>
               </div>
@@ -384,10 +384,10 @@ const Addtask = ({ on, data, onSuccess }) => {
           <form
             onSubmit={handleSubmit}
             encType="multipart/form-data"
-            className="p-6 md:p-8"
+            className="p-10"
           >
             {/* Basic Information Card */}
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+           <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-100">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
                 Basic Information
@@ -606,17 +606,16 @@ const Addtask = ({ on, data, onSuccess }) => {
                             templatePriority: priority,
                           }))
                         }
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          formData.templatePriority === priority
-                            ? priority === "urgent"
-                              ? "bg-red-100 text-red-700 border-2 border-red-300"
-                              : priority === "high"
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${formData.templatePriority === priority
+                          ? priority === "urgent"
+                            ? "bg-red-100 text-red-700 border-2 border-red-300"
+                            : priority === "high"
                               ? "bg-orange-100 text-orange-700 border-2 border-orange-300"
                               : priority === "medium"
-                              ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
-                              : "bg-green-100 text-green-700 border-2 border-green-300"
-                            : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
-                        }`}
+                                ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
+                                : "bg-green-100 text-green-700 border-2 border-green-300"
+                          : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
+                          }`}
                       >
                         {priority.charAt(0).toUpperCase() + priority.slice(1)}
                       </button>
@@ -639,11 +638,10 @@ const Addtask = ({ on, data, onSuccess }) => {
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex-shrink-0 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 ${
-                        activeTab === tab.id
-                          ? "border-blue-600 text-blue-600 bg-blue-50"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                      }`}
+                      className={`flex-shrink-0 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 ${activeTab === tab.id
+                        ? "border-blue-600 text-blue-600 bg-blue-50"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       <span className="text-lg">{tab.icon}</span>
                       {tab.label}
@@ -1035,7 +1033,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                                 Sample Form
                               </label>
                               {item.sampleFormUrl &&
-                              !editDownloadSampleImage ? (
+                                !editDownloadSampleImage ? (
                                 <div className="space-y-3">
                                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                     <div className="flex items-center gap-2 text-blue-700">
@@ -1100,17 +1098,18 @@ const Addtask = ({ on, data, onSuccess }) => {
             </div>
 
             {/* Submit Section */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div className="flex-1">
+            <div className="mt-10 pt-8 border-t border-gray-200">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex-1">
                   {error && (
-                    <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-3 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-2 text-red-600 bg-red-50 px-5 py-4 rounded-lg border border-red-200">
+                    <FaExclamationCircle />
                       <FaExclamationCircle />
                       <span>{error}</span>
                     </div>
                   )}
                   {successMessage && (
-                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-3 rounded-lg border border-green-200 animate-pulse">
+                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-5 py-4 rounded-lg border border-green-200">
                       <FaCheck />
                       <span className="font-medium">{successMessage}</span>
                     </div>
@@ -1141,28 +1140,29 @@ const Addtask = ({ on, data, onSuccess }) => {
         </div>
       </div>
 
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
+  <style jsx>{`
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+`}</style>
+
     </div>
   );
 };
