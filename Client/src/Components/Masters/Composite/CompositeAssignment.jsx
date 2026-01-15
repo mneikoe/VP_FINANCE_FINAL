@@ -93,6 +93,7 @@ const CompositeAssignments = () => {
         "/api/Task?type=composite&status=template"
       );
       const tasks = response.data?.tasks || response.data || [];
+      console.log(tasks);
       setCompositeTasks(tasks);
     } catch (error) {
       console.error("Error fetching composite tasks:", error);
@@ -329,20 +330,35 @@ const CompositeAssignments = () => {
   };
 
   // Submit assignment
+  // Submit assignment - Updated with debugging
   const handleAssignSubmit = async () => {
     if (!selectedTask) return;
 
     try {
+      console.log("🚀 Starting assignment process...");
+      console.log("📝 Selected Task:", selectedTask);
+      console.log("👥 Current User:", JSON.parse(localStorage.getItem("user")));
+
       const assignments = [];
+
+      // ✅ DEBUG: Check what employees are selected
+      console.log(
+        "🔍 Selected Employees Object:",
+        assignForm.selectedEmployees
+      );
 
       Object.entries(assignForm.selectedEmployees).forEach(
         ([role, employeeValue]) => {
+          console.log(`📋 Processing role "${role}":`, employeeValue);
+
           // FIX: Check if employeeValue exists and is a string
           if (employeeValue) {
             const employeeIds =
               typeof employeeValue === "string"
                 ? employeeValue.split(",").filter((id) => id.trim())
                 : [String(employeeValue)].filter((id) => id.trim());
+
+            console.log(`🆔 Employee IDs for ${role}:`, employeeIds);
 
             employeeIds.forEach((employeeId) => {
               if (employeeId.trim()) {
@@ -359,6 +375,8 @@ const CompositeAssignments = () => {
         }
       );
 
+      console.log("✅ Final assignments array:", assignments);
+
       if (assignments.length === 0) {
         setErrorMessage("Please select at least one employee to assign");
         setTimeout(() => setErrorMessage(""), 3000);
@@ -373,55 +391,126 @@ const CompositeAssignments = () => {
         prospectAssignmentRemarks: assignForm.prospectRemarks || "",
       };
 
+      console.log("🎯 Client/Prospect Data:", clientProspectData);
+
       const confirmMessage = `Assign "${selectedTask.name}" to ${
         assignments.length
       } employee(s)?
-      
-      ${
-        assignForm.selectedClients?.length > 0
-          ? `• For ${assignForm.selectedClients.length} client(s)\n`
-          : ""
-      }
-      ${
-        assignForm.selectedProspects?.length > 0
-          ? `• For ${assignForm.selectedProspects.length} prospect(s)`
-          : ""
-      }
-      
-      Do you want to proceed?`;
+    
+    ${
+      assignForm.selectedClients?.length > 0
+        ? `• For ${assignForm.selectedClients.length} client(s)\n`
+        : ""
+    }
+    ${
+      assignForm.selectedProspects?.length > 0
+        ? `• For ${assignForm.selectedProspects.length} prospect(s)`
+        : ""
+    }
+    
+    Do you want to proceed?`;
 
       if (!window.confirm(confirmMessage)) {
         return;
       }
 
-      const response = await axios.post("/api/Task/assign-composite", {
+      // ✅ DEBUG: Check API endpoint and payload
+      const apiEndpoint = "/api/Task/assign-composite";
+      const payload = {
         taskId: selectedTask._id,
         assignments,
         assignedBy: JSON.parse(localStorage.getItem("user")).id,
         // ✅ Send client/prospect data
         ...clientProspectData,
-      });
+      };
 
-      if (response.data.success) {
-        const successMsg = `Task assigned to ${assignments.length} employee(s)${
-          assignForm.selectedClients?.length > 0
-            ? ` for ${assignForm.selectedClients.length} client(s)`
-            : ""
-        }${
-          assignForm.selectedProspects?.length > 0
-            ? ` and ${assignForm.selectedProspects.length} prospect(s)`
-            : ""
-        }!`;
+      console.log("📤 Sending to API:", apiEndpoint);
+      console.log("📦 Payload:", payload);
 
-        setSuccessMessage(successMsg);
-        setTimeout(() => setSuccessMessage(""), 3000);
-        setShowAssignModal(false);
-        fetchCompositeTasks();
+      // ✅ Try with fetch first for better error handling
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        console.log("📥 Response status:", response.status);
+        console.log("📥 Response headers:", response.headers);
+
+        const responseData = await response.json();
+        console.log("📥 Response data:", responseData);
+
+        if (!response.ok) {
+          throw new Error(responseData.message || `HTTP ${response.status}`);
+        }
+
+        if (responseData.success) {
+          const successMsg = `Task assigned to ${
+            assignments.length
+          } employee(s)${
+            assignForm.selectedClients?.length > 0
+              ? ` for ${assignForm.selectedClients.length} client(s)`
+              : ""
+          }${
+            assignForm.selectedProspects?.length > 0
+              ? ` and ${assignForm.selectedProspects.length} prospect(s)`
+              : ""
+          }!`;
+
+          setSuccessMessage(successMsg);
+          setTimeout(() => setSuccessMessage(""), 3000);
+          setShowAssignModal(false);
+          fetchCompositeTasks();
+        } else {
+          throw new Error(responseData.message || "Assignment failed");
+        }
+      } catch (fetchError) {
+        console.error("❌ Fetch error:", fetchError);
+
+        // Fallback to axios if fetch fails
+        console.log("🔄 Trying with axios...");
+        const response = await axios.post(apiEndpoint, payload);
+
+        if (response.data.success) {
+          const successMsg = `Task assigned to ${
+            assignments.length
+          } employee(s)${
+            assignForm.selectedClients?.length > 0
+              ? ` for ${assignForm.selectedClients.length} client(s)`
+              : ""
+          }${
+            assignForm.selectedProspects?.length > 0
+              ? ` and ${assignForm.selectedProspects.length} prospect(s)`
+              : ""
+          }!`;
+
+          setSuccessMessage(successMsg);
+          setTimeout(() => setSuccessMessage(""), 3000);
+          setShowAssignModal(false);
+          fetchCompositeTasks();
+        }
       }
     } catch (error) {
-      console.error("Error assigning task:", error);
-      setErrorMessage("Failed to assign task: " + error.message);
-      setTimeout(() => setErrorMessage(""), 3000);
+      console.error("❌ Error assigning task:", error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+
+      let errorMsg = "Failed to assign task";
+
+      if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message.includes("500")) {
+        errorMsg = "Server error - Please check backend logs";
+      }
+
+      setErrorMessage(errorMsg);
+      setTimeout(() => setErrorMessage(""), 5000);
     }
   };
 
@@ -786,37 +875,16 @@ const CompositeAssignments = () => {
                       >
                         <div className="d-flex align-items-center">
                           <span className="fw-semibold">#</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("name")}
-                          >
-                            {renderSortIcon("name")}
-                          </Button>
                         </div>
                       </th>
                       <th className="border-0 py-3">
                         <div className="d-flex align-items-center">
-                          <span className="fw-semibold">Task Details</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("name")}
-                          >
-                            {renderSortIcon("name")}
-                          </Button>
+                          <span className="fw-semibold">Task Name</span>
                         </div>
                       </th>
                       <th className="border-0 py-3" style={{ width: "200px" }}>
                         <div className="d-flex align-items-center">
                           <span className="fw-semibold">Required Roles</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("depart")}
-                          >
-                            {renderSortIcon("depart")}
-                          </Button>
                         </div>
                       </th>
                       <th
@@ -825,13 +893,6 @@ const CompositeAssignments = () => {
                       >
                         <div className="d-flex align-items-center justify-content-center">
                           <span className="fw-semibold">Timeline</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("estimatedDays")}
-                          >
-                            {renderSortIcon("estimatedDays")}
-                          </Button>
                         </div>
                       </th>
                       <th
@@ -840,13 +901,6 @@ const CompositeAssignments = () => {
                       >
                         <div className="d-flex align-items-center justify-content-center">
                           <span className="fw-semibold">Priority</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("templatePriority")}
-                          >
-                            {renderSortIcon("templatePriority")}
-                          </Button>
                         </div>
                       </th>
                       <th
@@ -1046,9 +1100,6 @@ const CompositeAssignments = () => {
             <FaUserCheck className="me-3 text-primary" />
             <div className="flex-grow-1">
               <h5 className="mb-0 fw-bold">Assign Task to Employees</h5>
-              <small className="text-muted">
-                Select employees to assign this composite task
-              </small>
             </div>
             <Button
               variant="link"

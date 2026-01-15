@@ -119,7 +119,7 @@ const Composite = () => {
                     <div className="table-responsive">
                       <div className="row mb-3">
                         <div className="col-sm-6">
-                          <div className="dataTables_length">
+                          <div className="dataTables_length flex ">
                             <label>
                               Show{" "}
                               <select
@@ -172,7 +172,7 @@ const Composite = () => {
                           {currentEntries.map((task, index) => (
                             <tr key={task._id || index}>
                               <td>{indexOfFirstEntry + index + 1}</td>
-                              <td>{task.cat.category}</td>
+                              <td>{task.cat.name}</td>
                               <td>{task.sub}</td>
                               <td>{task.depart}</td>
                               <td>{task.name}</td>
