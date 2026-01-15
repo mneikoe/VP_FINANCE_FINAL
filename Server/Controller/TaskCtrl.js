@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import Employee from "../Models/employeeModel.js";
 import SusProsClient from "../Models/SusProsClientSchema.js";
-// createTask function में type checking update करें:
+// createTask function mein sirf formChecklists part update karo:
 export const createTask = async (req, res) => {
   try {
     const type = req.body.type || "composite";
@@ -39,21 +39,53 @@ export const createTask = async (req, res) => {
       ? req.body.checklists.filter((item) => item && item.trim() !== "")
       : [];
 
-    // Parse formChecklists
+    // ✅ FIXED: Parse formChecklists properly - DEBUG ke liye console.log add karo
     let formChecklists = [];
     if (req.body.formChecklists) {
       try {
-        const parsed = JSON.parse(req.body.formChecklists);
-        formChecklists = parsed
-          .map((item) => ({
+        // Agar string hai to parse karo
+        if (typeof req.body.formChecklists === "string") {
+          const parsed = JSON.parse(req.body.formChecklists);
+          if (Array.isArray(parsed)) {
+            formChecklists = parsed;
+          }
+        } else if (Array.isArray(req.body.formChecklists)) {
+          formChecklists = req.body.formChecklists;
+        }
+
+        console.log("✅ Parsed formChecklists:", formChecklists);
+
+        // ✅ AB FILES KI PROCESSING KARO
+        formChecklists = formChecklists.map((item, index) => {
+          const checklistItem = {
             name: item.name?.trim() || "",
             downloadFormUrl: item.downloadFormUrl || "",
             sampleFormUrl: item.sampleFormUrl || "",
-          }))
-          .filter((item) => item.name !== "");
+          };
+
+          // ✅ Check if files were uploaded for this index
+          if (req.files?.downloadFormUrl && req.files.downloadFormUrl[index]) {
+            checklistItem.downloadFormUrl =
+              req.files.downloadFormUrl[index].filename;
+          }
+
+          if (req.files?.sampleFormUrl && req.files.sampleFormUrl[index]) {
+            checklistItem.sampleFormUrl =
+              req.files.sampleFormUrl[index].filename;
+          }
+
+          return checklistItem;
+        });
       } catch (error) {
-        console.error("Error parsing formChecklists:", error);
+        console.error("❌ Error in formChecklists processing:", error);
       }
+    }
+
+    console.log("💾 Final formChecklists to save:", formChecklists);
+
+    // ✅ IMPORTANT: Agar formChecklists array empty hai to empty array set karo
+    if (!Array.isArray(formChecklists)) {
+      formChecklists = [];
     }
 
     // Create task data
@@ -72,12 +104,14 @@ export const createTask = async (req, res) => {
       sms_descp: req.body.sms_descp || "",
       whatsapp_descp: req.body.whatsapp_descp || "",
       checklists: checklists,
-      formChecklists: formChecklists,
+      formChecklists: formChecklists, // ✅ Yeh ab properly save hoga
       status: req.body.status || "template",
       createdBy: req.user?.id,
     };
 
-    // ✅ Marketing और Composite दोनों के लिए assignments field add करें
+    console.log("📋 Saving task with formChecklists:", taskData.formChecklists);
+
+    // ✅ Marketing aur Composite ke liye assignments field add karo
     if (type === "composite" || type === "marketing") {
       taskData.assignments = [];
     }
@@ -258,6 +292,9 @@ export const updateTask = async (req, res) => {
           console.log("Old image file not found or already deleted");
         }
       }
+    } else if (req.body.existingImage) {
+      // Keep existing image if not changed
+      updates.descp.image = req.body.existingImage;
     }
 
     // Handle checklists
@@ -272,11 +309,66 @@ export const updateTask = async (req, res) => {
       try {
         const parsed = JSON.parse(req.body.formChecklists);
         updates.formChecklists = parsed
-          .map((item) => ({
-            name: item.name?.trim() || "",
-            downloadFormUrl: item.downloadFormUrl || "",
-            sampleFormUrl: item.sampleFormUrl || "",
-          }))
+          .map((item, index) => {
+            // Start with existing URLs
+            let downloadFormUrl = item.downloadFormUrl || "";
+            let sampleFormUrl = item.sampleFormUrl || "";
+
+            // Check for new uploads
+            if (
+              req.files &&
+              req.files.downloadFormUrl &&
+              req.files.downloadFormUrl[index]
+            ) {
+              downloadFormUrl = req.files.downloadFormUrl[index].filename;
+
+              // Delete old file if exists
+              const existingChecklist = existingTask.formChecklists[index];
+              if (existingChecklist && existingChecklist.downloadFormUrl) {
+                try {
+                  fs.unlink(
+                    path.join(
+                      __dirname,
+                      "../uploads",
+                      existingChecklist.downloadFormUrl
+                    )
+                  );
+                } catch (err) {
+                  console.log("Old download form file not found");
+                }
+              }
+            }
+
+            if (
+              req.files &&
+              req.files.sampleFormUrl &&
+              req.files.sampleFormUrl[index]
+            ) {
+              sampleFormUrl = req.files.sampleFormUrl[index].filename;
+
+              // Delete old file if exists
+              const existingChecklist = existingTask.formChecklists[index];
+              if (existingChecklist && existingChecklist.sampleFormUrl) {
+                try {
+                  fs.unlink(
+                    path.join(
+                      __dirname,
+                      "../uploads",
+                      existingChecklist.sampleFormUrl
+                    )
+                  );
+                } catch (err) {
+                  console.log("Old sample form file not found");
+                }
+              }
+            }
+
+            return {
+              name: item.name?.trim() || "",
+              downloadFormUrl: downloadFormUrl,
+              sampleFormUrl: sampleFormUrl,
+            };
+          })
           .filter((item) => item.name !== "");
       } catch (err) {
         return res.status(400).json({
@@ -285,7 +377,6 @@ export const updateTask = async (req, res) => {
         });
       }
     }
-
     const updated = await TaskModel.findByIdAndUpdate(id, updates, {
       new: true,
       runValidators: true,
@@ -308,16 +399,15 @@ export const updateTask = async (req, res) => {
   }
 };
 
+// TaskCtrl.js - assignCompositeTask function fix:
 export const assignCompositeTask = async (req, res) => {
   try {
     const {
       taskId,
       assignments,
       assignedBy,
-      // ✅ NEW: Add client/prospect selection
       clients = [],
       prospects = [],
-      // ✅ Optional: Any specific remarks for client/prospect assignment
       clientAssignmentRemarks = "",
       prospectAssignmentRemarks = "",
     } = req.body;
@@ -365,12 +455,14 @@ export const assignCompositeTask = async (req, res) => {
       const { employeeId, employeeRole, priority, remarks, dueDate } =
         assignment;
 
+      // ✅ FIX: Employee variable ko pehle find karo
       const employee = await Employee.findById(employeeId);
       if (!employee) {
         errors.push(`Employee ${employeeId} not found`);
         continue;
       }
 
+      // ✅ FIX: Ab employee variable available hai
       if (employee.role !== employeeRole) {
         errors.push(`Employee ${employee.name} is not a ${employeeRole}`);
         continue;
@@ -405,7 +497,7 @@ export const assignCompositeTask = async (req, res) => {
       });
     }
 
-    // ✅ Update composite task - assignments array में जोड़ें
+    // ✅ Update composite task - assignments array mein add karo
     task.assignments = [...(task.assignments || []), ...validAssignments];
 
     // ✅ NEW: Also store client/prospect references at task level
@@ -423,6 +515,9 @@ export const assignCompositeTask = async (req, res) => {
     // Create individual tasks
     const individualTasks = [];
     for (const assignment of validAssignments) {
+      // ✅ FIX: Employee details ke liye variable use karo
+      const employee = await Employee.findById(assignment.employeeId);
+
       const individualTask = new IndividualTask({
         cat: task.cat,
         sub: task.sub,
@@ -444,24 +539,19 @@ export const assignCompositeTask = async (req, res) => {
           dueDate: assignment.dueDate,
           assignedBy: assignment.assignedBy,
           assignedAt: assignment.assignedAt,
-          // ✅ YEH FIELDS ASSIGNMENTDETAILS KE ANDAR MOVE KARO
+          // ✅ FIX: Ensure employee name is included
+          assignedToName: employee?.name || "Unknown",
+          // ✅ NEW: Add client/prospect data
           assignedClients: assignment.assignedClients,
           assignedProspects: assignment.assignedProspects,
           clientAssignmentRemarks: assignment.clientAssignmentRemarks,
           prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
         },
-        // ❌ YEH FIELDS DELETE KARO (kyunki schema mein nahi hain)
-        // assignedClients: assignment.assignedClients,
-        // assignedProspects: assignment.assignedProspects,
-        // clientAssignmentRemarks: assignment.clientAssignmentRemarks,
-        // prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
         createdBy: assignedBy,
       });
 
       await individualTask.save();
       individualTasks.push(individualTask._id);
-
-      // TaskCtrl.js - assignCompositeTask function mein YEH SECTION REPLACE KARO:
 
       // ✅ OPTIONAL: Also update client/prospect documents with task reference
       if (assignment.assignedClients.length > 0) {
@@ -474,7 +564,7 @@ export const assignCompositeTask = async (req, res) => {
                 taskName: task.name,
                 taskType: "CompositeTask",
                 assignedTo: assignment.employeeId,
-                assignedToName: employee.name,
+                assignedToName: employee?.name || "Unknown",
                 assignedAt: assignment.assignedAt,
                 dueDate: assignment.dueDate,
                 priority: assignment.priority,
@@ -506,7 +596,7 @@ export const assignCompositeTask = async (req, res) => {
                 taskName: task.name,
                 taskType: "CompositeTask",
                 assignedTo: assignment.employeeId,
-                assignedToName: employee.name,
+                assignedToName: employee?.name || "Unknown",
                 assignedAt: assignment.assignedAt,
                 dueDate: assignment.dueDate,
                 priority: assignment.priority,

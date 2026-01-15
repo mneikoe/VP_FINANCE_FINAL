@@ -26,7 +26,19 @@ const uploadFields = upload.fields([
   { name: "downloadFormUrl", maxCount: 10 },
   { name: "sampleFormUrl", maxCount: 10 },
 ]);
-
+const parseFormData = (req, res, next) => {
+  // Check and parse formChecklists if it's a string
+  if (req.body.formChecklists && typeof req.body.formChecklists === "string") {
+    try {
+      console.log("📦 Parsing formChecklists from string");
+      req.body.formChecklists = JSON.parse(req.body.formChecklists);
+    } catch (error) {
+      console.error("❌ Error parsing formChecklists:", error);
+      req.body.formChecklists = [];
+    }
+  }
+  next();
+};
 // ✅ ROUTES
 
 // 1. GET all tasks
@@ -36,10 +48,10 @@ router.get("/", validateTaskType, TaskController.getAllTasks);
 router.get("/:id", validateTaskType, TaskController.getTaskById);
 
 // 3. CREATE task
-router.post("/", uploadFields, validateTaskType, TaskController.createTask);
+router.post("/", uploadFields, parseFormData, TaskController.createTask);
 
 // 4. UPDATE task
-router.put("/:id", uploadFields, validateTaskType, TaskController.updateTask);
+router.put("/:id", uploadFields, parseFormData, TaskController.updateTask);
 
 // 5. DELETE task
 router.delete("/delete/:id", validateTaskType, TaskController.deleteTask);
