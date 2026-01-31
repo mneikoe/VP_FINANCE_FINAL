@@ -870,8 +870,12 @@ const Navbarfristn = () => {
               {/* Reports Dropdown */}
               <div className="relative group">
                 <button
+                  type="button"
                   className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("reports")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDropdown("reports");
+                  }}
                 >
                   <FiFileText className="text-lg mb-1" />
                   <div className="flex items-center">
@@ -881,12 +885,29 @@ const Navbarfristn = () => {
                 </button>
 
                 {openDropdown === "reports" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[300px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div
+                    className="absolute top-full left-0 mt-0 p-4 w-[300px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div>
                       <h6 className="text-red-600 text-xs font-semibold mb-2">
                         REPORTS
                       </h6>
                       <div className="space-y-1">
+                        <Link
+                          to="/reports/employee-report"
+                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                          onClick={closeAllDropdowns}
+                        >
+                          Employee Report
+                        </Link>
+                        <Link
+                          to="/reports/telecaller-report"
+                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                          onClick={closeAllDropdowns}
+                        >
+                          Telecaller Calling Report
+                        </Link>
                         <Link
                           to="/financial-product-list"
                           className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"

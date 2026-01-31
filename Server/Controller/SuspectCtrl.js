@@ -483,7 +483,7 @@ exports.getSuspectsByCallStatus = async (req, res) => {
 // Get call history for a suspect
 exports.getCallHistory = async (req, res) => {
   try {
-    const { id } = req.params; // Suspect ID
+    const { id } = req.params;
 
     const suspect = await suspectModel.findById(id, "callHistory");
     if (!suspect) {
@@ -499,6 +499,58 @@ exports.getCallHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error retrieving call history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+      details: error.message,
+    });
+  }
+};
+
+// Add call history entry (e.g. RM adding appointment with date, time, remark)
+exports.addCallHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { callDate, callTime, remarks } = req.body;
+
+    if (!callDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Call/Appointment date is required.",
+      });
+    }
+
+    const suspect = await suspectModel.findById(id);
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found.",
+      });
+    }
+
+    const callBy = req.user?.name || req.user?.employeeCode || req.user?.username || "RM";
+    const callById = req.user?.id || null;
+
+    const entry = {
+      callDate: new Date(callDate),
+      callTime: callTime || "",
+      remarks: remarks || "",
+      status: "Appointment",
+      callBy,
+      callById,
+    };
+
+    if (!suspect.callHistory) suspect.callHistory = [];
+    suspect.callHistory.push(entry);
+    await suspect.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Appointment added to call history.",
+      callHistory: suspect.callHistory,
+    });
+  } catch (error) {
+    console.error("Error adding call history:", error);
     res.status(500).json({
       success: false,
       message: "Server error.",

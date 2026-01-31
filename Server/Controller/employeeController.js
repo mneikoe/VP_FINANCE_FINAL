@@ -421,6 +421,7 @@ exports.getAllEmployees = async (req, res) => {
     });
   }
 };
+
 // Get last employee code for a role
 exports.getLastEmployeeCode = async (req, res) => {
   try {

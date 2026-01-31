@@ -67,6 +67,12 @@ const RMSuspectDetailsPage = () => {
   const [editFormData, setEditFormData] = useState(null);
   const [savingModal, setSavingModal] = useState(false);
 
+  // Call History - Add Appointment (RM)
+  const [apptDate, setApptDate] = useState("");
+  const [apptTime, setApptTime] = useState("");
+  const [apptRemark, setApptRemark] = useState("");
+  const [savingAppt, setSavingAppt] = useState(false);
+
   // Helper functions from SuspectDetail
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -131,26 +137,25 @@ const RMSuspectDetailsPage = () => {
     }
   };
 
-  // Fetch suspect details
-  useEffect(() => {
-    const fetchSuspectDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`/api/suspect/${id}`);
-
-        if (response.data?.success) {
-          setSuspect(response.data.suspect);
-        } else {
-          setError("Failed to fetch suspect details");
-        }
-      } catch (error) {
-        console.error("❌ Error fetching suspect:", error);
-        setError(error.response?.data?.message || "Network error");
-      } finally {
-        setLoading(false);
+  const fetchSuspectDetails = async () => {
+    if (!id || id === "undefined") return;
+    try {
+      setLoading(true);
+      const response = await axios.get(`/api/suspect/${id}`);
+      if (response.data?.success) {
+        setSuspect(response.data.suspect);
+      } else {
+        setError("Failed to fetch suspect details");
       }
-    };
+    } catch (error) {
+      console.error("❌ Error fetching suspect:", error);
+      setError(error.response?.data?.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (id && id !== "undefined") {
       fetchSuspectDetails();
     } else {
@@ -158,6 +163,36 @@ const RMSuspectDetailsPage = () => {
       setLoading(false);
     }
   }, [id]);
+
+  const handleAddAppointment = async (e) => {
+    e.preventDefault();
+    if (!id || !apptDate) {
+      toast.warning("Please select at least appointment date.");
+      return;
+    }
+    setSavingAppt(true);
+    try {
+      const response = await axios.post(`/api/suspect/${id}/call-history`, {
+        callDate: apptDate,
+        callTime: apptTime,
+        remarks: apptRemark,
+      });
+      if (response.data?.success) {
+        toast.success("Appointment added to call history.");
+        setApptDate("");
+        setApptTime("");
+        setApptRemark("");
+        await fetchSuspectDetails();
+      } else {
+        toast.error(response.data?.message || "Failed to add appointment.");
+      }
+    } catch (err) {
+      console.error("Error adding appointment:", err);
+      toast.error(err.response?.data?.message || "Failed to add appointment.");
+    } finally {
+      setSavingAppt(false);
+    }
+  };
 
   // Modal functions from SuspectDetail
   const handleOpenEditModal = (type) => {
@@ -1166,17 +1201,133 @@ const RMSuspectDetailsPage = () => {
               </span>
             }
           >
+            <Card className="mb-3">
+              <Card.Header className="bg-success text-white d-flex align-items-center justify-content-between">
+                <h6 className="mb-0">
+                  <FiPlus className="me-2" /> Add New Appointment
+                </h6>
+              </Card.Header>
+              <Card.Body>
+                <Form onSubmit={handleAddAppointment}>
+                  <Row className="g-2 align-items-end">
+                    <Col md={3}>
+                      <Form.Label className="small mb-0">Date</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={apptDate}
+                        onChange={(e) => setApptDate(e.target.value)}
+                        required
+                        size="sm"
+                      />
+                    </Col>
+                    <Col md={2}>
+                      <Form.Label className="small mb-0">Time</Form.Label>
+                      <Form.Control
+                        type="time"
+                        value={apptTime}
+                        onChange={(e) => setApptTime(e.target.value)}
+                        size="sm"
+                      />
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label className="small mb-0">Remark</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={1}
+                        placeholder="Remarks (optional)"
+                        value={apptRemark}
+                        onChange={(e) => setApptRemark(e.target.value)}
+                        size="sm"
+                      />
+                    </Col>
+                    <Col md={2}>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        disabled={savingAppt}
+                        className="w-100"
+                      >
+                        {savingAppt ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : (
+                          <>
+                            <FiSave className="me-1" /> Save
+                          </>
+                        )}
+                      </Button>
+                    </Col>
+                  </Row>
+                </Form>
+              </Card.Body>
+            </Card>
+
+            {suspect?.callHistory?.length > 0 && (
+              <Card className="mb-3">
+                <Card.Header className="bg-secondary text-white">
+                  <h6 className="mb-0">
+                    <FiPhone className="me-2" />
+                    Call History / Appointments ({suspect.callHistory.length})
+                  </h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="table-responsive">
+                    <Table bordered hover size="sm" className="align-middle">
+                      <thead className="table-dark">
+                        <tr>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>Status</th>
+                          <th>Remarks</th>
+                          <th>Done By</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...(suspect.callHistory || [])]
+                          .sort((a, b) => new Date(b.callDate) - new Date(a.callDate))
+                          .map((entry, index) => (
+                            <tr key={index}>
+                              <td className="fw-semibold">
+                                {formatDate(entry.callDate)}
+                              </td>
+                              <td>
+                                <Badge bg="secondary">
+                                  {entry.callTime || "-"}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Badge bg="info">
+                                  {entry.status || "Appointment"}
+                                </Badge>
+                              </td>
+                              <td>
+                                <small>{entry.remarks || "-"}</small>
+                              </td>
+                              <td>
+                                <small className="text-muted">
+                                  {entry.callBy || "-"}
+                                </small>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
             <Card>
               <Card.Header className="bg-primary text-white">
                 <h5 className="mb-0">
                   <FiPhone className="me-2" />
-                  Call History ({suspect?.callTasks?.length || 0})
+                  Telecaller Call Tasks ({suspect?.callTasks?.length || 0})
                 </h5>
               </Card.Header>
               <Card.Body>
                 {suspect?.callTasks?.length === 0 ? (
                   <Alert variant="info" className="mt-3">
-                    No call history available
+                    No call tasks from telecaller yet
                   </Alert>
                 ) : (
                   <div className="table-responsive">

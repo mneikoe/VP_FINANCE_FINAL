@@ -1107,6 +1107,283 @@ const getTelecallerAppointments = async (req, res) => {
     });
   }
 };
+// ✅ Telecaller Calling Report: list all TCs with calling stats in date range (OA report)
+const getTelecallerReportList = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date(8640000000000000);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    const telecallers = await Telecaller.find()
+      .select("username employeeCode designation _id")
+      .lean();
+
+    const FORWARDED_STATUSES = [
+      "Call Not Picked",
+      "Busy on Another Call",
+      "Call After Sometimes",
+      "Others",
+    ];
+    const CLOSED_STATUSES = ["Not Interested", "Not Reachable", "Wrong Number"];
+
+    const list = await Promise.all(
+      telecallers.map(async (tc) => {
+        const suspects = await Test.find({
+          assignedTo: tc._id,
+          status: "suspect",
+        })
+          .select("assignedAt callTasks")
+          .lean();
+
+        let totalAssignedInRange = 0;
+        let contacted = 0;
+        let forwarded = 0;
+        let appointmentScheduled = 0;
+        let callback = 0;
+        let notInterested = 0;
+        let wrongNumber = 0;
+        let notReachable = 0;
+        const contactedIds = new Set();
+
+        suspects.forEach((suspect) => {
+          const assignedAt = suspect.assignedAt ? new Date(suspect.assignedAt) : null;
+          if (assignedAt && assignedAt >= start && assignedAt <= end) {
+            totalAssignedInRange++;
+          }
+
+          const tasks = suspect.callTasks || [];
+          tasks.forEach((task) => {
+            const taskDate = task.taskDate ? new Date(task.taskDate) : null;
+            if (!taskDate || taskDate < start || taskDate > end) return;
+            contactedIds.add(suspect._id.toString());
+            const st = task.taskStatus || "";
+            if (FORWARDED_STATUSES.includes(st)) forwarded++;
+            else if (st === "Appointment Scheduled") appointmentScheduled++;
+            else if (st === "Callback") callback++;
+            else if (st === "Not Interested") notInterested++;
+            else if (st === "Wrong Number") wrongNumber++;
+            else if (st === "Not Reachable") notReachable++;
+          });
+        });
+        contacted = contactedIds.size;
+
+        return {
+          _id: tc._id,
+          name: tc.username,
+          employeeCode: tc.employeeCode || `TC-${String(tc._id).slice(-4)}`,
+          designation: tc.designation || "Telecaller",
+          totalAssignedInRange,
+          contacted,
+          forwarded,
+          appointmentScheduled,
+          callback,
+          notInterested,
+          wrongNumber,
+          notReachable,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Telecaller calling report fetched",
+      data: list,
+    });
+  } catch (error) {
+    console.error("❌ getTelecallerReportList:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching telecaller report",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Telecaller Report Detail: one TC, date-wise calling breakdown
+const getTelecallerReportDetail = async (req, res) => {
+  try {
+    const { telecallerId } = req.params;
+    const { startDate, endDate } = req.query;
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date(8640000000000000);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    const tc = await Telecaller.findById(telecallerId)
+      .select("username employeeCode designation _id")
+      .lean();
+    if (!tc) {
+      return res.status(404).json({
+        success: false,
+        message: "Telecaller not found",
+      });
+    }
+
+    const suspects = await Test.find({
+      assignedTo: telecallerId,
+      status: "suspect",
+    })
+      .select("personalDetails assignedAt callTasks")
+      .lean();
+
+    const FORWARDED_STATUSES = [
+      "Call Not Picked",
+      "Busy on Another Call",
+      "Call After Sometimes",
+      "Others",
+    ];
+
+    const byDate = {};
+    let totalAssignedInRange = 0;
+    let contacted = 0;
+    let forwarded = 0;
+    let appointmentScheduled = 0;
+    let callback = 0;
+    let notInterested = 0;
+    let wrongNumber = 0;
+    let notReachable = 0;
+    const contactedIds = new Set();
+
+    suspects.forEach((suspect) => {
+      const assignedAt = suspect.assignedAt ? new Date(suspect.assignedAt) : null;
+      if (assignedAt && assignedAt >= start && assignedAt <= end) {
+        totalAssignedInRange++;
+        const dKey = assignedAt.toISOString().split("T")[0];
+        if (!byDate[dKey]) {
+          byDate[dKey] = {
+            date: dKey,
+            assigned: 0,
+            contacted: 0,
+            forwarded: 0,
+            appointmentScheduled: 0,
+            callback: 0,
+            notInterested: 0,
+            wrongNumber: 0,
+            notReachable: 0,
+            activities: [],
+          };
+        }
+        byDate[dKey].assigned++;
+        const pd = suspect.personalDetails || {};
+        byDate[dKey].activities.push({
+          type: "Assigned",
+          suspectName: pd.name || pd.groupName || "",
+          time: assignedAt,
+          remarks: "",
+          groupCode: pd.groupCode || pd.groupName || "",
+          groupName: pd.groupName || "",
+          groupHead: pd.familyHead || "",
+          mobileNo: pd.mobileNo || pd.contactNo || "",
+        });
+      }
+
+      const tasks = suspect.callTasks || [];
+      tasks.forEach((task) => {
+        const taskDate = task.taskDate ? new Date(task.taskDate) : null;
+        if (!taskDate || taskDate < start || taskDate > end) return;
+        contactedIds.add(suspect._id.toString());
+        const dKey = taskDate.toISOString().split("T")[0];
+        if (!byDate[dKey]) {
+          byDate[dKey] = {
+            date: dKey,
+            assigned: 0,
+            _contactedIds: new Set(),
+            forwarded: 0,
+            appointmentScheduled: 0,
+            callback: 0,
+            notInterested: 0,
+            wrongNumber: 0,
+            notReachable: 0,
+            activities: [],
+          };
+        }
+        if (!byDate[dKey]._contactedIds) byDate[dKey]._contactedIds = new Set();
+        byDate[dKey]._contactedIds.add(suspect._id.toString());
+        const st = task.taskStatus || "";
+        if (FORWARDED_STATUSES.includes(st)) {
+          forwarded++;
+          byDate[dKey].forwarded++;
+        } else if (st === "Appointment Scheduled") {
+          appointmentScheduled++;
+          byDate[dKey].appointmentScheduled++;
+        } else if (st === "Callback") {
+          callback++;
+          byDate[dKey].callback++;
+        } else if (st === "Not Interested") {
+          notInterested++;
+          byDate[dKey].notInterested++;
+        } else if (st === "Wrong Number") {
+          wrongNumber++;
+          byDate[dKey].wrongNumber++;
+        } else if (st === "Not Reachable") {
+          notReachable++;
+          byDate[dKey].notReachable++;
+        }
+        const pd2 = suspect.personalDetails || {};
+        byDate[dKey].activities.push({
+          type: st,
+          suspectName: pd2.name || pd2.groupName || "",
+          time: taskDate,
+          remarks: task.taskRemarks || "",
+          groupCode: pd2.groupCode || pd2.groupName || "",
+          groupName: pd2.groupName || "",
+          groupHead: pd2.familyHead || "",
+          mobileNo: pd2.mobileNo || pd2.contactNo || "",
+        });
+      });
+    });
+    contacted = contactedIds.size;
+
+    const dateWise = Object.keys(byDate)
+      .sort()
+      .map((d) => {
+        const rec = byDate[d];
+        const contactedCount = rec._contactedIds ? rec._contactedIds.size : 0;
+        const { _contactedIds, ...rest } = rec;
+        return {
+          ...rest,
+          contacted: contactedCount,
+          activities: (rec.activities || []).sort(
+            (a, b) => new Date(b.time) - new Date(a.time)
+          ),
+        };
+      });
+
+    res.status(200).json({
+      success: true,
+      message: "Telecaller detail report fetched",
+      data: {
+        telecaller: {
+          _id: tc._id,
+          name: tc.username,
+          employeeCode: tc.employeeCode || `TC-${String(tc._id).slice(-4)}`,
+          designation: tc.designation || "Telecaller",
+        },
+        summary: {
+          totalAssignedInRange,
+          contacted,
+          forwarded,
+          appointmentScheduled,
+          callback,
+          notInterested,
+          wrongNumber,
+          notReachable,
+        },
+        dateWise,
+      },
+    });
+  } catch (error) {
+    console.error("❌ getTelecallerReportDetail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching telecaller detail report",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   registerTelecaller,
   loginTelecaller,
@@ -1118,4 +1395,6 @@ module.exports = {
   getTodaysActiveSuspects, // ✅ NEW
   getSuspectsByNextCallDate,
   getTelecallerAppointments, // ✅ NEW
+  getTelecallerReportList,
+  getTelecallerReportDetail,
 };

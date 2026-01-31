@@ -7,16 +7,20 @@ const {
   assignSuspectsToTelecaller,
   getAssignedSuspects,
   getTelecallerStats,
-  getTodaysActiveSuspects, // ✅ NEW
+  getTodaysActiveSuspects,
   getSuspectsByNextCallDate,
-  getTelecallerAppointments, // ✅ NEW
+  getTelecallerAppointments,
+  getTelecallerReportList,
+  getTelecallerReportDetail,
 } = require("../Controller/telecallerController");
 const Telecaller = require("../Models/telecallerModel");
 const router = express.Router();
 
 router.post("/register", registerTelecaller);
 router.post("/login", loginTelecaller);
-router.get("/", getAllTelecallers); // ✅ GET all
+router.get("/", getAllTelecallers);
+router.get("/report/list", getTelecallerReportList);
+router.get("/report/detail/:telecallerId", getTelecallerReportDetail);
 router.get("/assignments", async (req, res) => {
   try {
     const telecallers = await Telecaller.find()
