@@ -282,11 +282,13 @@ const callTaskSchema = new mongoose.Schema(
 
 const callHistorySchema = new mongoose.Schema({
   callDate: Date,
+  callTime: { type: String, default: "" }, // Appointment time (e.g. "10:30 AM")
   duration: String,
   remarks: String,
-  mobile: String, // Assuming you need a mobile number field
-  status: String, // Add if status is also tracked in history
-  callBy: String, // Capture who made the call
+  mobile: String,
+  status: String, // e.g. "Appointment", "Call"
+  callBy: String, // Who added (RM name/code)
+  callById: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", default: null },
 });
 
 const TestShema = new mongoose.Schema({

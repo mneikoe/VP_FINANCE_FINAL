@@ -92,6 +92,12 @@ const TaskSummary = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionRemarks, setCompletionRemarks] = useState("");
   const [completingTask, setCompletingTask] = useState(false);
+  // Forward to OE (when RM completes)
+  const [forwardToOE, setForwardToOE] = useState(false);
+  const [selectedOEId, setSelectedOEId] = useState("");
+  const [forwardRemark, setForwardRemark] = useState("");
+  const [oeList, setOeList] = useState([]);
+  const [loadingOE, setLoadingOE] = useState(false);
 
   // Get current user
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -287,7 +293,29 @@ const TaskSummary = () => {
     }
   };
 
-  // ✅ NEW: Complete Task Function
+  // ✅ Fetch OE list when Complete modal opens (for Forward to OE)
+  const fetchOEList = async () => {
+    setLoadingOE(true);
+    try {
+      const response = await axios.get("/api/employee/getAllEmployees", {
+        params: { role: "OE" },
+      });
+      if (response.data?.success && Array.isArray(response.data?.data)) {
+        const list = response.data.data.filter((e) => !e.dateOfTermination);
+        setOeList(list);
+        if (list.length > 0 && !selectedOEId) setSelectedOEId(list[0]._id);
+      } else {
+        setOeList([]);
+      }
+    } catch (err) {
+      console.error("Error fetching OE list:", err);
+      setOeList([]);
+    } finally {
+      setLoadingOE(false);
+    }
+  };
+
+  // ✅ NEW: Complete Task Function (with optional Forward to OE)
   const handleCompleteTask = async () => {
     if (!selectedTask) return;
 
@@ -295,28 +323,48 @@ const TaskSummary = () => {
       alert("Please add completion remarks before marking as complete");
       return;
     }
+    if (forwardToOE && !selectedOEId) {
+      alert("Please select an OE to forward the task to");
+      return;
+    }
 
     setCompletingTask(true);
     try {
-      // ✅ Simple API call to update task status
-      const response = await axios.put(`/api/Task/${selectedTask._id}/status`, {
-        status: "completed",
-        remarks: completionRemarks,
-        employeeId: employeeId,
-        employeeName: employeeName,
-      });
-
-      if (response.data.success) {
-        alert(`✅ Task "${selectedTask.name}" marked as completed!`);
-
-        // Clear form
-        setCompletionRemarks("");
-        setShowCompleteModal(false);
-
-        // Refresh tasks list (completed task will be filtered out)
-        fetchTasks();
+      if (forwardToOE && selectedOEId) {
+        const response = await axios.post("/api/Task/forward-to-oe", {
+          taskId: selectedTask._id,
+          oeId: selectedOEId,
+          remark: forwardRemark,
+          completionRemarks,
+          rmId: employeeId,
+          employeeId: employeeId,
+        });
+        if (response.data?.success) {
+          alert(`✅ Task completed and forwarded to OE!`);
+          setCompletionRemarks("");
+          setForwardToOE(false);
+          setSelectedOEId("");
+          setForwardRemark("");
+          setShowCompleteModal(false);
+          fetchTasks();
+        } else {
+          alert("Failed: " + (response.data?.message || "Unknown error"));
+        }
       } else {
-        alert("Failed to complete task: " + response.data.message);
+        const response = await axios.put(`/api/Task/${selectedTask._id}/status`, {
+          status: "completed",
+          remarks: completionRemarks,
+          employeeId: employeeId,
+          employeeName: employeeName,
+        });
+        if (response.data?.success) {
+          alert(`✅ Task "${selectedTask.name}" marked as completed!`);
+          setCompletionRemarks("");
+          setShowCompleteModal(false);
+          fetchTasks();
+        } else {
+          alert("Failed to complete task: " + response.data?.message);
+        }
       }
     } catch (error) {
       console.error("Error completing task:", error);
@@ -812,7 +860,13 @@ const TaskSummary = () => {
       {/* ✅ NEW: Complete Task Modal */}
       <Modal
         show={showCompleteModal}
-        onHide={() => setShowCompleteModal(false)}
+        onHide={() => {
+          setShowCompleteModal(false);
+          setForwardToOE(false);
+          setSelectedOEId("");
+          setForwardRemark("");
+        }}
+        onShow={fetchOEList}
         centered
       >
         <Modal.Header className="border-bottom py-3">
@@ -864,6 +918,50 @@ const TaskSummary = () => {
                   Please provide details about task completion
                 </Form.Text>
               </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  id="forward-to-oe"
+                  label={
+                    <>
+                      <FaShareAlt className="me-2" />
+                      Also forward to OE
+                    </>
+                  }
+                  checked={forwardToOE}
+                  onChange={(e) => setForwardToOE(e.target.checked)}
+                />
+              </Form.Group>
+              {forwardToOE && (
+                <>
+                  <Form.Group className="mb-2">
+                    <Form.Label>Select OE</Form.Label>
+                    <Form.Select
+                      value={selectedOEId}
+                      onChange={(e) => setSelectedOEId(e.target.value)}
+                      disabled={loadingOE}
+                    >
+                      <option value="">-- Select OE --</option>
+                      {oeList.map((oe) => (
+                        <option key={oe._id} value={oe._id}>
+                          {oe.name} ({oe.oeType === "onfield" ? "On Field" : "In House"})
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Remark for OE (optional)</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      placeholder="Message/remark for OE..."
+                      value={forwardRemark}
+                      onChange={(e) => setForwardRemark(e.target.value)}
+                    />
+                  </Form.Group>
+                </>
+              )}
 
               <Alert variant="warning">
                 <FaExclamationCircle className="me-2" />

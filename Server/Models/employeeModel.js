@@ -212,6 +212,13 @@ const employeeSchema = new mongoose.Schema(
       required: [true, "Role is required"],
     },
 
+    // OE type: only for role OE - "onfield" | "inhouse"
+    oeType: {
+      type: String,
+      enum: ["onfield", "inhouse"],
+      default: "inhouse",
+    },
+
     // Bank Details
     bankName: {
       type: String,

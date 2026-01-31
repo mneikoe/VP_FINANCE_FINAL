@@ -64,7 +64,7 @@ const TaskTabs = ({
                 {task.descp?.image && (
                   <div className="mt-3">
                     <img
-                      src={`/uploads/${task.descp.image}`}
+                      src={`${import.meta.env.VITE_API_URL || ""}/uploads/${task.descp.image}`}
                       alt="Task"
                       className="img-fluid rounded border"
                       style={{ maxHeight: "300px" }}
@@ -158,7 +158,7 @@ const TaskTabs = ({
                             <div className="d-flex gap-2">
                               {form.downloadFormUrl && (
                                 <a
-                                  href={`/uploads/${form.downloadFormUrl}`}
+                                  href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.downloadFormUrl}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn btn-outline-primary btn-sm"
@@ -168,7 +168,7 @@ const TaskTabs = ({
                               )}
                               {form.sampleFormUrl && (
                                 <a
-                                  href={`/uploads/${form.sampleFormUrl}`}
+                                  href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.sampleFormUrl}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn btn-outline-secondary btn-sm"

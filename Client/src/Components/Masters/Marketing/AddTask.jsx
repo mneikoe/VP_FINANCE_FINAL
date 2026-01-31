@@ -276,29 +276,46 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
         }
       });
 
-      // Add formChecklists as JSON string
+      // Add formChecklists as JSON (File -> name placeholder, same as Composite)
       formDataToSend.append(
         "formChecklists",
-        JSON.stringify(formData.formChecklists)
+        JSON.stringify(
+          formData.formChecklists.map((item) => ({
+            name: item.name,
+            downloadFormUrl:
+              item.downloadFormUrl instanceof File
+                ? item.downloadFormUrl.name
+                : item.downloadFormUrl || "",
+            sampleFormUrl:
+              item.sampleFormUrl instanceof File
+                ? item.sampleFormUrl.name
+                : item.sampleFormUrl || "",
+          }))
+        )
       );
 
-      // Add files if they exist
-      if (formData.descp.image) {
+      // Image: new file or keep existing
+      if (formData.descp.image instanceof File) {
         formDataToSend.append("image", formData.descp.image);
+      } else if (formData.descp.image) {
+        formDataToSend.append("existingImage", formData.descp.image);
       }
 
-      // Add form files
+      // Form files: append in index order + indices (same as Composite)
+      const newDownloadIndices = [];
+      const newSampleIndices = [];
       formData.formChecklists.forEach((item, index) => {
         if (item.downloadFormUrl instanceof File) {
-          formDataToSend.append(
-            `downloadFormUrl_${index}`,
-            item.downloadFormUrl
-          );
+          newDownloadIndices.push(index);
+          formDataToSend.append("downloadFormUrl", item.downloadFormUrl);
         }
         if (item.sampleFormUrl instanceof File) {
-          formDataToSend.append(`sampleFormUrl_${index}`, item.sampleFormUrl);
+          newSampleIndices.push(index);
+          formDataToSend.append("sampleFormUrl", item.sampleFormUrl);
         }
       });
+      formDataToSend.append("newDownloadIndices", JSON.stringify(newDownloadIndices));
+      formDataToSend.append("newSampleIndices", JSON.stringify(newSampleIndices));
 
       let response;
       if (data) {
@@ -602,7 +619,7 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
                         {flat?.descImage && !editImage ? (
                           <div className="d-flex align-items-center">
                             <img
-                              src={`/images/${flat.descImage}`}
+                              src={`${import.meta.env.VITE_API_URL || ""}/uploads/${flat.descImage}`}
                               alt="Uploaded"
                               className="img-thumbnail mr-3"
                               style={{
@@ -878,10 +895,18 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
                               <div className="form-group">
                                 <label>Blank Form</label>
                                 {item.downloadFormUrl && !editDownloadImage ? (
-                                  <div className="d-flex align-items-center">
-                                    <span className="text-success mr-2">
-                                      ✓ File uploaded
-                                    </span>
+                                  <div className="d-flex flex-column gap-1">
+                                    <span className="text-success">✓ File uploaded</span>
+                                    {typeof item.downloadFormUrl === "string" && (
+                                      <a
+                                        href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.downloadFormUrl}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-outline-primary btn-sm"
+                                      >
+                                        View / Download
+                                      </a>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={() => setEditDownloadImage(true)}
@@ -925,10 +950,18 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
                                 <label>Sample Form</label>
                                 {item.sampleFormUrl &&
                                 !editDownloadSampleImage ? (
-                                  <div className="d-flex align-items-center">
-                                    <span className="text-success mr-2">
-                                      ✓ File uploaded
-                                    </span>
+                                  <div className="d-flex flex-column gap-1">
+                                    <span className="text-success">✓ File uploaded</span>
+                                    {typeof item.sampleFormUrl === "string" && (
+                                      <a
+                                        href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.sampleFormUrl}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-outline-primary btn-sm"
+                                      >
+                                        View / Download
+                                      </a>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={() =>

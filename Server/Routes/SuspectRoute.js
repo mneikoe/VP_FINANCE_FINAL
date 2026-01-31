@@ -62,6 +62,8 @@ router.post("/:id/call-task", SuspectCtrl.addCallTask);
 router.get("/appointments/scheduled", SuspectCtrl.getAllAppointmentScheduled);
 // Get Call History
 router.get("/:id/call-history", SuspectCtrl.getCallHistory);
+// Add Call History (RM add appointment - date, time, remark)
+router.post("/:id/call-history", SuspectCtrl.addCallHistory);
 // routes/suspect.js में नया route add करो
 // Get Suspects by Call Task Status (NEW)
 router.get("/filter/by-call-status", SuspectCtrl.getSuspectsByCallStatus);

@@ -115,4 +115,12 @@ router.put(
 
   TaskController.updateTaskStatus
 );
+
+// RM complete + forward to OE
+router.post("/forward-to-oe", TaskController.forwardTaskToOE);
+
+// OA Employee Report
+router.get("/report/list", TaskController.getEmployeeReportList);
+router.get("/report/activity/:employeeId", TaskController.getEmployeeActivityReport);
+
 module.exports = router;

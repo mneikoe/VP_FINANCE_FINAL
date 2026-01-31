@@ -92,6 +92,11 @@ import ResumeShortlistHR from "../Components/HRDashboard/modules/ResumeShortlist
 import InterviewProcessHR from "../Components/HRDashboard/modules/InterviewProcess";
 import JoiningDataHR from "../Components/HRDashboard/modules/JoiningData";
 import ProspectAppointmentList from "../Components/Reports/ProspectAppointmentList";
+import EmployeeReport from "../Components/Reports/EmployeeReport";
+import EmployeeReportDetail from "../Components/Reports/EmployeeReportDetail";
+import TelecallerReport from "../Components/Reports/TelecallerReport";
+import TelecallerReportDetail from "../Components/Reports/TelecallerReportDetail";
+import TelecallerReportDateActivities from "../Components/Reports/TelecallerReportDateActivities";
 import RMDashboard from "../Components/RMDashboard/RMDashboard";
 import SuspectDetailsPage from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectDetailsPageTelecaller";
 import StatusBasedLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/StatusBasedLeadsPage";
@@ -223,6 +228,20 @@ const AppRoutes = () => {
         <Route
           path="/reports/prospect-list"
           element={<ProspectAppointmentList />}
+        />
+        <Route path="/reports/employee-report" element={<EmployeeReport />} />
+        <Route
+          path="/reports/employee-report/:employeeId"
+          element={<EmployeeReportDetail />}
+        />
+        <Route path="/reports/telecaller-report" element={<TelecallerReport />} />
+        <Route
+          path="/reports/telecaller-report/:telecallerId/date/:date"
+          element={<TelecallerReportDateActivities />}
+        />
+        <Route
+          path="/reports/telecaller-report/:telecallerId"
+          element={<TelecallerReportDetail />}
         />
         <Route path="/import-lead" element={<ImportLead />} />
         <Route path="/kyc" element={<KYCtabs />} />

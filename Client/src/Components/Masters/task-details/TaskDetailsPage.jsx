@@ -625,7 +625,7 @@ const TaskDetailsPage = () => {
                   {task.descp?.image && (
                     <div className="mt-3">
                       <img
-                        src={`/uploads/${task.descp.image}`}
+                        src={`${import.meta.env.VITE_API_URL || ""}/uploads/${task.descp.image}`}
                         alt="Task"
                         className="img-fluid rounded"
                         style={{ maxHeight: "300px" }}
@@ -713,7 +713,7 @@ const TaskDetailsPage = () => {
                                   <Button
                                     variant="outline-primary"
                                     size="sm"
-                                    href={`/uploads/${form.downloadFormUrl}`}
+                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.downloadFormUrl}`}
                                     target="_blank"
                                   >
                                     <FaDownload className="me-1" />
@@ -724,7 +724,7 @@ const TaskDetailsPage = () => {
                                   <Button
                                     variant="outline-secondary"
                                     size="sm"
-                                    href={`/uploads/${form.sampleFormUrl}`}
+                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.sampleFormUrl}`}
                                     target="_blank"
                                   >
                                     <FaEye className="me-1" />

@@ -13,34 +13,17 @@ import {
   FaSignOutAlt,
   FaHome,
   FaUser,
-  FaUsers,
   FaTasks,
-  FaFileAlt,
-  FaChartLine,
   FaHistory,
   FaMoneyBillAlt,
-  FaImage,
-  FaBriefcase,
-  FaMapMarkedAlt,
-  FaClipboardList,
-  FaUserTie,
   FaBars,
   FaTimes,
-  FaBuilding,
-  FaPhoneAlt,
-  FaCalendarDay,
-  FaCheckCircle,
-  FaRegCalendarCheck,
-  FaIdCard,
-  FaArrowRight,
 } from "react-icons/fa";
 
 // OE Dashboard Modules
 import OEDashboardHome from "./OEDashboardHome";
-// import OEProfile from "./modules/Profile";
-// import OECustomerMaster from "./modules/CustomerMaster";
-// import OETaskSummary from "./modules/TaskSummary";
-// import OEAssignedTasks from "./modules/AssignedTasks";
+import OETaskSummary from "./OETaskSummary";
+import OEProfile from "./modules/Profile";
 // import OESuspectDetailsPage from "./modules/SuspectDetailsPage";
 // import OETaskDetailsPage from "../Masters/task-details/TaskDetailsPage";
 
@@ -98,7 +81,7 @@ const OEDashboard = () => {
         return;
       }
 
-      const response = await axios.get("/api/oe/assigned-tasks", {
+      const response = await axios.get("/api/OE/assigned-tasks", {
         params: { oeId: oeId },
       });
 
@@ -164,24 +147,9 @@ const OEDashboard = () => {
     { name: "Dashboard", href: "/oe/dashboard", icon: <FaHome size={14} /> },
     { name: "Profile", href: "/oe/profile", icon: <FaUser size={14} /> },
     {
-      name: "Customer Master",
-      href: "/oe/customer-master",
-      icon: <FaUserTie size={14} />,
-    },
-    {
       name: "Task Summary",
       href: "/oe/task-summary",
       icon: <FaTasks size={14} />,
-    },
-    {
-      name: "Document Management",
-      href: "/oe/documents",
-      icon: <FaFileAlt size={14} />,
-    },
-    {
-      name: "Reporting",
-      href: "/oe/reports",
-      icon: <FaChartLine size={14} />,
     },
     {
       name: "Salary History",
@@ -192,12 +160,6 @@ const OEDashboard = () => {
       name: "Incentive History",
       href: "/oe/incentive-history",
       icon: <FaHistory size={14} />,
-    },
-    {
-      name: "Assigned Tasks",
-      href: "/oe/assigned-tasks",
-      icon: <FaBriefcase size={14} />,
-      count: assignedTasks.length,
     },
   ];
 
@@ -210,18 +172,11 @@ const OEDashboard = () => {
   const getPageTitle = () => {
     if (location.pathname.includes("/oe/dashboard")) return "Dashboard";
     if (location.pathname.includes("/oe/profile")) return "Profile";
-    if (location.pathname.includes("/oe/customer-master"))
-      return "Customer Master";
     if (location.pathname.includes("/oe/task-summary")) return "Task Summary";
-    if (location.pathname.includes("/oe/documents"))
-      return "Document Management";
-    if (location.pathname.includes("/oe/reports")) return "Reports";
     if (location.pathname.includes("/oe/salary-history"))
       return "Salary History";
     if (location.pathname.includes("/oe/incentive-history"))
       return "Incentive History";
-    if (location.pathname.includes("/oe/assigned-tasks"))
-      return "Assigned Tasks";
     return "OE Dashboard";
   };
 
@@ -352,26 +307,8 @@ const OEDashboard = () => {
               <OEDashboardHome stats={stats} assignedTasks={assignedTasks} />
             }
           />
-          <Route
-            path="/profile"
-            element={<PlaceholderComponent title="Profile" />}
-          />
-          <Route
-            path="/customer-master"
-            element={<PlaceholderComponent title="Customer Master" />}
-          />
-          <Route
-            path="/task-summary"
-            element={<PlaceholderComponent title="TaskSummary" />}
-          />
-          <Route
-            path="/documents"
-            element={<PlaceholderComponent title="Document Management" />}
-          />
-          <Route
-            path="/reports"
-            element={<PlaceholderComponent title="Reports" />}
-          />
+          <Route path="/profile" element={<OEProfile />} />
+          <Route path="/task-summary" element={<OETaskSummary />} />
           <Route
             path="/salary-history"
             element={<PlaceholderComponent title="Salary History" />}
@@ -379,10 +316,6 @@ const OEDashboard = () => {
           <Route
             path="/incentive-history"
             element={<PlaceholderComponent title="Incentive History" />}
-          />
-          <Route
-            path="/assigned-tasks"
-            element={<PlaceholderComponent title="Assigned Tasks" />}
           />
           <Route
             path="/task/details/:id"

@@ -73,6 +73,26 @@ const IndividualTaskSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Forwarded by RM to OE - when RM completes and forwards task to OE
+    forwardedFromRM: {
+      forwardedAt: { type: Date, default: null },
+      forwardedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+      remark: { type: String, default: "" },
+    },
+
+    // OE forwarded back to RM - when OE updates/forwards task to RM
+    oeForwardedToRM: {
+      forwardedAt: { type: Date, default: null },
+      remark: { type: String, default: "" },
+      files: [
+        {
+          filename: String,
+          originalName: String,
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
+    },
+
     // ✅ YEH NAYA FIELD ADD KARO
     clientProspectStatuses: [
       {
@@ -143,6 +163,7 @@ const IndividualTaskSchema = new mongoose.Schema(
       ],
       clientAssignmentRemarks: String,
       prospectAssignmentRemarks: String,
+      completionRemarks: String,
     },
     completedAt: Date,
     createdBy: {

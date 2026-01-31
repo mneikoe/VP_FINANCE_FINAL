@@ -291,23 +291,28 @@ const Addtask = ({ on, data, onSuccess }) => {
         )
       );
 
-      // ✅ FIXED: Add image file with proper field name
+      // ✅ Image: single file
       if (formData.descp.image instanceof File) {
         formDataToSend.append("image", formData.descp.image);
       } else if (formData.descp.image) {
-        // If it's a string (existing image), still send it
         formDataToSend.append("existingImage", formData.descp.image);
       }
 
-      // ✅ FIXED: Add form files with proper field names
+      // ✅ Form files: append in index order so server gets correct mapping
+      const newDownloadIndices = [];
+      const newSampleIndices = [];
       formData.formChecklists.forEach((item, index) => {
         if (item.downloadFormUrl instanceof File) {
+          newDownloadIndices.push(index);
           formDataToSend.append("downloadFormUrl", item.downloadFormUrl);
         }
         if (item.sampleFormUrl instanceof File) {
+          newSampleIndices.push(index);
           formDataToSend.append("sampleFormUrl", item.sampleFormUrl);
         }
       });
+      formDataToSend.append("newDownloadIndices", JSON.stringify(newDownloadIndices));
+      formDataToSend.append("newSampleIndices", JSON.stringify(newSampleIndices));
 
       // Send to API
       if (data) {
@@ -620,7 +625,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                       {flat?.descImage && !editImage ? (
                         <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                           <img
-                            src={`/images/${flat.descImage}`}
+                            src={`${import.meta.env.VITE_API_URL || ""}/uploads/${flat.descImage}`}
                             alt="Uploaded"
                             className="w-16 h-16 object-cover rounded border border-gray-300"
                           />
@@ -891,6 +896,16 @@ const Addtask = ({ on, data, onSuccess }) => {
                                   <div className="p-2 bg-green-50 border border-green-200 rounded text-green-700 text-xs">
                                     File uploaded
                                   </div>
+                                  {typeof item.downloadFormUrl === "string" && (
+                                    <a
+                                      href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.downloadFormUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-blue-600 hover:bg-gray-50 transition-colors text-sm text-center"
+                                    >
+                                      View / Download
+                                    </a>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => setEditDownloadImage(true)}
@@ -947,6 +962,16 @@ const Addtask = ({ on, data, onSuccess }) => {
                                   <div className="p-2 bg-blue-50 border border-blue-200 rounded text-blue-700 text-xs">
                                     File uploaded
                                   </div>
+                                  {typeof item.sampleFormUrl === "string" && (
+                                    <a
+                                      href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.sampleFormUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-blue-600 hover:bg-gray-50 transition-colors text-sm text-center"
+                                    >
+                                      View / Download
+                                    </a>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() =>

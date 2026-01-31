@@ -5,6 +5,8 @@ import path from "path";
 import fs from "fs";
 import Employee from "../Models/employeeModel.js";
 import SusProsClient from "../Models/SusProsClientSchema.js";
+import Telecaller from "../Models/telecallerModel.js";
+import HR from "../Models/HRModel.js";
 // createTask function mein sirf formChecklists part update karo:
 export const createTask = async (req, res) => {
   try {
@@ -55,7 +57,41 @@ export const createTask = async (req, res) => {
 
         console.log("✅ Parsed formChecklists:", formChecklists);
 
-        // ✅ AB FILES KI PROCESSING KARO
+        // ✅ newDownloadIndices / newSampleIndices se files ko sahi index pe map karo
+        let newDownloadIndices = [];
+        let newSampleIndices = [];
+        if (req.body.newDownloadIndices) {
+          try {
+            newDownloadIndices =
+              typeof req.body.newDownloadIndices === "string"
+                ? JSON.parse(req.body.newDownloadIndices)
+                : req.body.newDownloadIndices;
+          } catch (e) {
+            console.warn("newDownloadIndices parse error", e);
+          }
+        }
+        if (req.body.newSampleIndices) {
+          try {
+            newSampleIndices =
+              typeof req.body.newSampleIndices === "string"
+                ? JSON.parse(req.body.newSampleIndices)
+                : req.body.newSampleIndices;
+          } catch (e) {
+            console.warn("newSampleIndices parse error", e);
+          }
+        }
+
+        const downloadFiles = req.files?.downloadFormUrl
+          ? Array.isArray(req.files.downloadFormUrl)
+            ? req.files.downloadFormUrl
+            : [req.files.downloadFormUrl]
+          : [];
+        const sampleFiles = req.files?.sampleFormUrl
+          ? Array.isArray(req.files.sampleFormUrl)
+            ? req.files.sampleFormUrl
+            : [req.files.sampleFormUrl]
+          : [];
+
         formChecklists = formChecklists.map((item, index) => {
           const checklistItem = {
             name: item.name?.trim() || "",
@@ -63,15 +99,13 @@ export const createTask = async (req, res) => {
             sampleFormUrl: item.sampleFormUrl || "",
           };
 
-          // ✅ Check if files were uploaded for this index
-          if (req.files?.downloadFormUrl && req.files.downloadFormUrl[index]) {
-            checklistItem.downloadFormUrl =
-              req.files.downloadFormUrl[index].filename;
+          const di = newDownloadIndices.indexOf(index);
+          if (di !== -1 && downloadFiles[di]) {
+            checklistItem.downloadFormUrl = downloadFiles[di].filename;
           }
-
-          if (req.files?.sampleFormUrl && req.files.sampleFormUrl[index]) {
-            checklistItem.sampleFormUrl =
-              req.files.sampleFormUrl[index].filename;
+          const si = newSampleIndices.indexOf(index);
+          if (si !== -1 && sampleFiles[si]) {
+            checklistItem.sampleFormUrl = sampleFiles[si].filename;
           }
 
           return checklistItem;
@@ -304,69 +338,67 @@ export const updateTask = async (req, res) => {
         : [];
     }
 
-    // Handle formChecklists
+    // Handle formChecklists (composite update) with newDownloadIndices / newSampleIndices
     if (req.body.formChecklists) {
       try {
         const parsed = JSON.parse(req.body.formChecklists);
+        let newDownloadIndices = [];
+        let newSampleIndices = [];
+        if (req.body.newDownloadIndices) {
+          try {
+            newDownloadIndices =
+              typeof req.body.newDownloadIndices === "string"
+                ? JSON.parse(req.body.newDownloadIndices)
+                : req.body.newDownloadIndices;
+          } catch (e) {}
+        }
+        if (req.body.newSampleIndices) {
+          try {
+            newSampleIndices =
+              typeof req.body.newSampleIndices === "string"
+                ? JSON.parse(req.body.newSampleIndices)
+                : req.body.newSampleIndices;
+          } catch (e) {}
+        }
+        const downloadFiles = req.files?.downloadFormUrl
+          ? Array.isArray(req.files.downloadFormUrl)
+            ? req.files.downloadFormUrl
+            : [req.files.downloadFormUrl]
+          : [];
+        const sampleFiles = req.files?.sampleFormUrl
+          ? Array.isArray(req.files.sampleFormUrl)
+            ? req.files.sampleFormUrl
+            : [req.files.sampleFormUrl]
+          : [];
+
         updates.formChecklists = parsed
           .map((item, index) => {
-            // Start with existing URLs
             let downloadFormUrl = item.downloadFormUrl || "";
             let sampleFormUrl = item.sampleFormUrl || "";
-
-            // Check for new uploads
-            if (
-              req.files &&
-              req.files.downloadFormUrl &&
-              req.files.downloadFormUrl[index]
-            ) {
-              downloadFormUrl = req.files.downloadFormUrl[index].filename;
-
-              // Delete old file if exists
-              const existingChecklist = existingTask.formChecklists[index];
-              if (existingChecklist && existingChecklist.downloadFormUrl) {
+            const di = newDownloadIndices.indexOf(index);
+            if (di !== -1 && downloadFiles[di]) {
+              const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
+              if (old) {
                 try {
-                  fs.unlink(
-                    path.join(
-                      __dirname,
-                      "../uploads",
-                      existingChecklist.downloadFormUrl
-                    )
-                  );
-                } catch (err) {
-                  console.log("Old download form file not found");
-                }
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
               }
+              downloadFormUrl = downloadFiles[di].filename;
             }
-
-            if (
-              req.files &&
-              req.files.sampleFormUrl &&
-              req.files.sampleFormUrl[index]
-            ) {
-              sampleFormUrl = req.files.sampleFormUrl[index].filename;
-
-              // Delete old file if exists
-              const existingChecklist = existingTask.formChecklists[index];
-              if (existingChecklist && existingChecklist.sampleFormUrl) {
+            const si = newSampleIndices.indexOf(index);
+            if (si !== -1 && sampleFiles[si]) {
+              const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
+              if (old) {
                 try {
-                  fs.unlink(
-                    path.join(
-                      __dirname,
-                      "../uploads",
-                      existingChecklist.sampleFormUrl
-                    )
-                  );
-                } catch (err) {
-                  console.log("Old sample form file not found");
-                }
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
               }
+              sampleFormUrl = sampleFiles[si].filename;
             }
-
             return {
               name: item.name?.trim() || "",
-              downloadFormUrl: downloadFormUrl,
-              sampleFormUrl: sampleFormUrl,
+              downloadFormUrl,
+              sampleFormUrl,
             };
           })
           .filter((item) => item.name !== "");
@@ -1659,6 +1691,8 @@ export const updateMarketingTask = async (req, res) => {
           console.log("Old image file not found or already deleted");
         }
       }
+    } else if (req.body.existingImage) {
+      updates.descp.image = req.body.existingImage;
     }
 
     // Handle checklists
@@ -1668,16 +1702,69 @@ export const updateMarketingTask = async (req, res) => {
         : [];
     }
 
-    // Handle formChecklists
+    // Handle formChecklists with newDownloadIndices / newSampleIndices (marketing)
     if (req.body.formChecklists) {
       try {
         const parsed = JSON.parse(req.body.formChecklists);
+        let newDownloadIndices = [];
+        let newSampleIndices = [];
+        if (req.body.newDownloadIndices) {
+          try {
+            newDownloadIndices =
+              typeof req.body.newDownloadIndices === "string"
+                ? JSON.parse(req.body.newDownloadIndices)
+                : req.body.newDownloadIndices;
+          } catch (e) {}
+        }
+        if (req.body.newSampleIndices) {
+          try {
+            newSampleIndices =
+              typeof req.body.newSampleIndices === "string"
+                ? JSON.parse(req.body.newSampleIndices)
+                : req.body.newSampleIndices;
+          } catch (e) {}
+        }
+        const downloadFiles = req.files?.downloadFormUrl
+          ? Array.isArray(req.files.downloadFormUrl)
+            ? req.files.downloadFormUrl
+            : [req.files.downloadFormUrl]
+          : [];
+        const sampleFiles = req.files?.sampleFormUrl
+          ? Array.isArray(req.files.sampleFormUrl)
+            ? req.files.sampleFormUrl
+            : [req.files.sampleFormUrl]
+          : [];
+
         updates.formChecklists = parsed
-          .map((item) => ({
-            name: item.name?.trim() || "",
-            downloadFormUrl: item.downloadFormUrl || "",
-            sampleFormUrl: item.sampleFormUrl || "",
-          }))
+          .map((item, index) => {
+            let downloadFormUrl = item.downloadFormUrl || "";
+            let sampleFormUrl = item.sampleFormUrl || "";
+            const di = newDownloadIndices.indexOf(index);
+            if (di !== -1 && downloadFiles[di]) {
+              const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
+              if (old) {
+                try {
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
+              }
+              downloadFormUrl = downloadFiles[di].filename;
+            }
+            const si = newSampleIndices.indexOf(index);
+            if (si !== -1 && sampleFiles[si]) {
+              const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
+              if (old) {
+                try {
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
+              }
+              sampleFormUrl = sampleFiles[si].filename;
+            }
+            return {
+              name: item.name?.trim() || "",
+              downloadFormUrl,
+              sampleFormUrl,
+            };
+          })
           .filter((item) => item.name !== "");
       } catch (err) {
         return res.status(400).json({
@@ -2359,6 +2446,8 @@ export const updateServiceTask = async (req, res) => {
           console.log("Old image file not found or already deleted");
         }
       }
+    } else if (req.body.existingImage) {
+      updates.descp.image = req.body.existingImage;
     }
 
     // Handle checklists
@@ -2368,16 +2457,69 @@ export const updateServiceTask = async (req, res) => {
         : [];
     }
 
-    // Handle formChecklists
+    // Handle formChecklists with newDownloadIndices / newSampleIndices (service)
     if (req.body.formChecklists) {
       try {
         const parsed = JSON.parse(req.body.formChecklists);
+        let newDownloadIndices = [];
+        let newSampleIndices = [];
+        if (req.body.newDownloadIndices) {
+          try {
+            newDownloadIndices =
+              typeof req.body.newDownloadIndices === "string"
+                ? JSON.parse(req.body.newDownloadIndices)
+                : req.body.newDownloadIndices;
+          } catch (e) {}
+        }
+        if (req.body.newSampleIndices) {
+          try {
+            newSampleIndices =
+              typeof req.body.newSampleIndices === "string"
+                ? JSON.parse(req.body.newSampleIndices)
+                : req.body.newSampleIndices;
+          } catch (e) {}
+        }
+        const downloadFiles = req.files?.downloadFormUrl
+          ? Array.isArray(req.files.downloadFormUrl)
+            ? req.files.downloadFormUrl
+            : [req.files.downloadFormUrl]
+          : [];
+        const sampleFiles = req.files?.sampleFormUrl
+          ? Array.isArray(req.files.sampleFormUrl)
+            ? req.files.sampleFormUrl
+            : [req.files.sampleFormUrl]
+          : [];
+
         updates.formChecklists = parsed
-          .map((item) => ({
-            name: item.name?.trim() || "",
-            downloadFormUrl: item.downloadFormUrl || "",
-            sampleFormUrl: item.sampleFormUrl || "",
-          }))
+          .map((item, index) => {
+            let downloadFormUrl = item.downloadFormUrl || "";
+            let sampleFormUrl = item.sampleFormUrl || "";
+            const di = newDownloadIndices.indexOf(index);
+            if (di !== -1 && downloadFiles[di]) {
+              const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
+              if (old) {
+                try {
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
+              }
+              downloadFormUrl = downloadFiles[di].filename;
+            }
+            const si = newSampleIndices.indexOf(index);
+            if (si !== -1 && sampleFiles[si]) {
+              const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
+              if (old) {
+                try {
+                  fs.unlink(path.join(__dirname, "../uploads", old));
+                } catch (err) {}
+              }
+              sampleFormUrl = sampleFiles[si].filename;
+            }
+            return {
+              name: item.name?.trim() || "",
+              downloadFormUrl,
+              sampleFormUrl,
+            };
+          })
           .filter((item) => item.name !== "");
       } catch (err) {
         return res.status(400).json({
@@ -2925,10 +3067,9 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
 
-    // Update task status
     task.status = status;
-    task.completedAt = new Date();
-    if (remarks) {
+    if (status === "completed") task.completedAt = new Date();
+    if (remarks && task.assignmentDetails) {
       task.assignmentDetails.completionRemarks = remarks;
     }
 
@@ -2949,6 +3090,657 @@ export const updateTaskStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update task status",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ RM Complete + Forward to OE: mark RM task completed, create Individual task for OE
+export const forwardTaskToOE = async (req, res) => {
+  try {
+    const { taskId, oeId, remark } = req.body;
+    const rmId = req.body.rmId || req.body.employeeId;
+
+    if (!taskId || !oeId || !rmId) {
+      return res.status(400).json({
+        success: false,
+        message: "taskId, oeId and rmId are required",
+      });
+    }
+
+    const IndividualTask = GetModelByType("individual");
+    const CompositeTask = GetModelByType("composite");
+
+    const rmTask = await IndividualTask.findById(taskId);
+    if (!rmTask) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+    if (rmTask.assignedTo?.toString() !== rmId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to forward this task",
+      });
+    }
+
+    const oeEmployee = await Employee.findById(oeId);
+    if (!oeEmployee || oeEmployee.role !== "OE") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OE selected",
+      });
+    }
+
+    const parentTask = await CompositeTask.findById(rmTask.parentTask);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: "Parent task not found",
+      });
+    }
+
+    rmTask.status = "completed";
+    rmTask.completedAt = new Date();
+    if (rmTask.assignmentDetails) rmTask.assignmentDetails.completionRemarks = req.body.completionRemarks || remark || "";
+    await rmTask.save();
+
+    const oeTask = new IndividualTask({
+      cat: rmTask.cat,
+      sub: rmTask.sub,
+      depart: rmTask.depart,
+      name: rmTask.name,
+      estimatedDays: rmTask.estimatedDays,
+      descp: rmTask.descp,
+      email_descp: rmTask.email_descp,
+      sms_descp: rmTask.sms_descp,
+      whatsapp_descp: rmTask.whatsapp_descp,
+      checklists: rmTask.checklists,
+      formChecklists: rmTask.formChecklists || [],
+      type: rmTask.type || "composite",
+      status: "assigned",
+      parentTask: rmTask.parentTask,
+      assignedTo: oeId,
+      assignmentDetails: {
+        priority: rmTask.assignmentDetails?.priority || "medium",
+        remarks: rmTask.assignmentDetails?.remarks,
+        dueDate: rmTask.assignmentDetails?.dueDate,
+        assignedBy: rmId,
+        assignedAt: new Date(),
+        assignedClients: rmTask.assignmentDetails?.assignedClients || [],
+        assignedProspects: rmTask.assignmentDetails?.assignedProspects || [],
+      },
+      forwardedFromRM: {
+        forwardedAt: new Date(),
+        forwardedBy: rmId,
+        remark: remark || "",
+      },
+      createdBy: rmId,
+    });
+    await oeTask.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Task completed and forwarded to OE",
+      data: {
+        rmTaskId: rmTask._id,
+        oeTaskId: oeTask._id,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error in forwardTaskToOE:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to forward task to OE",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Get assigned tasks for OE with forwardedFromRM and client/prospect details by oeType
+export const getOEAssignedTasks = async (req, res) => {
+  try {
+    const oeId = req.query.oeId || req.params.oeId;
+    if (!oeId) {
+      return res.status(400).json({
+        success: false,
+        message: "oeId is required",
+      });
+    }
+
+    const employee = await Employee.findById(oeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "OE not found",
+      });
+    }
+    const oeType = employee.oeType || "inhouse";
+
+    const IndividualTask = GetModelByType("individual");
+    const clientSelect =
+      oeType === "onfield"
+        ? "personalDetails.name personalDetails.preferredMeetingArea personalDetails.mobileNo personalDetails.groupCode personalDetails.groupName personalDetails.familyHead status"
+        : undefined;
+    const tasks = await IndividualTask.find({
+      assignedTo: oeId,
+      status: { $in: ["assigned", "in-progress", "overdue"] },
+    })
+      .populate({
+        path: "parentTask",
+        select: "name type templatePriority checklists estimatedDays",
+      })
+      .populate("cat", "name")
+      .populate("forwardedFromRM.forwardedBy", "name employeeCode")
+      .populate(
+        "assignmentDetails.assignedClients",
+        clientSelect
+      )
+      .populate(
+        "assignmentDetails.assignedProspects",
+        clientSelect
+      )
+      .populate("assignmentDetails.assignedBy", "name email")
+      .sort({ "assignmentDetails.priority": -1, "assignmentDetails.dueDate": 1, createdAt: -1 })
+      .lean();
+
+    const formattedTasks = tasks.map((task) => {
+      const checklists = task.checklists || task.parentTask?.checklists || [];
+      const clientDetails = task.assignmentDetails?.assignedClients || [];
+      const prospectDetails = task.assignmentDetails?.assignedProspects || [];
+      return {
+        id: task._id,
+        _id: task._id,
+        name: task.name,
+        company: task.sub,
+        product: task.cat?.name,
+        priority: task.assignmentDetails?.priority || "medium",
+        dueDate: task.assignmentDetails?.dueDate,
+        assignedAt: task.assignmentDetails?.assignedAt,
+        remarks: task.assignmentDetails?.remarks,
+        checklistCount: checklists.length,
+        checklists,
+        parentTask: task.parentTask,
+        type: task.parentTask?.type || task.type || "composite",
+        status: task.status,
+        estimatedDays: task.estimatedDays || task.parentTask?.estimatedDays || 1,
+        assignmentDetails: task.assignmentDetails || {},
+        forwardedFromRM: task.forwardedFromRM || null,
+        oeForwardedToRM: task.oeForwardedToRM || null,
+        assignedClients: clientDetails,
+        assignedProspects: prospectDetails,
+        oeType,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OE assigned tasks fetched",
+      data: formattedTasks,
+    });
+  } catch (error) {
+    console.error("❌ Error getOEAssignedTasks:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch OE tasks",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ OE forward back to RM: update status, add remark and files
+export const oeForwardToRM = async (req, res) => {
+  try {
+    const { taskId, status, remark } = req.body;
+    const oeId = req.body.oeId || req.body.employeeId;
+    const files = req.body.files || req.files?.files || [];
+
+    if (!taskId || !oeId) {
+      return res.status(400).json({
+        success: false,
+        message: "taskId and oeId are required",
+      });
+    }
+
+    const IndividualTask = GetModelByType("individual");
+    const task = await IndividualTask.findById(taskId);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+    if (task.assignedTo?.toString() !== oeId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to forward this task",
+      });
+    }
+
+    if (status) {
+      task.status = status;
+      if (status === "completed") task.completedAt = new Date();
+    }
+    if (task.assignmentDetails && remark) task.assignmentDetails.completionRemarks = remark;
+
+    const fileList = Array.isArray(files) ? files : (files.length ? [files] : []);
+    const uploadedFiles = fileList.map((f) => ({
+      filename: f.filename || f.name,
+      originalName: f.originalname || f.name || f.filename,
+      uploadedAt: new Date(),
+    }));
+
+    task.oeForwardedToRM = {
+      forwardedAt: new Date(),
+      remark: remark || "",
+      files: [...(task.oeForwardedToRM?.files || []), ...uploadedFiles],
+    };
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Task forwarded to RM",
+      data: { taskId: task._id, status: task.status },
+    });
+  } catch (error) {
+    console.error("❌ Error oeForwardToRM:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to forward task to RM",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Employee Report List: OA panel jaisa - Telecaller/HR ke liye Telecaller & HR models se fetch
+export const getEmployeeReportList = async (req, res) => {
+  try {
+    const { role, startDate, endDate } = req.query;
+    const IndividualTask = GetModelByType("individual");
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date(8640000000000000);
+
+    let list = [];
+
+    // OA panel jaisa: Telecaller role → Telecaller model se saare fetch karo (13 etc.)
+    if (role === "Telecaller") {
+      const telecallers = await Telecaller.find()
+        .select("username employeeCode designation dateOfJoining employeeRef assignedSuspects")
+        .lean();
+      list = await Promise.all(
+        telecallers.map(async (tc) => {
+          const empId = tc.employeeRef || tc._id;
+          const taskFilter = {
+            assignedTo: empId,
+            $or: [
+              { "assignmentDetails.assignedAt": { $gte: start, $lte: end } },
+              { completedAt: { $gte: start, $lte: end } },
+            ],
+          };
+          const tasks = await IndividualTask.find(taskFilter)
+            .select("name type status completedAt assignmentDetails.assignedAt assignmentDetails.dueDate")
+            .lean();
+          const completed = tasks.filter((t) => t.status === "completed").length;
+          let assignedSuspectsCount = 0;
+          if (Array.isArray(tc.assignedSuspects)) {
+            assignedSuspectsCount = tc.assignedSuspects.filter((s) => {
+              const d = s.assignedAt ? new Date(s.assignedAt) : null;
+              return d && d >= start && d <= end;
+            }).length;
+          }
+          return {
+            _id: empId,
+            name: tc.username,
+            employeeCode: tc.employeeCode || `TC-${String(tc._id).slice(-4)}`,
+            role: "Telecaller",
+            designation: tc.designation || "Telecaller",
+            oeType: undefined,
+            dateOfJoining: tc.dateOfJoining,
+            totalTasks: tasks.length,
+            completedTasks: completed,
+            pendingTasks: tasks.length - completed,
+            assignedSuspectsCount,
+            managedEmployeesCount: undefined,
+          };
+        })
+      );
+    }
+    // OA panel jaisa: HR role → HR model se saare fetch karo
+    else if (role === "HR") {
+      const hrs = await HR.find()
+        .select("username employeeCode designation dateOfJoining employeeRef managedEmployees")
+        .lean();
+      list = await Promise.all(
+        hrs.map(async (hr) => {
+          const empId = hr.employeeRef || hr._id;
+          const taskFilter = {
+            assignedTo: empId,
+            $or: [
+              { "assignmentDetails.assignedAt": { $gte: start, $lte: end } },
+              { completedAt: { $gte: start, $lte: end } },
+            ],
+          };
+          const tasks = await IndividualTask.find(taskFilter)
+            .select("name type status completedAt assignmentDetails.assignedAt assignmentDetails.dueDate")
+            .lean();
+          const completed = tasks.filter((t) => t.status === "completed").length;
+          let managedEmployeesCount = 0;
+          if (Array.isArray(hr.managedEmployees)) {
+            managedEmployeesCount = hr.managedEmployees.filter((m) => {
+              const d = m.assignedDate ? new Date(m.assignedDate) : null;
+              return d && d >= start && d <= end;
+            }).length;
+          }
+          return {
+            _id: empId,
+            name: hr.username,
+            employeeCode: hr.employeeCode || `HR-${String(hr._id).slice(-4)}`,
+            role: "HR",
+            designation: hr.designation || "HR Manager",
+            oeType: undefined,
+            dateOfJoining: hr.dateOfJoining,
+            totalTasks: tasks.length,
+            completedTasks: completed,
+            pendingTasks: tasks.length - completed,
+            assignedSuspectsCount: undefined,
+            managedEmployeesCount,
+          };
+        })
+      );
+    }
+    // Other roles / all: Employee schema se (pehle jaisa)
+    else {
+      const filter = {};
+      if (role && role !== "all") filter.role = role;
+      filter.$or = [
+        { dateOfTermination: null },
+        { dateOfTermination: { $exists: false } },
+      ];
+      const employees = await Employee.find(filter)
+        .select("name employeeCode role designation oeType dateOfJoining")
+        .sort({ role: 1, name: 1 })
+        .lean();
+
+      list = await Promise.all(
+        employees.map(async (emp) => {
+          const taskFilter = {
+            assignedTo: emp._id,
+            $or: [
+              { "assignmentDetails.assignedAt": { $gte: start, $lte: end } },
+              { completedAt: { $gte: start, $lte: end } },
+            ],
+          };
+          const tasks = await IndividualTask.find(taskFilter)
+            .select(
+              "name type status completedAt assignmentDetails.assignedAt assignmentDetails.dueDate"
+            )
+            .lean();
+          const completed = tasks.filter((t) => t.status === "completed").length;
+          let assignedSuspectsCount = 0;
+          let managedEmployeesCount = 0;
+          if (emp.role === "Telecaller") {
+            const telecallerDoc = await Telecaller.findOne({
+              employeeRef: emp._id,
+            }).lean();
+            if (telecallerDoc && Array.isArray(telecallerDoc.assignedSuspects)) {
+              assignedSuspectsCount = telecallerDoc.assignedSuspects.filter(
+                (s) => {
+                  const d = s.assignedAt ? new Date(s.assignedAt) : null;
+                  return d && d >= start && d <= end;
+                }
+              ).length;
+            }
+          }
+          if (emp.role === "HR") {
+            const hrDoc = await HR.findOne({ employeeRef: emp._id }).lean();
+            if (hrDoc && Array.isArray(hrDoc.managedEmployees)) {
+              managedEmployeesCount = hrDoc.managedEmployees.filter((m) => {
+                const d = m.assignedDate ? new Date(m.assignedDate) : null;
+                return d && d >= start && d <= end;
+              }).length;
+            }
+          }
+          return {
+            _id: emp._id,
+            name: emp.name,
+            employeeCode: emp.employeeCode,
+            role: emp.role,
+            designation: emp.designation,
+            oeType: emp.oeType,
+            dateOfJoining: emp.dateOfJoining,
+            totalTasks: tasks.length,
+            completedTasks: completed,
+            pendingTasks: tasks.length - completed,
+            assignedSuspectsCount: emp.role === "Telecaller" ? assignedSuspectsCount : undefined,
+            managedEmployeesCount: emp.role === "HR" ? managedEmployeesCount : undefined,
+          };
+        })
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Employee report list fetched",
+      data: list,
+    });
+  } catch (error) {
+    console.error("❌ getEmployeeReportList:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching employee report list",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Employee Activity Report: Employee na mile to Telecaller/HR se resolve (OA panel align)
+export const getEmployeeActivityReport = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date(8640000000000000);
+
+    let employee = await Employee.findById(employeeId)
+      .select("name employeeCode role designation oeType")
+      .lean();
+
+    // Report list se Telecaller/HR _id aata hai (employeeRef ya model _id); agar Employee me nahi mila to Telecaller/HR se resolve karo
+    if (!employee) {
+      const tc = await Telecaller.findById(employeeId).lean();
+      if (tc) {
+        employee = {
+          _id: tc.employeeRef || tc._id,
+          name: tc.username,
+          employeeCode: tc.employeeCode || `TC-${String(tc._id).slice(-4)}`,
+          role: "Telecaller",
+          designation: tc.designation || "Telecaller",
+          oeType: undefined,
+        };
+      } else {
+        const hr = await HR.findById(employeeId).lean();
+        if (hr) {
+          employee = {
+            _id: hr.employeeRef || hr._id,
+            name: hr.username,
+            employeeCode: hr.employeeCode || `HR-${String(hr._id).slice(-4)}`,
+            role: "HR",
+            designation: hr.designation || "HR Manager",
+            oeType: undefined,
+          };
+        }
+      }
+    }
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    const effectiveId = employee._id;
+    const IndividualTask = GetModelByType("individual");
+    const tasks = await IndividualTask.find({
+      assignedTo: effectiveId,
+      $or: [
+        { "assignmentDetails.assignedAt": { $gte: start, $lte: end } },
+        { completedAt: { $gte: start, $lte: end } },
+        { updatedAt: { $gte: start, $lte: end } },
+      ],
+    })
+      .populate("assignmentDetails.assignedBy", "name employeeCode")
+      .populate("cat", "name")
+      .sort({ "assignmentDetails.assignedAt": -1, updatedAt: -1 })
+      .lean();
+
+    let activities = tasks.map((t) => ({
+      activityType: "Task",
+      taskId: t._id,
+      taskName: t.name,
+      taskType: t.type || "composite",
+      company: t.sub,
+      product: t.cat?.name,
+      assignedAt: t.assignmentDetails?.assignedAt,
+      dueDate: t.assignmentDetails?.dueDate,
+      status: t.status,
+      completedAt: t.completedAt,
+      assignedBy: t.assignmentDetails?.assignedBy?.name || "—",
+      assignmentRemarks: t.assignmentDetails?.remarks || "—",
+      completionRemarks: t.assignmentDetails?.completionRemarks || "—",
+      priority: t.assignmentDetails?.priority || "—",
+      forwardedFromRM: t.forwardedFromRM?.forwardedAt
+        ? {
+            at: t.forwardedFromRM.forwardedAt,
+            remark: t.forwardedFromRM.remark,
+          }
+        : null,
+      oeForwardedToRM: t.oeForwardedToRM?.forwardedAt
+        ? {
+            at: t.oeForwardedToRM.forwardedAt,
+            remark: t.oeForwardedToRM.remark,
+          }
+        : null,
+    }));
+
+    if (employee.role === "Telecaller") {
+      const telecallerDoc = await Telecaller.findOne({
+        $or: [{ employeeRef: effectiveId }, { _id: employeeId }],
+      })
+        .populate("assignedSuspects.suspectId", "personalDetails.name personalDetails.mobileNo")
+        .lean();
+      if (telecallerDoc && Array.isArray(telecallerDoc.assignedSuspects)) {
+        const suspectActivities = telecallerDoc.assignedSuspects
+          .filter((s) => {
+            const d = s.assignedAt ? new Date(s.assignedAt) : null;
+            return d && d >= start && d <= end;
+          })
+          .map((s) => ({
+            activityType: "Suspect Assigned",
+            taskId: s.suspectId?._id,
+            taskName: s.suspectId?.personalDetails?.name || "Suspect",
+            taskType: "—",
+            company: "—",
+            product: "—",
+            assignedAt: s.assignedAt,
+            dueDate: null,
+            status: s.status || "assigned",
+            completedAt: null,
+            assignedBy: "—",
+            assignmentRemarks: "—",
+            completionRemarks: "—",
+            priority: "—",
+            forwardedFromRM: null,
+            oeForwardedToRM: null,
+          }));
+        activities = [...activities, ...suspectActivities];
+      }
+    }
+
+    if (employee.role === "HR") {
+      const hrDoc = await HR.findOne({
+        $or: [{ employeeRef: effectiveId }, { _id: employeeId }],
+      })
+        .populate("managedEmployees.employeeId", "name employeeCode")
+        .lean();
+      if (hrDoc) {
+        const hrRespActivities = (hrDoc.hrResponsibilities || [])
+          .filter((r) => {
+            const d = r.assignedDate ? new Date(r.assignedDate) : null;
+            return d && d >= start && d <= end;
+          })
+          .map((r) => ({
+            activityType: "HR Responsibility",
+            taskId: null,
+            taskName: r.responsibility || "—",
+            taskType: "—",
+            company: "—",
+            product: "—",
+            assignedAt: r.assignedDate,
+            dueDate: null,
+            status: "—",
+            completedAt: null,
+            assignedBy: "—",
+            assignmentRemarks: "—",
+            completionRemarks: "—",
+            priority: "—",
+            forwardedFromRM: null,
+            oeForwardedToRM: null,
+          }));
+        const managedActivities = (hrDoc.managedEmployees || [])
+          .filter((m) => {
+            const d = m.assignedDate ? new Date(m.assignedDate) : null;
+            return d && d >= start && d <= end;
+          })
+          .map((m) => ({
+            activityType: "Employee Managed",
+            taskId: m.employeeId?._id,
+            taskName: m.employeeId?.name || "Employee",
+            taskType: "—",
+            company: m.employeeId?.employeeCode || "—",
+            product: "—",
+            assignedAt: m.assignedDate,
+            dueDate: null,
+            status: "—",
+            completedAt: null,
+            assignedBy: "—",
+            assignmentRemarks: "—",
+            completionRemarks: "—",
+            priority: "—",
+            forwardedFromRM: null,
+            oeForwardedToRM: null,
+          }));
+        activities = [...activities, ...hrRespActivities, ...managedActivities];
+      }
+    }
+
+    activities.sort((a, b) => {
+      const da = a.assignedAt ? new Date(a.assignedAt).getTime() : 0;
+      const db = b.assignedAt ? new Date(b.assignedAt).getTime() : 0;
+      return db - da;
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Employee activity report fetched",
+      data: {
+        employee: {
+          _id: employee._id,
+          name: employee.name,
+          employeeCode: employee.employeeCode,
+          role: employee.role,
+          designation: employee.designation,
+          oeType: employee.oeType,
+        },
+        activities,
+      },
+    });
+  } catch (error) {
+    console.error("❌ getEmployeeActivityReport:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching employee activity report",
       error: error.message,
     });
   }
