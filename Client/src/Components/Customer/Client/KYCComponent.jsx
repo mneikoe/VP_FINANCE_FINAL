@@ -1,6 +1,3 @@
-
-
-
 import React, { useEffect, useState } from "react";
 import { Button, Modal, Form, Table, Image, Toast } from "react-bootstrap";
 import { useParams } from "react-router-dom";
@@ -32,7 +29,7 @@ const KYCComponent = ({ id, familyMembers }) => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [activeImage, setActiveImage] = useState(null);
 
-   const { documents, loading } = useSelector((state) => state.kycdoc);
+  const { documents, loading } = useSelector((state) => state.kycdoc);
 
   // ✅ Redux se documents fetch karne ke liye
   useEffect(() => {
@@ -193,38 +190,34 @@ const KYCComponent = ({ id, familyMembers }) => {
               >
                 <option value="">Select Member</option>
                 {
-                  familyMembers?.map((member)=>{
+                  familyMembers?.map((member) => {
                     return <option>{member?.name}</option>
                   })
                 }
-                {/* <option>VINOD</option>
-                <option>Priti</option>
-                <option>abhay</option>
-                <option>anaya</option> */}
               </Form.Select>
             </Form.Group>
-<Form.Group className="mt-2">
-      <Form.Label>Document Name</Form.Label>
-      <Form.Select
-        name="documentName"
-        value={form.documentName}
-        onChange={handleChange}
-        required={!editMode}
-      >
-        <option value="">Select Document</option>
+            <Form.Group className="mt-2">
+              <Form.Label>Document Name</Form.Label>
+              <Form.Select
+                name="documentName"
+                value={form.documentName}
+                onChange={handleChange}
+                required={!editMode}
+              >
+                <option value="">Select Document</option>
 
-        {/* ✅ Redux se aaya data */}
-        {loading ? (
-          <option disabled>Loading...</option>
-        ) : (
-          documents.map((doc) => (
-            <option key={doc._id} value={doc.name}>
-              {doc.name}
-            </option>
-          ))
-        )}
-      </Form.Select>
-    </Form.Group>
+                {/* ✅ Redux se aaya data */}
+                {loading ? (
+                  <option disabled>Loading...</option>
+                ) : (
+                  documents.map((doc) => (
+                    <option key={doc._id} value={doc.name}>
+                      {doc.name}
+                    </option>
+                  ))
+                )}
+              </Form.Select>
+            </Form.Group>
 
             <Form.Group className="mt-2">
               <Form.Label>Document No</Form.Label>
@@ -277,115 +270,124 @@ const KYCComponent = ({ id, familyMembers }) => {
       </Modal>
 
       {/* Submitted KYC Table */}
-
-      <Table striped bordered hover responsive className="mt-4">
-        <thead className=" text-center">
-          <tr>
-            <th>Member Name</th>
-            <th>Document Name</th>
-            <th>Document No</th>
-            <th>Submission Date</th>
-            <th>Preview</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {kycData && kycData.map((item, index) => (
-            <tr key={index} className="align-middle text-center">
-              <td>{item?.memberName}</td>
-              <td>{item?.documentName}</td>
-              <td>{item?.documentNumber}</td>
-              <td>{formatDate(item?.createdAt)}</td>
-              <td>
-                {item?.fileUrl && (
-                  <Image
-                    src={item.fileUrl}
-                    alt="thumb"
-                    thumbnail
-                    width={60}
-                    height={40}
-                    style={{ objectFit: "cover", cursor: "pointer" }}
-                    onClick={() => {
-                      setActiveImage(item.fileUrl);
-                      setShowPreviewModal(true);
-                    }}
-                  />
-                )}
-              </td>
-              <td>
-                <div className="d-flex gap-2 justify-content-center">
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={() => {
-                      setForm({
-                        clientId: id,
-                        memberName: item?.memberName,
-                        documentName: item?.documentName,
-                        documentNumber: item?.documentNumber,
-                        remark: item?.remark,
-                        document: null,
-                      });
-                      setPreview(item?.fileUrl);
-                      setEditMode(true);
-                      setEditId(item?._id);
-                      setShowModal(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
-
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to delete this document?")) {
-                        dispatch(deleteKyc(item._id))
-                          .unwrap()
-                          .then(() => {
-                            toast.success("KYC deleted successfully.");
-                            dispatch(fetchKycsByClient(id));
-                          })
-                          .catch((error) => {
-                            console.error('Error deleting KYC:', error);
-                            toast.error("Failed to delete KYC.");
-                          });
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </td>
+      <div
+        className="mt-4 rounded-lg border"
+        style={{
+          maxHeight: "400px",
+          overflowY: "auto",
+          overflowX: "auto",
+          width: "100%",
+        }}
+      >
+        <Table striped bordered hover className="mb-0">
+          <thead className="sticky top-0 bg-white text-center z-10">
+            <tr>
+              <th>Member Name</th>
+              <th>Document Name</th>
+              <th>Document No</th>
+              <th>Submission Date</th>
+              <th>Preview</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {kycData && kycData.map((item, index) => (
+              <tr key={index} className="align-middle text-center">
+                <td>{item?.memberName}</td>
+                <td>{item?.documentName}</td>
+                <td>{item?.documentNumber}</td>
+                <td>{formatDate(item?.createdAt)}</td>
+                <td>
+                  {item?.fileUrl && (
+                    <Image
+                      src={item.fileUrl}
+                      alt="thumb"
+                      thumbnail
+                      width={60}
+                      height={40}
+                      style={{ objectFit: "cover", cursor: "pointer" }}
+                      onClick={() => {
+                        setActiveImage(item.fileUrl);
+                        setShowPreviewModal(true);
+                      }}
+                    />
+                  )}
+                </td>
+                <td>
+                  <div className="d-flex gap-2 justify-content-center">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => {
+                        setForm({
+                          clientId: id,
+                          memberName: item?.memberName,
+                          documentName: item?.documentName,
+                          documentNumber: item?.documentNumber,
+                          remark: item?.remark,
+                          document: null,
+                        });
+                        setPreview(item?.fileUrl);
+                        setEditMode(true);
+                        setEditId(item?._id);
+                        setShowModal(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to delete this document?")) {
+                          dispatch(deleteKyc(item._id))
+                            .unwrap()
+                            .then(() => {
+                              toast.success("KYC deleted successfully.");
+                              dispatch(fetchKycsByClient(id));
+                            })
+                            .catch((error) => {
+                              console.error('Error deleting KYC:', error);
+                              toast.error("Failed to delete KYC.");
+                            });
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
       <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} centered size="lg">
-  <Modal.Header closeButton>
-    <Modal.Title>Document Preview</Modal.Title>
-  </Modal.Header>
-  <Modal.Body className="text-center">
-    {activeImage && (
-      <div>
-        <Image
-          src={activeImage}
-          alt="Preview"
-          fluid
-          style={{ maxHeight: "80vh", objectFit: "contain" }}
-        />
-    <div className="mt-3 d-flex justify-content-center gap-2">
-  <Button
-    variant="primary"
-    onClick={() => downloadImage(activeImage, "document")}
-  >
-    Download Document
-  </Button>
-  <Button
-    variant="warning"   // 🔥 Yellow button
-    onClick={() => {
-      const printWindow = window.open("", "_blank");
-      printWindow.document.write(`
+        <Modal.Header closeButton>
+          <Modal.Title>Document Preview</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          {activeImage && (
+            <div>
+              <Image
+                src={activeImage}
+                alt="Preview"
+                fluid
+                style={{ maxHeight: "80vh", objectFit: "contain" }}
+              />
+              <div className="mt-3 d-flex justify-content-center gap-2">
+                <Button
+                  variant="primary"
+                  onClick={() => downloadImage(activeImage, "document")}
+                >
+                  Download Document
+                </Button>
+                <Button
+                  variant="warning"   // 🔥 Yellow button
+                  onClick={() => {
+                    const printWindow = window.open("", "_blank");
+                    printWindow.document.write(`
         <html>
           <head>
             <title>KYC Document</title>
@@ -405,17 +407,17 @@ const KYCComponent = ({ id, familyMembers }) => {
           </body>
         </html>
       `);
-      printWindow.document.close();
-    }}
-  >
-    Print Document
-  </Button>
-</div>
+                    printWindow.document.close();
+                  }}
+                >
+                  Print Document
+                </Button>
+              </div>
 
-      </div>
-    )}
-  </Modal.Body>
-</Modal>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
 
     </div>
   );

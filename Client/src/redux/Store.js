@@ -18,6 +18,7 @@ import officeDiaryReducer from "./feature/OfficeDiary/OfficeDiarySlice";
 import officePurchaseReducer from "./feature/OfficePurchase/PurchaseSlice";
 import importantDocumentsReducer from "./feature/ImpDocument/DocumentSlice";
 import LeadCityReducer from "./feature/LeadCity/CitySlice";
+import meetingPurposeReducer from "./feature/LeadMeeting/MeetingSlice";
 import clientReducer from "./feature/ClientRedux/ClientSlice";
 import KycReducer from "./feature/ClientRedux/KycSlice";
 import documentSliceReducer from "./feature/kycdocument/documentslice";
@@ -30,6 +31,10 @@ import authReducer from "./feature/auth/authSlice";
 import dashboardReducer from "./feature/showdashboarddata/dashboarddataSlice";
 import CREReducer from "./feature/CRE/CRESlice";
 import employeeReducer from "./feature/Employee/EmployeeSlice";
+import marketingFormsReducer from "./feature/MarketingForms/marketingFormsSlice";
+import servicingFormsReducer from "./feature/ServicingForms/servicingFormsSlice";
+import formCompanyReducer from "./feature/FormCompany/FormCompanySlice";
+
 export const store = configureStore({
   reducer: {
     telecaller: telecallerReducer,
@@ -42,6 +47,7 @@ export const store = configureStore({
     leadsource: leadSourceReducer,
     leadOccupation: LeadOccupationReducer,
     OccupationType: OccupationTypeReducer,
+    meetingpurpose: meetingPurposeReducer,
     client: clientReducer,
     Kyc: KycReducer,
     leadArea: LeadAreaReducer,
@@ -63,5 +69,8 @@ export const store = configureStore({
     kycdoc: documentSliceReducer,
     CRE: CREReducer,
     Employee: employeeReducer,
+    marketingForms: marketingFormsReducer,
+    servicingForms: servicingFormsReducer,
+    formCompany: formCompanyReducer,
   },
 });

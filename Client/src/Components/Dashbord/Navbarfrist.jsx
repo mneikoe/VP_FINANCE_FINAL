@@ -183,11 +183,18 @@ const Navbarfristn = () => {
                           >
                             Occupation Type
                           </Link>
+                          <Link
+                            to="/meeting-purpose"
+                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
+                            onClick={closeAllDropdowns}
+                          >
+                            Meeting Purpose
+                          </Link>
                         </div>
                       </div>
 
                       {/* KYC Document */}
-                      <div>
+                      {/* <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
                           KYC Document
                         </h6>
@@ -200,7 +207,7 @@ const Navbarfristn = () => {
                             Document Type
                           </Link>
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 )}
@@ -466,7 +473,33 @@ const Navbarfristn = () => {
 
                 {openDropdown === "departments" && (
                   <div className="absolute top-full left-0 mt-0 p-4 w-[800px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-5 gap-4">
+
+                      {/* Marketing Master */}
+                      <div>
+                        <h6 className="text-red-600 text-xs font-semibold mb-2">
+                          Marketing Master
+                        </h6>
+                        <div className="space-y-1">
+                          {[
+                            {
+                              name: "Add Company",
+                              to: "/department-company",
+                            },
+
+                          ].map((item, idx) => (
+                            <Link
+                              key={idx}
+                              to={item.to}
+                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
+                              onClick={closeAllDropdowns}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* HR Department */}
                       <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
@@ -567,12 +600,14 @@ const Navbarfristn = () => {
                               name: "Composite Data",
                               to: "/servicing-composite",
                             },
-                            { name: "Life Insurance", to: "/servicing-life" },
+                            { name: "Life Insurance", 
+                              to: "/servicing-life" },
                             {
                               name: "Health Insurance",
                               to: "/servicing-health",
                             },
-                            { name: "Mutual Fund", to: "/servicing-mutual" },
+                            { name: "Mutual Fund", 
+                              to: "/servicing-mutual" },
                             {
                               name: "Real Estate",
                               to: "/servicing-realestate",
@@ -646,7 +681,10 @@ const Navbarfristn = () => {
 
                           {/* Mutual Fund Submenu */}
                           <div className="relative">
-                            <div className="ml-4 mt-1 space-y-1">
+                            <h6 className="text-red-600 text-xs font-semibold mb-2">
+                              MUTUAL FUND
+                            </h6>
+                            <div className="ml-1 mt-1 space-y-1">
                               <Link
                                 to="/mutual-fund/registrar"
                                 className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
@@ -664,13 +702,13 @@ const Navbarfristn = () => {
                             </div>
                           </div>
 
-                          <Link
+                          {/* <Link
                             to="/other-product"
                             className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
                             onClick={closeAllDropdowns}
                           >
                             Other Product
-                          </Link>
+                          </Link> */}
                         </div>
                       </div>
 

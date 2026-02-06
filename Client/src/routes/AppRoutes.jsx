@@ -12,7 +12,6 @@ import BalanceLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboar
 import CallingDonePage from "../Components/EmployeeDashboard/TelecallerDashboard/CallingDonePage";
 // Master Components
 import Composite from "../Components/Masters/Composite/Composite";
-
 import Area from "../Components/Masters/Leads/Area";
 import City from "../Components/Masters/Leads/City";
 import LeadSource from "../Components/Masters/Leads/LeadSource";
@@ -23,6 +22,7 @@ import LeadType from "../Components/Masters/Leads/LeadType";
 import LeadOccupation from "../Components/Masters/Leads/LeadOccupation";
 import OccupationType from "../Components/Masters/Leads/OccupationType";
 import SuspectEditWrapper from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectEditWrapper";
+import MeetingPurpose from "../Components/Masters/Leads/MeetingPurpose";
 // Customer Components
 import CustomerDetail from "../Components/Customer/Client/CustomerDetail";
 import ProspectDetail from "../Components/Customer/Prospect/ProspectDetail";
@@ -81,6 +81,22 @@ import CREDashboard from "../Components/CREDashboard";
 import HRDashboard from "../Components/HRDashboard/HRDashboard";
 import EmployeeDetails from "../Components/Employee/OfficeAdmin/EmployeeDetails";
 import OEDashboard from "../Components/OEDashboard/OEDashboard";
+
+// Department Components:
+
+import FormCompanyMaster from "../Components/Departments/Masters/FormCompanyMaster";
+// marketing
+import MarketingLife from "../Components/Departments/MarketingDepartment/MarketingLife";
+import MarketingHealth from "../Components/Departments/MarketingDepartment/MarketingHealth";
+import MarketingReal from "../Components/Departments/MarketingDepartment/MarketingReal";
+import MarketingMutual from "../Components/Departments/MarketingDepartment/MarketingMutual";
+
+// servicing
+import ServicingLife from "../Components/Departments/ServicingDepartment/ServicingLife";
+import ServicingHealth from "../Components/Departments/ServicingDepartment/ServicingHealth"
+import ServicingReal from "../Components/Departments/ServicingDepartment/ServicingReal";
+import ServicingMutual from "../Components/Departments/ServicingDepartment/ServicingMutual";
+
 // Import new HR Dashboard modules
 import HRDashboardHome from "../Components/HRDashboard/HRDashboardHome";
 import Analytics from "../Components/HRDashboard/modules/Analytics";
@@ -211,6 +227,7 @@ const AppRoutes = () => {
         <Route path="/lead-source" element={<LeadSource />} />
         <Route path="/marketing-task" element={<Marketing />} />
         <Route path="/servicing-task" element={<Servicing />} />
+        <Route path="/meeting-purpose" element={<MeetingPurpose />} />
         {/* Customer - Only OA */}
         <Route path="/client" element={<ClientLeadTabs />} />
         <Route path="/client/:tabs" element={<ClientLeadTabs />} />
@@ -265,6 +282,18 @@ const AppRoutes = () => {
         <Route path="/office-purchase" element={<OfficePurchase />} />
         <Route path="/important-documents" element={<ImpDocument />} />
         <Route path="/CRE" element={<CREDashboard />} />
+        {/* departments */}
+        <Route path="/department-company" element={<FormCompanyMaster />} />
+        {/* marketing */}
+        <Route path="/marketing-life" element={<MarketingLife />} />
+        <Route path="/marketing-health" element={<MarketingHealth />} />
+        <Route path="/marketing-mutual" element={<MarketingMutual />} />
+        <Route path="/marketing-realestate" element={<MarketingReal />} />
+        {/* servicing */}
+        <Route path="/servicing-life" element={<ServicingLife />} />
+        <Route path="/servicing-health" element={<ServicingHealth />} />
+        <Route path="/servicing-mutual" element={<ServicingMutual />} />
+        <Route path="/servicing-realestate" element={<ServicingReal />} />
       </Route>
 
       {/* 🏦 RM Dashboard Routes - Only RM can access */}

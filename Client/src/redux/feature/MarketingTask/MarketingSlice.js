@@ -23,7 +23,7 @@ const marketingTaskSlice = createSlice({
 
   reducers: {
     setMarketingData: (state, action) => {
-      state.compositeData = action.payload;
+      state.marketingData = action.payload;
     },
     clearError: (state) => {
       state.error = null;
@@ -45,13 +45,15 @@ const marketingTaskSlice = createSlice({
       })
       .addCase(createMarketingTask.fulfilled, (state, action) => {
         state.loading = false;
-        state.successMessage = action.payload.message;
-        // Optionally add the new task to your state if needed
-        // state.tasks.push(action.payload.data);
+        state.successMessage =
+          action.payload?.message || "Marketing task created successfully";
+        state.error = null;
       })
       .addCase(createMarketingTask.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error =
+          action.payload || "Failed to create marketing task";
+        state.successMessage = null;
       })
       // FETCH ALL
       .addCase(fetchAllMarketingTasks.pending, (state) => {
@@ -60,7 +62,7 @@ const marketingTaskSlice = createSlice({
       })
       .addCase(fetchAllMarketingTasks.fulfilled, (state, action) => {
         state.loading = false;
-        state.tasks = action.payload;
+        state.tasks = action.payload || [];
       })
       .addCase(fetchAllMarketingTasks.rejected, (state, action) => {
         state.loading = false;

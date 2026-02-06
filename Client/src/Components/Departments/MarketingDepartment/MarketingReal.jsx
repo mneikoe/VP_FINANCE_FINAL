@@ -1,0 +1,286 @@
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+
+import { fetchCompanyNames } from
+  "../../../redux/feature/FormCompany/FormCompanyThunx";
+
+import {
+  fetchMarketingForms,
+  createMarketingForm,
+  updateMarketingForm,
+  deleteMarketingForm,
+} from "../../../redux/feature/MarketingForms/marketingFormsThunk";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+const KIND_OF_FORM = "real_estate";
+
+const MarketingReal = () => {
+  const dispatch = useDispatch();
+
+  const { forms = [], loading = false } = useSelector(
+    (state) => state.marketingForms || {}
+  );
+
+  const { companies = [] } = useSelector(
+    (state) => state.formCompany || {}
+  );
+
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [existingFile, setExistingFile] = useState(null);
+
+  const [formData, setFormData] = useState({
+    companyName: "",
+    formType: "",
+    formName: "",
+    file: null,
+  });
+
+  /* ===== FETCH COMPANY NAMES ===== */
+  useEffect(() => {
+    dispatch(fetchCompanyNames());
+  }, [dispatch]);
+
+  /* ===== FETCH REAL ESTATE FORMS ===== */
+  useEffect(() => {
+    dispatch(fetchMarketingForms(KIND_OF_FORM));
+  }, [dispatch]);
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    setFormData({
+      ...formData,
+      [name]: files ? files[0] : value,
+    });
+  };
+
+  const handleEdit = (form) => {
+    setFormData({
+      companyName: form.companyName,
+      formType: form.formType,
+      formName: form.formName,
+      file: null,
+    });
+    setExistingFile(form.file);
+    setEditId(form._id);
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.companyName || !formData.formType || !formData.formName) {
+      toast.error("All fields are required");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("companyName", formData.companyName);
+    fd.append("formType", formData.formType);
+    fd.append("formName", formData.formName);
+    fd.append("kindOfForm", KIND_OF_FORM);
+
+    if (formData.file) {
+      fd.append("file", formData.file);
+    }
+
+    try {
+      if (editId) {
+        await dispatch(
+          updateMarketingForm({ id: editId, formData: fd })
+        ).unwrap();
+        toast.success("Form updated successfully");
+      } else {
+        await dispatch(createMarketingForm(fd)).unwrap();
+        toast.success("Form created successfully");
+      }
+
+      dispatch(fetchMarketingForms(KIND_OF_FORM));
+      setOpen(false);
+      setEditId(null);
+      setExistingFile(null);
+      setFormData({
+        companyName: "",
+        formType: "",
+        formName: "",
+        file: null,
+      });
+    } catch (err) {
+      toast.error(err || "Something went wrong");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this form?")) return;
+
+    try {
+      await dispatch(deleteMarketingForm(id)).unwrap();
+      toast.success("Form deleted successfully");
+      dispatch(fetchMarketingForms(KIND_OF_FORM));
+    } catch (err) {
+      toast.error(err || "Delete failed");
+    }
+  };
+
+  return (
+    <div className="p-4">
+      {/* Header */}
+      <div className="navbar flex justify-center mb-6 border-b border-gray-300">
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={() => setOpen(true)}
+        >
+          + Add Marketing Real Estate Form
+        </button>
+      </div>
+
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white w-[400px] p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-3">
+              Marketing Real Estate Form
+            </h2>
+
+            <select
+              name="companyName"
+              value={formData.companyName}
+              onChange={handleChange}
+              className="w-full border px-2 py-1 rounded mb-3"
+            >
+              <option value="">Select Company</option>
+              {companies.map((company) => (
+                <option key={company._id} value={company.companyName}>
+                  {company.companyName}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              name="formType"
+              placeholder="Form Type"
+              value={formData.formType}
+              onChange={handleChange}
+              className="w-full border px-2 py-1 rounded mb-3"
+            />
+
+            <input
+              type="text"
+              name="formName"
+              placeholder="Form Name"
+              value={formData.formName}
+              onChange={handleChange}
+              className="w-full border px-2 py-1 rounded mb-3"
+            />
+
+            {existingFile && (
+              <p className="text-sm text-gray-600 mb-2">
+                Current file:
+                <a
+                  href={`${BASE_URL}/uploads/${existingFile}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline ml-1"
+                >
+                  View
+                </a>
+              </p>
+            )}
+
+            <input
+              type="file"
+              name="file"
+              onChange={handleChange}
+              className="w-full border px-2 py-1 rounded mb-4"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-1 border rounded"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1 bg-blue-600 text-white rounded"
+                onClick={handleSave}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border text-sm">
+          <thead className="bg-gray-100 text-gray-500">
+            <tr>
+              <th className="border px-3 py-2">Company</th>
+              <th className="border px-3 py-2">Type</th>
+              <th className="border px-3 py-2">Form Name</th>
+              <th className="border px-3 py-2 text-center">File</th>
+              <th className="border px-3 py-2 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="text-center py-4">
+                  Loading...
+                </td>
+              </tr>
+            ) : forms.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-4 text-gray-500">
+                  No forms added
+                </td>
+              </tr>
+            ) : (
+              forms.map((form) => (
+                <tr key={form._id}>
+                  <td className="px-3 py-2 border">
+                    {form.companyName || "-"}
+                  </td>
+                  <td className="px-3 py-2 border">
+                    {form.formType || "-"}
+                  </td>
+                  <td className="px-3 py-2 border">
+                    {form.formName || "-"}
+                  </td>
+                  <td className="border px-3 py-2 text-center">
+                    <a
+                      href={`${BASE_URL}/uploads/${form.file}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600"
+                    >
+                      View
+                    </a>
+                  </td>
+                  <td className="flex border px-3 py-2 text-center justify-center gap-2">
+                    <button
+                      className="px-2 py-1 border text-blue-600 rounded bg-blue-200"
+                      onClick={() => handleEdit(form)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-2 py-1 border text-red-800 bg-red-200 rounded"
+                      onClick={() => handleDelete(form._id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default MarketingReal;

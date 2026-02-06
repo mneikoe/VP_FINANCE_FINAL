@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const cardsData = [
   { title: "NEW REGISTRATIONS", value: "1,587", icon: <FaBox />, color: "cyan" },
-  { title: "DISCONTINUED ACCOUNTS", value: ",782", icon: <FaLayerGroup />, color: "red" },
+  { title: "DISCONTINUED ACCOUNTS", value: "1,782", icon: <FaLayerGroup />, color: "red" },
   { title: "ACTIVE ACCOUNTS", value: "15", icon: <FaTag />, color: "orange" },
   { title: "INACTIVE ACCOUNTS", value: "1890", icon: <FaClipboardCheck />, color: "cyan" },
   { title: "SUSPECT LEADS FOR ADMIN", value: "1890", icon: <FaBriefcase />, color: "cyan" },

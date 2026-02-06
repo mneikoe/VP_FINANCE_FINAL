@@ -44,7 +44,13 @@ const KYCComponent = () => {
         + Add KYC
       </Button>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        centered
+        scrollable
+        size="lg"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Add KYC Document</Modal.Title>
         </Modal.Header>

@@ -56,6 +56,7 @@ const LeadOccupationRoute = require("./Routes/Lead/LeadOccupationRoute");
 const LeadAreaRoute = require("./Routes/Lead/LeadAreaRoute");
 const LeadSubAreaRoute = require("./Routes/Lead/LeadSubAreaRoute");
 const LeadCityRoute = require("./Routes/Lead/CityRoute");
+const MeetingPurposeRoutes = require("./Routes/Lead/MeetingPurposeRoute");
 const TaskRoute = require("./Routes/TaskRoute");
 const FinancialProductRoute = require("./Routes/FinancialProductRoute");
 const CompanyNameRoute = require("./Routes/CompanyNameRoute");
@@ -77,6 +78,10 @@ const rulesRoutes = require("./Routes/rulesRoutes");
 const futurePlansRoutes = require("./Routes/futurePlansRoutes");
 const internshipRoutes = require("./Routes/internshipRoutes");
 const RMRoutes = require("./Routes/RMRoutes");
+const marketingFormRoutes = require("./Routes/FormRoutes/MarketingFormRoutes");
+const servicingFormRoutes = require("./Routes/FormRoutes/ServicingFormRoutes");
+const formCompanyRoutes = require("./Routes/FormRoutes/FormCompanyRoutes");
+
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -144,6 +149,7 @@ app.use("/api/leadsubarea", LeadSubAreaRoute);
 app.use("/api/leadcity", LeadCityRoute);
 app.use("/api/leadType", LeadTypeRoute);
 app.use("/api/leadSource", LeadSourceRoute);
+app.use("/api/meeting-purpose", MeetingPurposeRoutes);
 app.use("/api/occupation/types", OccupationTypeRoute);
 app.use("/api/occupation", LeadOccupationRoute);
 app.use("/api/employee", employeeRoute);
@@ -152,9 +158,13 @@ app.use("/api/rules", rulesRoutes);
 app.use("/api/future-plans", futurePlansRoutes);
 app.use("/api/internships", internshipRoutes);
 app.use("/api/rm", RMRoutes);
+app.use("/api/marketing-forms", marketingFormRoutes);
+app.use("/api/servicing-forms", servicingFormRoutes);
+app.use("/api/form-company", formCompanyRoutes);
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
+app.use("/forms", express.static(path.join(__dirname, "public/Forms")));
 
 // React Route (SPA support)
 app.get("*", (req, res) => {

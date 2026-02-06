@@ -7,148 +7,156 @@ import Employee from "../Models/employeeModel.js";
 import SusProsClient from "../Models/SusProsClientSchema.js";
 import Telecaller from "../Models/telecallerModel.js";
 import HR from "../Models/HRModel.js";
+
 // createTask function mein sirf formChecklists part update karo:
 export const createTask = async (req, res) => {
   try {
-    const type = req.body.type || "composite";
+    if (!req.body.type) {
+      return res.status(400).json({
+        success: false,
+        message: "Task type is required",
+      });
+    }
+    const type = req.body.type.toLowerCase();
+
     console.log(`📝 Creating ${type} task`);
 
     const TaskModel = GetModelByType(type);
+    console.log("REQ BODY:", req.body);
 
     // Validate required fields
-    if (!req.body.cat || !req.body.name) {
+    if (!req.body.cat || !req.body.name || !req.body.sub) {
+      console.log("❌ Missing fields:", {
+        cat: req.body.cat,
+        sub: req.body.sub,
+        name: req.body.name,
+        type: req.body.type,
+      });
+
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: cat, name",
+        message: "Missing required fields: cat, sub, name",
       });
     }
 
-    // Handle depart as array
+
+    if (!mongoose.Types.ObjectId.isValid(req.body.cat)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid cat (FinancialProduct) ID",
+      });
+    }
+
+    /* =======================
+       DEPART (ARRAY SAFE)
+    ======================= */
     let departArray = [];
     if (Array.isArray(req.body.depart)) {
       departArray = req.body.depart;
     } else if (typeof req.body.depart === "string") {
-      departArray = req.body.depart.split(",");
-    } else if (req.body.depart) {
-      departArray = [req.body.depart];
+      departArray = req.body.depart.split(",").map((d) => d.trim());
     }
 
-    // Handle files
+    /* =======================
+       IMAGE
+    ======================= */
     const image = req.files?.image?.[0]?.filename || "";
 
-    // Prepare checklists
+    /* =======================
+       CHECKLISTS
+    ======================= */
     const checklists = Array.isArray(req.body.checklists)
-      ? req.body.checklists.filter((item) => item && item.trim() !== "")
+      ? req.body.checklists.filter((i) => i && i.trim() !== "")
       : [];
 
-    // ✅ FIXED: Parse formChecklists properly - DEBUG ke liye console.log add karo
+    /* =======================
+       FORM CHECKLISTS
+    ======================= */
     let formChecklists = [];
+
     if (req.body.formChecklists) {
       try {
-        // Agar string hai to parse karo
-        if (typeof req.body.formChecklists === "string") {
-          const parsed = JSON.parse(req.body.formChecklists);
-          if (Array.isArray(parsed)) {
-            formChecklists = parsed;
-          }
-        } else if (Array.isArray(req.body.formChecklists)) {
-          formChecklists = req.body.formChecklists;
+        let parsed =
+          typeof req.body.formChecklists === "string"
+            ? JSON.parse(req.body.formChecklists)
+            : req.body.formChecklists;
+
+        if (Array.isArray(parsed)) {
+          formChecklists = parsed
+            .map((item, index) => {
+              let downloadFormUrl = item.downloadFormUrl || "";
+              let sampleFormUrl = item.sampleFormUrl || "";
+
+              if (req.files?.downloadFormUrl?.[index]) {
+                downloadFormUrl =
+                  req.files.downloadFormUrl[index].filename;
+              }
+
+              if (req.files?.sampleFormUrl?.[index]) {
+                sampleFormUrl =
+                  req.files.sampleFormUrl[index].filename;
+              }
+
+              return {
+                name: item.name?.trim() || "",
+                downloadFormUrl,
+                sampleFormUrl,
+              };
+            })
+            .filter((i) => i.name !== "");
         }
-
-        console.log("✅ Parsed formChecklists:", formChecklists);
-
-        // ✅ newDownloadIndices / newSampleIndices se files ko sahi index pe map karo
-        let newDownloadIndices = [];
-        let newSampleIndices = [];
-        if (req.body.newDownloadIndices) {
-          try {
-            newDownloadIndices =
-              typeof req.body.newDownloadIndices === "string"
-                ? JSON.parse(req.body.newDownloadIndices)
-                : req.body.newDownloadIndices;
-          } catch (e) {
-            console.warn("newDownloadIndices parse error", e);
-          }
-        }
-        if (req.body.newSampleIndices) {
-          try {
-            newSampleIndices =
-              typeof req.body.newSampleIndices === "string"
-                ? JSON.parse(req.body.newSampleIndices)
-                : req.body.newSampleIndices;
-          } catch (e) {
-            console.warn("newSampleIndices parse error", e);
-          }
-        }
-
-        const downloadFiles = req.files?.downloadFormUrl
-          ? Array.isArray(req.files.downloadFormUrl)
-            ? req.files.downloadFormUrl
-            : [req.files.downloadFormUrl]
-          : [];
-        const sampleFiles = req.files?.sampleFormUrl
-          ? Array.isArray(req.files.sampleFormUrl)
-            ? req.files.sampleFormUrl
-            : [req.files.sampleFormUrl]
-          : [];
-
-        formChecklists = formChecklists.map((item, index) => {
-          const checklistItem = {
-            name: item.name?.trim() || "",
-            downloadFormUrl: item.downloadFormUrl || "",
-            sampleFormUrl: item.sampleFormUrl || "",
-          };
-
-          const di = newDownloadIndices.indexOf(index);
-          if (di !== -1 && downloadFiles[di]) {
-            checklistItem.downloadFormUrl = downloadFiles[di].filename;
-          }
-          const si = newSampleIndices.indexOf(index);
-          if (si !== -1 && sampleFiles[si]) {
-            checklistItem.sampleFormUrl = sampleFiles[si].filename;
-          }
-
-          return checklistItem;
+      } catch (err) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid formChecklists format",
         });
-      } catch (error) {
-        console.error("❌ Error in formChecklists processing:", error);
       }
     }
 
-    console.log("💾 Final formChecklists to save:", formChecklists);
-
-    // ✅ IMPORTANT: Agar formChecklists array empty hai to empty array set karo
-    if (!Array.isArray(formChecklists)) {
-      formChecklists = [];
+    /* =======================
+       REWARD POINTS
+    ======================= */
+    let rewardPoints = 0;
+    if (req.body.rewardPoints !== undefined) {
+      const rp = Number(req.body.rewardPoints);
+      rewardPoints = isNaN(rp) ? 0 : rp;
     }
 
-    // Create task data
+    /* =======================
+       TASK DATA
+    ======================= */
     const taskData = {
       cat: req.body.cat,
-      sub: req.body.sub || "",
+      sub: req.body.sub,
       depart: departArray,
       name: req.body.name,
+
+      rewardPoints,
+
       estimatedDays: parseInt(req.body.estimatedDays) || 1,
       templatePriority: req.body.templatePriority || "medium",
+
       descp: {
         text: req.body.descpText || "",
-        image: image,
+        image,
       },
+
       email_descp: req.body.email_descp || "",
       sms_descp: req.body.sms_descp || "",
       whatsapp_descp: req.body.whatsapp_descp || "",
-      checklists: checklists,
-      formChecklists: formChecklists, // ✅ Yeh ab properly save hoga
+
+      checklists,
+      formChecklists,
+
       status: req.body.status || "template",
       createdBy: req.user?.id,
     };
 
-    console.log("📋 Saving task with formChecklists:", taskData.formChecklists);
-
-    // ✅ Marketing aur Composite ke liye assignments field add karo
     if (type === "composite" || type === "marketing") {
       taskData.assignments = [];
     }
+
+    console.log("📋 Saving task:", taskData);
 
     const newTask = new TaskModel(taskData);
     await newTask.save();
@@ -161,7 +169,7 @@ export const createTask = async (req, res) => {
       task: newTask,
     });
   } catch (error) {
-    console.error(`❌ Error creating ${req.body.type} task:`, error);
+    console.error("❌ Error creating task:", error);
     res.status(500).json({
       success: false,
       message: "Failed to create task",
@@ -251,6 +259,185 @@ export const getAllTasks = async (req, res) => {
 };
 
 // ✅ Update task
+// export const updateTask = async (req, res) => {
+//   try {
+//     const type = req.body.type || "composite";
+//     const { id } = req.params;
+
+//     console.log(`🔄 Updating ${type} task: ${id}`);
+
+//     const TaskModel = GetModelByType(type);
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid task ID",
+//       });
+//     }
+
+//     const existingTask = await TaskModel.findById(id);
+//     if (!existingTask) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Task not found",
+//       });
+//     }
+
+//     // Handle depart update
+//     let departArray = existingTask.depart;
+//     if (req.body.depart !== undefined) {
+//       if (Array.isArray(req.body.depart)) {
+//         departArray = req.body.depart;
+//       } else if (typeof req.body.depart === "string") {
+//         departArray = req.body.depart.split(",");
+//       }
+//     }
+
+//     // Prepare updates
+//     const updates = {
+//       ...(req.body.cat && { cat: req.body.cat }),
+//       ...(req.body.sub && { sub: req.body.sub }),
+//       depart: departArray,
+//       ...(req.body.name && { name: req.body.name }),
+//       ...(req.body.estimatedDays && {
+//         estimatedDays: parseInt(req.body.estimatedDays),
+//       }),
+//       ...(req.body.templatePriority && {
+//         templatePriority: req.body.templatePriority,
+//       }),
+//       ...(req.body.email_descp !== undefined && {
+//         email_descp: req.body.email_descp,
+//       }),
+//       ...(req.body.sms_descp !== undefined && {
+//         sms_descp: req.body.sms_descp,
+//       }),
+//       ...(req.body.whatsapp_descp !== undefined && {
+//         whatsapp_descp: req.body.whatsapp_descp,
+//       }),
+//       ...(req.body.status && { status: req.body.status }),
+//       descp: {
+//         text: req.body.descpText || existingTask.descp.text,
+//         image: existingTask.descp.image,
+//       },
+//     };
+
+//     // Handle image update
+//     if (req.files?.image?.[0]) {
+//       updates.descp.image = req.files.image[0].filename;
+
+//       if (existingTask.descp.image) {
+//         try {
+//           await fs.unlink(
+//             path.join(__dirname, "../uploads", existingTask.descp.image)
+//           );
+//         } catch (err) {
+//           console.log("Old image file not found or already deleted");
+//         }
+//       }
+//     } else if (req.body.existingImage) {
+//       // Keep existing image if not changed
+//       updates.descp.image = req.body.existingImage;
+//     }
+
+//     // Handle checklists
+//     if (req.body.checklists !== undefined) {
+//       updates.checklists = Array.isArray(req.body.checklists)
+//         ? req.body.checklists.filter((item) => item && item.trim() !== "")
+//         : [];
+//     }
+
+//     // Handle formChecklists (composite update) with newDownloadIndices / newSampleIndices
+//     if (req.body.formChecklists) {
+//       try {
+//         const parsed = JSON.parse(req.body.formChecklists);
+//         let newDownloadIndices = [];
+//         let newSampleIndices = [];
+//         if (req.body.newDownloadIndices) {
+//           try {
+//             newDownloadIndices =
+//               typeof req.body.newDownloadIndices === "string"
+//                 ? JSON.parse(req.body.newDownloadIndices)
+//                 : req.body.newDownloadIndices;
+//           } catch (e) { }
+//         }
+//         if (req.body.newSampleIndices) {
+//           try {
+//             newSampleIndices =
+//               typeof req.body.newSampleIndices === "string"
+//                 ? JSON.parse(req.body.newSampleIndices)
+//                 : req.body.newSampleIndices;
+//           } catch (e) { }
+//         }
+//         const downloadFiles = req.files?.downloadFormUrl
+//           ? Array.isArray(req.files.downloadFormUrl)
+//             ? req.files.downloadFormUrl
+//             : [req.files.downloadFormUrl]
+//           : [];
+//         const sampleFiles = req.files?.sampleFormUrl
+//           ? Array.isArray(req.files.sampleFormUrl)
+//             ? req.files.sampleFormUrl
+//             : [req.files.sampleFormUrl]
+//           : [];
+
+//         updates.formChecklists = parsed
+//           .map((item, index) => {
+//             let downloadFormUrl = item.downloadFormUrl || "";
+//             let sampleFormUrl = item.sampleFormUrl || "";
+//             const di = newDownloadIndices.indexOf(index);
+//             if (di !== -1 && downloadFiles[di]) {
+//               const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
+//               if (old) {
+//                 try {
+//                   fs.unlink(path.join(__dirname, "../uploads", old));
+//                 } catch (err) { }
+//               }
+//               downloadFormUrl = downloadFiles[di].filename;
+//             }
+//             const si = newSampleIndices.indexOf(index);
+//             if (si !== -1 && sampleFiles[si]) {
+//               const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
+//               if (old) {
+//                 try {
+//                   fs.unlink(path.join(__dirname, "../uploads", old));
+//                 } catch (err) { }
+//               }
+//               sampleFormUrl = sampleFiles[si].filename;
+//             }
+//             return {
+//               name: item.name?.trim() || "",
+//               downloadFormUrl,
+//               sampleFormUrl,
+//             };
+//           })
+//           .filter((item) => item.name !== "");
+//       } catch (err) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid formChecklists format",
+//         });
+//       }
+//     }
+//     const updated = await TaskModel.findByIdAndUpdate(id, updates, {
+//       new: true,
+//       runValidators: true,
+//     }).populate("cat", "name category");
+
+//     console.log(`✅ ${type} task updated successfully`);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Task updated successfully",
+//       task: updated,
+//     });
+//   } catch (error) {
+//     console.error("❌ Update error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Update failed",
+//       error: error.message,
+//     });
+//   }
+// };
 export const updateTask = async (req, res) => {
   try {
     const type = req.body.type || "composite";
@@ -297,6 +484,9 @@ export const updateTask = async (req, res) => {
       ...(req.body.templatePriority && {
         templatePriority: req.body.templatePriority,
       }),
+      ...(req.body.rewardPoints !== undefined && {
+        rewardPoints: Number(req.body.rewardPoints) || 0,
+      }),
       ...(req.body.email_descp !== undefined && {
         email_descp: req.body.email_descp,
       }),
@@ -338,67 +528,69 @@ export const updateTask = async (req, res) => {
         : [];
     }
 
-    // Handle formChecklists (composite update) with newDownloadIndices / newSampleIndices
+    // Handle formChecklists
     if (req.body.formChecklists) {
       try {
         const parsed = JSON.parse(req.body.formChecklists);
-        let newDownloadIndices = [];
-        let newSampleIndices = [];
-        if (req.body.newDownloadIndices) {
-          try {
-            newDownloadIndices =
-              typeof req.body.newDownloadIndices === "string"
-                ? JSON.parse(req.body.newDownloadIndices)
-                : req.body.newDownloadIndices;
-          } catch (e) {}
-        }
-        if (req.body.newSampleIndices) {
-          try {
-            newSampleIndices =
-              typeof req.body.newSampleIndices === "string"
-                ? JSON.parse(req.body.newSampleIndices)
-                : req.body.newSampleIndices;
-          } catch (e) {}
-        }
-        const downloadFiles = req.files?.downloadFormUrl
-          ? Array.isArray(req.files.downloadFormUrl)
-            ? req.files.downloadFormUrl
-            : [req.files.downloadFormUrl]
-          : [];
-        const sampleFiles = req.files?.sampleFormUrl
-          ? Array.isArray(req.files.sampleFormUrl)
-            ? req.files.sampleFormUrl
-            : [req.files.sampleFormUrl]
-          : [];
-
         updates.formChecklists = parsed
           .map((item, index) => {
+            // Start with existing URLs
             let downloadFormUrl = item.downloadFormUrl || "";
             let sampleFormUrl = item.sampleFormUrl || "";
-            const di = newDownloadIndices.indexOf(index);
-            if (di !== -1 && downloadFiles[di]) {
-              const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
-              if (old) {
+
+            // Check for new uploads
+            if (
+              req.files &&
+              req.files.downloadFormUrl &&
+              req.files.downloadFormUrl[index]
+            ) {
+              downloadFormUrl = req.files.downloadFormUrl[index].filename;
+
+              // Delete old file if exists
+              const existingChecklist = existingTask.formChecklists[index];
+              if (existingChecklist && existingChecklist.downloadFormUrl) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                  fs.unlink(
+                    path.join(
+                      __dirname,
+                      "../uploads",
+                      existingChecklist.downloadFormUrl
+                    )
+                  );
+                } catch (err) {
+                  console.log("Old download form file not found");
+                }
               }
-              downloadFormUrl = downloadFiles[di].filename;
             }
-            const si = newSampleIndices.indexOf(index);
-            if (si !== -1 && sampleFiles[si]) {
-              const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
-              if (old) {
+
+            if (
+              req.files &&
+              req.files.sampleFormUrl &&
+              req.files.sampleFormUrl[index]
+            ) {
+              sampleFormUrl = req.files.sampleFormUrl[index].filename;
+
+              // Delete old file if exists
+              const existingChecklist = existingTask.formChecklists[index];
+              if (existingChecklist && existingChecklist.sampleFormUrl) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                  fs.unlink(
+                    path.join(
+                      __dirname,
+                      "../uploads",
+                      existingChecklist.sampleFormUrl
+                    )
+                  );
+                } catch (err) {
+                  console.log("Old sample form file not found");
+                }
               }
-              sampleFormUrl = sampleFiles[si].filename;
             }
+
             return {
               name: item.name?.trim() || "",
-              downloadFormUrl,
-              sampleFormUrl,
+              downloadFormUrl: downloadFormUrl,
+              sampleFormUrl: sampleFormUrl,
             };
           })
           .filter((item) => item.name !== "");
@@ -510,8 +702,8 @@ export const assignCompositeTask = async (req, res) => {
         dueDate: dueDate
           ? new Date(dueDate)
           : new Date(
-              Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-            ),
+            Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+          ),
         status: "pending",
         // ✅ NEW: Add client/prospect references to each assignment
         assignedClients: validatedClients,
@@ -653,15 +845,13 @@ export const assignCompositeTask = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Task assigned to ${validAssignments.length} employee(s) ${
-        validatedClients.length > 0
-          ? `for ${validatedClients.length} client(s)`
-          : ""
-      } ${
-        validatedProspects.length > 0
+      message: `Task assigned to ${validAssignments.length} employee(s) ${validatedClients.length > 0
+        ? `for ${validatedClients.length} client(s)`
+        : ""
+        } ${validatedProspects.length > 0
           ? `for ${validatedProspects.length} prospect(s)`
           : ""
-      }`,
+        }`,
       data: {
         task: task,
         assignments: validAssignments,
@@ -1238,8 +1428,8 @@ export const assignMarketingTask = async (req, res) => {
       dueDate: dueDate
         ? new Date(dueDate)
         : new Date(
-            Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-          ),
+          Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+        ),
       status: "pending",
       // ✅ NEW: Add client/prospect references
       assignedClients: validatedClients,
@@ -1364,15 +1554,13 @@ export const assignMarketingTask = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Marketing task assigned to ${employee.name} ${
-        validatedClients.length > 0
-          ? `for ${validatedClients.length} client(s)`
-          : ""
-      } ${
-        validatedProspects.length > 0
+      message: `Marketing task assigned to ${employee.name} ${validatedClients.length > 0
+        ? `for ${validatedClients.length} client(s)`
+        : ""
+        } ${validatedProspects.length > 0
           ? `for ${validatedProspects.length} prospect(s)`
           : ""
-      }`,
+        }`,
       data: {
         task: task,
         assignment: assignment,
@@ -1714,7 +1902,7 @@ export const updateMarketingTask = async (req, res) => {
               typeof req.body.newDownloadIndices === "string"
                 ? JSON.parse(req.body.newDownloadIndices)
                 : req.body.newDownloadIndices;
-          } catch (e) {}
+          } catch (e) { }
         }
         if (req.body.newSampleIndices) {
           try {
@@ -1722,7 +1910,7 @@ export const updateMarketingTask = async (req, res) => {
               typeof req.body.newSampleIndices === "string"
                 ? JSON.parse(req.body.newSampleIndices)
                 : req.body.newSampleIndices;
-          } catch (e) {}
+          } catch (e) { }
         }
         const downloadFiles = req.files?.downloadFormUrl
           ? Array.isArray(req.files.downloadFormUrl)
@@ -1745,7 +1933,7 @@ export const updateMarketingTask = async (req, res) => {
               if (old) {
                 try {
                   fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                } catch (err) { }
               }
               downloadFormUrl = downloadFiles[di].filename;
             }
@@ -1755,7 +1943,7 @@ export const updateMarketingTask = async (req, res) => {
               if (old) {
                 try {
                   fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                } catch (err) { }
               }
               sampleFormUrl = sampleFiles[si].filename;
             }
@@ -1993,8 +2181,8 @@ export const assignServiceTask = async (req, res) => {
       dueDate: dueDate
         ? new Date(dueDate)
         : new Date(
-            Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-          ),
+          Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+        ),
       status: "pending",
       // ✅ NEW: Add client/prospect references
       assignedClients: validatedClients,
@@ -2119,15 +2307,13 @@ export const assignServiceTask = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Service task assigned to ${employee.name} ${
-        validatedClients.length > 0
-          ? `for ${validatedClients.length} client(s)`
-          : ""
-      } ${
-        validatedProspects.length > 0
+      message: `Service task assigned to ${employee.name} ${validatedClients.length > 0
+        ? `for ${validatedClients.length} client(s)`
+        : ""
+        } ${validatedProspects.length > 0
           ? `for ${validatedProspects.length} prospect(s)`
           : ""
-      }`,
+        }`,
       data: {
         task: task,
         assignment: assignment,
@@ -2469,7 +2655,7 @@ export const updateServiceTask = async (req, res) => {
               typeof req.body.newDownloadIndices === "string"
                 ? JSON.parse(req.body.newDownloadIndices)
                 : req.body.newDownloadIndices;
-          } catch (e) {}
+          } catch (e) { }
         }
         if (req.body.newSampleIndices) {
           try {
@@ -2477,7 +2663,7 @@ export const updateServiceTask = async (req, res) => {
               typeof req.body.newSampleIndices === "string"
                 ? JSON.parse(req.body.newSampleIndices)
                 : req.body.newSampleIndices;
-          } catch (e) {}
+          } catch (e) { }
         }
         const downloadFiles = req.files?.downloadFormUrl
           ? Array.isArray(req.files.downloadFormUrl)
@@ -2500,7 +2686,7 @@ export const updateServiceTask = async (req, res) => {
               if (old) {
                 try {
                   fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                } catch (err) { }
               }
               downloadFormUrl = downloadFiles[di].filename;
             }
@@ -2510,7 +2696,7 @@ export const updateServiceTask = async (req, res) => {
               if (old) {
                 try {
                   fs.unlink(path.join(__dirname, "../uploads", old));
-                } catch (err) {}
+                } catch (err) { }
               }
               sampleFormUrl = sampleFiles[si].filename;
             }
@@ -2757,8 +2943,8 @@ export const updateEntityTaskStatus = async (req, res) => {
                 task.type === "marketing"
                   ? "MarketingTask"
                   : task.type === "service"
-                  ? "ServiceTask"
-                  : "CompositeTask",
+                    ? "ServiceTask"
+                    : "CompositeTask",
               assignedTo: task.assignedTo,
               assignedToName: assignedEmployee?.name || "Unknown",
               assignedAt: task.assignmentDetails?.assignedAt || new Date(),
@@ -3612,15 +3798,15 @@ export const getEmployeeActivityReport = async (req, res) => {
       priority: t.assignmentDetails?.priority || "—",
       forwardedFromRM: t.forwardedFromRM?.forwardedAt
         ? {
-            at: t.forwardedFromRM.forwardedAt,
-            remark: t.forwardedFromRM.remark,
-          }
+          at: t.forwardedFromRM.forwardedAt,
+          remark: t.forwardedFromRM.remark,
+        }
         : null,
       oeForwardedToRM: t.oeForwardedToRM?.forwardedAt
         ? {
-            at: t.oeForwardedToRM.forwardedAt,
-            remark: t.oeForwardedToRM.remark,
-          }
+          at: t.oeForwardedToRM.forwardedAt,
+          remark: t.oeForwardedToRM.remark,
+        }
         : null,
     }));
 

@@ -3,84 +3,79 @@ import axios from "../../../config/axios";
 
 const API_URL = "/api/Task";
 
+
+// GET ALL TASKS
 export const createServiceTask = createAsyncThunk(
   "serviceTask/create",
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/`, formData, {
+      const response = await axios.post("/api/Task", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      // Return success message along with data
-      return {
-        data: response.data,
-        message: "Task created successfully",
-      };
+      return response.data.task;
     } catch (err) {
-      // Enhanced error handling
-      let errorMessage = err.message;
-      if (err.response) {
-        if (err.response.data) {
-          errorMessage =
-            err.response.data.message ||
-            err.response.data.error ||
-            JSON.stringify(err.response.data);
-        } else {
-          errorMessage = `Server responded with status ${err.response.status}`;
-        }
-      }
-      return rejectWithValue(errorMessage);
+      return rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
 
-// GET ALL TASKS
+
 export const fetchAllServiceTasks = createAsyncThunk(
   "serviceTask/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/?type=service`);
-      console.log(response.data);
-      return response.data;
+      const response = await axios.get("/api/Task?type=service");
+      return response.data.tasks || [];
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message);
+      return rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
+
 
 // GET TASK BY ID
 export const fetchServiceTaskById = createAsyncThunk(
   "serviceTask/fetchById",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/${id}/?type=service`);
-      return response.data;
+      const response = await axios.get(`${API_URL}/${id}?type=service`);
+      return response.data.task; // ✅ FIX
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
-// UPDATE TASK
+
+
 export const updateServiceTask = createAsyncThunk(
   "serviceTask/update",
   async ({ id, formData }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_URL}/${id}/?type=service`,
+        `/api/Task/${id}?type=service`,
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
       return response.data.task;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message);
+      return rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
+
 
 // DELETE TASK
 export const deleteServiceTask = createAsyncThunk(

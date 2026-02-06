@@ -3,40 +3,29 @@ import axios from "../../../config/axios";
 
 const API_URL = "/api/Task";
 
+
+// GET ALL TASKS
+
 export const createCompositeTask = createAsyncThunk(
   "compositeTask/create",
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      // Return success message along with data
+      const response = await axios.post("/api/Task/", formData);
       return {
         data: response.data,
         message: "Task created successfully",
       };
     } catch (err) {
-      // Enhanced error handling
-      let errorMessage = err.message;
-      if (err.response) {
-        if (err.response.data) {
-          errorMessage =
-            err.response.data.message ||
-            err.response.data.error ||
-            JSON.stringify(err.response.data);
-        } else {
-          errorMessage = `Server responded with status ${err.response.status}`;
-        }
-      }
-      return rejectWithValue(errorMessage);
+      return rejectWithValue(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message
+      );
     }
   }
 );
 
-// GET ALL TASKS
+
 export const fetchAllCompositeTasks = createAsyncThunk(
   "compositeTask/fetchAll",
   async (_, { rejectWithValue }) => {
@@ -64,27 +53,24 @@ export const fetchCompositeTaskById = createAsyncThunk(
 );
 
 // UPDATE TASK
+
 export const updateCompositeTask = createAsyncThunk(
   "compositeTask/update",
   async ({ id, formData }, { rejectWithValue }) => {
-    console.log(id, formData);
-
     try {
       const response = await axios.put(
-        `${API_URL}/${id}?type=composite`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        `/api/Task/${id}?type=composite`,
+        formData
       );
-      console.log(response);
-
-      return response?.data?.task;
+      return response.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message);
+      return rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
+
 
 // DELETE TASK
 export const deleteCompositeTask = createAsyncThunk(
@@ -101,19 +87,3 @@ export const deleteCompositeTask = createAsyncThunk(
   }
 );
 
-// CREATE TASK
-// export const createCompositeTask = createAsyncThunk(
-//   "compositeTask/create",
-//   async (formData, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.post(API_URL, formData, {
-//         headers: {
-//           "Content-Type": "multipart/form-data",
-//         },
-//       });
-//       return response.data;
-//     } catch (err) {
-//       return rejectWithValue(err.response?.data?.message || err.message);
-//     }
-//   }
-// );

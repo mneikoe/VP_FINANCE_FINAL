@@ -11,6 +11,9 @@ import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/Occ
 import { toast } from "react-toastify";
 import axiosInstance from "../../../config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
+import { fetchDetails as fetchMeetingPurposes }
+  from "../../../redux/feature/LeadMeeting/MeetingThunx";
+
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -95,6 +98,10 @@ const PersonalDetailsForm = ({
     (state) => state.LeadType
   );
   const { leadsourceDetail } = useSelector((state) => state.leadsource);
+  const { details: meetingPurposes } = useSelector(
+    (state) => state.meetingpurpose
+  );
+
 
   // ✅ COMPONENT MOUNT - ALL DATA FETCH
   useEffect(() => {
@@ -102,6 +109,8 @@ const PersonalDetailsForm = ({
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
+    dispatch(fetchMeetingPurposes());
+
 
     // ✅ FETCH AREAS, SUBAREAS AND RMS
     fetchAreas();
@@ -1010,12 +1019,18 @@ const PersonalDetailsForm = ({
               size="sm"
             >
               <option value="">-- Select Purpose --</option>
-              <option value="Follow-up">Follow-up</option>
-              <option value="Meeting Schedule">Meeting Schedule</option>
-              <option value="Query Resolution">Query Resolution</option>
-              <option value="Proposal Discussion">Proposal Discussion</option>
-              <option value="Other">Other</option>
+
+              {Array.isArray(meetingPurposes) &&
+                meetingPurposes.map((item) => (
+                  <option
+                    key={item._id}
+                    value={item.meetingPurposeName}   // ✅ only NAME saved
+                  >
+                    {item.meetingPurposeName}
+                  </option>
+                ))}
             </Form.Select>
+
           </Form.Group>
         </Col>
         <Col md={3}>

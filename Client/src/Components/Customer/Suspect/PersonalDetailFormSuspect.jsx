@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col } from "react-bootstrap";
+import { toast } from "react-toastify";
 import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
 import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
 import axiosInstance from "../../../config/axios";
+import { fetchDetails as fetchMeetingPurposes }
+  from "../../../redux/feature/LeadMeeting/MeetingThunx";
+
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -82,12 +86,17 @@ const PersonalDetailsFormForSuspect = ({
   const [areas, setAreas] = useState([]);
   const [subAreas, setSubAreas] = useState([]);
   const [filteredSubAreas, setFilteredSubAreas] = useState([]);
+  const { details: meetingPurposes } = useSelector(
+    (state) => state.meetingpurpose
+  );
+
 
   useEffect(() => {
     dispatch(fetchLeadType());
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
+    dispatch(fetchMeetingPurposes());
 
     fetchAreas();
     fetchSubAreas();
@@ -924,20 +933,26 @@ const PersonalDetailsFormForSuspect = ({
       {/* Calling Purpose */}
       <Row className="mb-4">
         <Col md={4}>
-          <Form.Group controlId="callingPurpose">
-            <Form.Label>Calling or Meeting Purpose</Form.Label>
+          <Form.Group controlId="meetingPurpose">
+            <Form.Label>Calling purpose or Meeting Purpose</Form.Label>
             <Form.Select
               name="callingPurpose"
               value={formData.callingPurpose ?? ""}
               onChange={handleChange}
               size="sm"
+              required
             >
-              <option value="">-- Select Purpose --</option>
-              <option value="Follow-up">Follow-up</option>
-              <option value="Meeting Schedule">Meeting Schedule</option>
-              <option value="Query Resolution">Query Resolution</option>
-              <option value="Proposal Discussion">Proposal Discussion</option>
-              <option value="Other">Other</option>
+              <option value="">-- Select Meeting Purpose --</option>
+
+              {Array.isArray(meetingPurposes) &&
+                meetingPurposes.map((item) => (
+                  <option
+                    key={item._id}
+                    value={item.meetingPurposeName}
+                  >
+                    {item.meetingPurposeName}
+                  </option>
+                ))}
             </Form.Select>
           </Form.Group>
         </Col>

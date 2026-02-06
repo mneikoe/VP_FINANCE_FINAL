@@ -11,6 +11,9 @@ import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/Occ
 import { toast } from "react-toastify";
 import axiosInstance from "/src/config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
+import { fetchDetails as fetchMeetingPurposes }
+  from "../../../redux/feature/LeadMeeting/MeetingThunx";
+
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -95,6 +98,10 @@ const PersonalDetailsFormForProspect = ({
     (state) => state.LeadType
   );
   const { leadsourceDetail } = useSelector((state) => state.leadsource);
+  const { details: meetingPurposes } = useSelector(
+    (state) => state.meetingpurpose
+  );
+
 
   // ✅ COMPONENT MOUNT - ALL DATA FETCH
   useEffect(() => {
@@ -102,7 +109,7 @@ const PersonalDetailsFormForProspect = ({
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
-
+    dispatch(fetchMeetingPurposes());
     // ✅ FETCH AREAS, SUBAREAS AND RMS
     fetchAreas();
     fetchSubAreas();
@@ -405,7 +412,7 @@ const PersonalDetailsFormForProspect = ({
     e.preventDefault();
     if (isEdit && prospectData?._id) {
       console.log(formData);
-      // ❌ CHANGE THIS
+      
       const result = await dispatch(
         updateProspectPersonalDetails({
           id: prospectData._id,
@@ -418,7 +425,7 @@ const PersonalDetailsFormForProspect = ({
         if (onProspectCreated) onProspectCreated(prospectData._id);
       }
     } else {
-      // ❌ CHANGE THIS
+      
       const resultAction = await dispatch(
         createProspect({ personalDetails: formData })
       );
@@ -1021,13 +1028,16 @@ const PersonalDetailsFormForProspect = ({
               value={formData.callingPurpose ?? ""}
               onChange={handleChange}
               size="sm"
+              required
             >
-              <option value="">-- Select Purpose --</option>
-              <option value="Follow-up">Follow-up</option>
-              <option value="Meeting Schedule">Meeting Schedule</option>
-              <option value="Query Resolution">Query Resolution</option>
-              <option value="Proposal Discussion">Proposal Discussion</option>
-              <option value="Other">Other</option>
+              <option value="">-- Select Meeting Purpose --</option>
+
+              {Array.isArray(meetingPurposes) &&
+                meetingPurposes.map((item) => (
+                  <option key={item._id} value={item.meetingPurposeName}>
+                    {item.meetingPurposeName}
+                  </option>
+                ))}
             </Form.Select>
           </Form.Group>
         </Col>

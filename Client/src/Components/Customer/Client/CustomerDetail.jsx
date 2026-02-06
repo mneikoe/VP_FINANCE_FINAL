@@ -77,14 +77,6 @@ const CustomerDetail = () => {
   const dispatch = useDispatch();
   const options = ["Pending", "Proposed", "Accepted"];
 
-  // const  handleChange = async(id, value) => {
-  //   console.log(id, value);
-
-  //   setPlan((prev) => ({ ...prev, status: value, selected: id }));
-
-  //   // await handleSubmit()
-  // };
-
   const handleSubmit = (ids, value) => {
     const planss = {
       status: value,
@@ -360,7 +352,7 @@ const CustomerDetail = () => {
     <>
       <div className=" container customer-profile-container">
         {/* Header Section */}
-        <div className="profile-header">
+        <div className="profile-header ml-0">
           <h1>Customer Profile</h1>
           <div className="status-badge">
             <span className={`status-dot ${userData?.status || "N/A"}`}></span>
@@ -594,13 +586,12 @@ const CustomerDetail = () => {
                           <p>
                             <strong>Current KYC Status:</strong>{" "}
                             <span
-                              className={`badge bg-${
-                                kycStatus === "Approved"
-                                  ? "success"
-                                  : kycStatus === "Rejected"
+                              className={`badge bg-${kycStatus === "Approved"
+                                ? "success"
+                                : kycStatus === "Rejected"
                                   ? "danger"
                                   : "warning"
-                              }`}
+                                }`}
                             >
                               {kycStatus}
                             </span>
@@ -1088,10 +1079,10 @@ const CustomerDetail = () => {
                                 <strong>Age:</strong>{" "}
                                 {member?.dobActual
                                   ? `${calculateAge(
-                                      member.dobActual
-                                    )} years (${new Date(
-                                      member.dobActual
-                                    ).toLocaleDateString("en-GB")})`
+                                    member.dobActual
+                                  )} years (${new Date(
+                                    member.dobActual
+                                  ).toLocaleDateString("en-GB")})`
                                   : "N/A"}
                               </p>
 
@@ -1220,17 +1211,17 @@ const CustomerDetail = () => {
                                     <strong>Members:</strong>
                                     <div>
                                       {priority.members &&
-                                      priority.members.length > 0
+                                        priority.members.length > 0
                                         ? priority.members.map(
-                                            (member, memberIndex) => (
-                                              <span
-                                                key={memberIndex}
-                                                className="badge bg-info text-dark me-1 mb-1"
-                                              >
-                                                {member}
-                                              </span>
-                                            )
+                                          (member, memberIndex) => (
+                                            <span
+                                              key={memberIndex}
+                                              className="badge bg-info text-dark me-1 mb-1"
+                                            >
+                                              {member}
+                                            </span>
                                           )
+                                        )
                                         : "Not specified"}
                                     </div>
                                   </div>
@@ -1467,7 +1458,7 @@ const CustomerDetail = () => {
                     </div>
 
                     {userData?.proposedPlan &&
-                    userData?.proposedPlan?.length > 0 ? (
+                      userData?.proposedPlan?.length > 0 ? (
                       <div className="row">
                         {userData?.proposedPlan?.map((plan, index) => (
                           <div className="col-lg-6 col-xl-4 mb-4" key={index}>
@@ -1529,15 +1520,14 @@ const CustomerDetail = () => {
 
                                   <div className="col-12">
                                     <div
-                                      className={`p-3 bg-light rounded-3 ${
-                                        plan?.status === "Pending"
-                                          ? "bg-status-pending"
-                                          : plan?.status === "Accepted"
+                                      className={`p-3 bg-light rounded-3 ${plan?.status === "Pending"
+                                        ? "bg-status-pending"
+                                        : plan?.status === "Accepted"
                                           ? "bg-status-approved"
                                           : plan?.status === "proposed"
-                                          ? "bg-status-rejected"
-                                          : "bg-status-default"
-                                      }`}
+                                            ? "bg-status-rejected"
+                                            : "bg-status-default"
+                                        }`}
                                     >
                                       <small className="text-muted fw-medium">
                                         Status
@@ -1550,15 +1540,14 @@ const CustomerDetail = () => {
                                         onClick={() =>
                                           setShowEditStatus({ id: plan._id })
                                         }
-                                        className={`btn mt-2 ${
-                                          plan?.status === "Pending"
-                                            ? "btn-status-pending"
-                                            : plan?.status === "Accepted"
+                                        className={`btn mt-2 ${plan?.status === "Pending"
+                                          ? "btn-status-pending"
+                                          : plan?.status === "Accepted"
                                             ? "btn-status-approved"
                                             : plan?.status === "proposed"
-                                            ? "btn-status-rejected"
-                                            : "btn-status-default"
-                                        }`}
+                                              ? "btn-status-rejected"
+                                              : "btn-status-default"
+                                          }`}
                                       >
                                         Change Status
                                       </button>
@@ -1622,11 +1611,22 @@ const CustomerDetail = () => {
 
                 {/* // kyc tab */}
                 <TabPanel>
-                  <KycComponent
-                    id={id}
-                    familyMembers={userData?.familyMembers}
-                  />
+                  <div
+                    className="h-[70vh]"
+                    style={{
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      width: "100%",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <KycComponent
+                      id={id}
+                      familyMembers={userData?.familyMembers}
+                    />
+                  </div>
                 </TabPanel>
+
 
                 {/* ✅ NEW Task History Tab */}
                 <TabPanel>
@@ -1642,7 +1642,7 @@ const CustomerDetail = () => {
                     </div>
 
                     {userData?.taskHistory &&
-                    userData.taskHistory.length > 0 ? (
+                      userData.taskHistory.length > 0 ? (
                       <>
                         {/* Summary Cards */}
                         <div className="row mb-4">
@@ -2076,9 +2076,11 @@ const CustomerDetail = () => {
           .customer-profile-container {
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 ;
             padding: 20px;
+            overflow-x: hidden;
           }
 
           .profile-header {
@@ -2123,6 +2125,7 @@ const CustomerDetail = () => {
             grid-template-columns: 300px 1fr;
             gap: 20px;
           }
+            
 
           .profile-card {
             background: white;
@@ -2304,7 +2307,7 @@ const CustomerDetail = () => {
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
+            overflow-x: hidden;
           }
 
           .custom-tablist {

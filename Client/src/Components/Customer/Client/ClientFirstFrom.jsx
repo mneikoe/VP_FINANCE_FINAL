@@ -15,7 +15,13 @@ import FamilyMembersForm from "./FamilyMembersForm";
 import FinancialInformationForm from "./FinancialInformationForm";
 import FuturePrioritiesForm from "./FuturePrioritiesForm";
 import ProposedPlanForm from "./ProposedPlanForm";
+import KycForm from "./KycForm";
+import { toast } from "react-toastify";
 import { FaUser, FaUsers, FaRupeeSign, FaBullseye } from "react-icons/fa";
+import { FaIdCard } from "react-icons/fa";
+import { FaPiggyBank } from "react-icons/fa";
+
+
 // import { useParams } from "react-router-dom";
 
 const ClientFirstFrom = () => {
@@ -28,15 +34,10 @@ const ClientFirstFrom = () => {
   const [clientData, setClientData] = useState(null);
   const [familyDetail, setFamilyDetail] = useState(null);
 
-  // proposed
+
 
   const { tabs } = useParams();
 
-  // useEffect(()=>{
-  //   if (tabs == "proposed") {
-  //     setActiveTab("proposed")
-  //   }
-  // },[])
 
   useEffect(() => {
     if (tabs === "proposed") {
@@ -65,12 +66,8 @@ const ClientFirstFrom = () => {
 
   const handleClientCreated = (newClientId) => {
     setClientId(newClientId);
-    // setActiveTab("family")
   };
 
-  //   const changeTab=(tabChange)=>{
-  // setActiveTab(changeTab)
-  //   }
   const changeTab = (tabChange) => {
     setActiveTab(tabChange); // yeh correct hai
   };
@@ -85,9 +82,8 @@ const ClientFirstFrom = () => {
       >
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link custom-tab ${
-              activeTab === "personal" ? "active-custom" : ""
-            }`}
+            className={`nav-link custom-tab ${activeTab === "personal" ? "active-custom" : ""
+              }`}
             onClick={() => handleTabChange("personal")}
           >
             <FaUser className="me-2" /> Personal Details
@@ -95,9 +91,8 @@ const ClientFirstFrom = () => {
         </li>
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link custom-tab ${
-              activeTab === "family" ? "active-custom" : ""
-            }`}
+            className={`nav-link custom-tab ${activeTab === "family" ? "active-custom" : ""
+              }`}
             onClick={() => handleTabChange("family")}
           >
             <FaUsers className="me-2" /> Add Family Details
@@ -105,9 +100,8 @@ const ClientFirstFrom = () => {
         </li>
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link custom-tab ${
-              activeTab === "financial" ? "active-custom" : ""
-            }`}
+            className={`nav-link custom-tab ${activeTab === "financial" ? "active-custom" : ""
+              }`}
             onClick={() => handleTabChange("financial")}
           >
             <FaRupeeSign className="me-2" /> Financial Details
@@ -115,9 +109,8 @@ const ClientFirstFrom = () => {
         </li>
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link custom-tab ${
-              activeTab === "priorities" ? "active-custom" : ""
-            }`}
+            className={`nav-link custom-tab ${activeTab === "priorities" ? "active-custom" : ""
+              }`}
             onClick={() => handleTabChange("priorities")}
           >
             <FaBullseye className="me-2" /> Future's Priorities
@@ -125,14 +118,27 @@ const ClientFirstFrom = () => {
         </li>
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link custom-tab ${
-              activeTab === "proposed" ? "active-custom" : ""
-            }`}
+            className={`nav-link custom-tab ${activeTab === "proposed" ? "active-custom" : ""
+              }`}
             onClick={() => handleTabChange("proposed")}
           >
-            <FaBullseye className="me-2" /> Proposed Financial Plan
+            <FaPiggyBank className="me-2" /> Proposed Financial Plan
           </button>
         </li>
+        <button
+          className={`nav-link custom-tab ${activeTab === "kyc" ? "active-custom" : ""
+            }`}
+          onClick={() => {
+            if (!clientId) {
+              toast.warning("Please save Personal Details first");
+              return;
+            }
+            handleTabChange("kyc");
+          }}
+        >
+          <FaIdCard className="me-2" />
+          KYC Details
+        </button>
       </ul>
 
       <div className="tab-content p-4 border rounded bg-light">
@@ -172,6 +178,12 @@ const ClientFirstFrom = () => {
           <ProposedPlanForm
             clientId={clientId}
             clientData={isEdit ? clientData : null}
+          />
+        )}
+        {activeTab === "kyc" && (
+          <KycForm
+            clientId={clientId}
+            familyMembers={familyDetail || []}
           />
         )}
       </div>

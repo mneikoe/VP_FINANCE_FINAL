@@ -1,4 +1,3 @@
-// src/redux/slices/compositeTaskSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 import {
   createServiceTask,
@@ -23,7 +22,7 @@ const serviceTaskSlice = createSlice({
 
   reducers: {
     setServiceData: (state, action) => {
-      state.compositeData = action.payload;
+      state.serviceData = action.payload;
     },
     clearError: (state) => {
       state.error = null;
@@ -45,9 +44,8 @@ const serviceTaskSlice = createSlice({
       })
       .addCase(createServiceTask.fulfilled, (state, action) => {
         state.loading = false;
-        state.successMessage = action.payload.message;
-        // Optionally add the new task to your state if needed
-        // state.tasks.push(action.payload.data);
+        state.successMessage = "Task created successfully";
+        state.tasks.unshift(action.payload); // optional but useful
       })
       .addCase(createServiceTask.rejected, (state, action) => {
         state.loading = false;
