@@ -1,23 +1,21 @@
-
+// Client\src\Components\Customer\Client\ProposedPlanForm.jsx
 import React, { useState, useEffect } from "react";
-import { useDispatch,useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "../../../config/axios";
 import { Form, Row, Col, Button } from "react-bootstrap";
 import { addProposedFinancialPlan } from "../../../redux/feature/ClientRedux/ClientThunx";
 import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThunx";
-import {fetchFinancialProduct} from '../../../redux/feature/FinancialProduct/FinancialThunx'
+import { fetchFinancialProduct } from '../../../redux/feature/FinancialProduct/FinancialThunx'
 import { toast } from "react-toastify";
 
 const ProposedPlanForm = ({ clientId, clientData }) => {
 
- const companies = useSelector((state) => state.CompanyName.CompanyNames);
-    console.log("comapnies",companies)
+  const companies = useSelector((state) => state.CompanyName.CompanyNames);
+  console.log("comapnies", companies)
   const products = useSelector((state) => state.financialProduct.FinancialProducts);
-  console.log("products",products)
+  console.log("products", products)
 
-   
 
-   
   const dispatch = useDispatch();
 
   const [plans, setPlans] = useState([
@@ -34,9 +32,9 @@ const ProposedPlanForm = ({ clientId, clientData }) => {
   const [familyMembers, setFamilyMembers] = useState([]);
 
   useEffect(() => {
-      dispatch(fetchCompanyName());
-      dispatch(fetchFinancialProduct())
-    }, [dispatch]);
+    dispatch(fetchCompanyName());
+    dispatch(fetchFinancialProduct())
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -101,7 +99,7 @@ const ProposedPlanForm = ({ clientId, clientData }) => {
     const planToSave = plans[index];
 
     if (
-     
+
       !planToSave.memberName ||
       !planToSave.financialProduct ||
       !planToSave.financialCompany ||
@@ -197,7 +195,7 @@ const ProposedPlanForm = ({ clientId, clientData }) => {
                     name="createdDate"
                     value={plan.createdDate || getCurrentDate()}
                     onChange={(e) => handleInputChange(index, e)}
-                    
+
                   />
                 </Form.Group>
               </Col>
@@ -223,50 +221,50 @@ const ProposedPlanForm = ({ clientId, clientData }) => {
                 </Form.Group>
               </Col>
 
-      <Col md={4}>
-  <Form.Group controlId={`financialProduct-${index}`}>
-    <Form.Label>
-      Financial Product <span className="text-danger">*</span>
-    </Form.Label>
-    <Form.Select
-      name="financialProduct"
-      value={plan.financialProduct || ""}
-      onChange={(e) => handleInputChange(index, e)}
-      required
-    >
-      <option value="">Select Financial Product</option>
-      {products?.map((product) => (
-        <option key={product._id} value={product.name}>
-          {product.name}
-        </option>
-      ))}
-    </Form.Select>
-  </Form.Group>
-</Col>
+              <Col md={4}>
+                <Form.Group controlId={`financialProduct-${index}`}>
+                  <Form.Label>
+                    Financial Product <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select
+                    name="financialProduct"
+                    value={plan.financialProduct || ""}
+                    onChange={(e) => handleInputChange(index, e)}
+                    required
+                  >
+                    <option value="">Select Financial Product</option>
+                    {products?.map((product) => (
+                      <option key={product._id} value={product.name}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
 
             </Row>
 
             <Row className="mb-3">
-             <Col md={4}>
-  <Form.Group controlId={`financialCompany-${index}`}>
-    <Form.Label>
-      Company <span className="text-danger">*</span>
-    </Form.Label>
-    <Form.Select
-      name="financialCompany"
-      value={plan.financialCompany || ""}
-      onChange={(e) => handleInputChange(index, e)}
-      required
-    >
-      <option value="">Select Company</option>
-      {companies?.map((company) => (
-        <option key={company._id} value={company.companyName}>
-          {company.companyName}
-        </option>
-      ))}
-    </Form.Select>
-  </Form.Group>
-</Col>
+              <Col md={4}>
+                <Form.Group controlId={`financialCompany-${index}`}>
+                  <Form.Label>
+                    Company <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select
+                    name="financialCompany"
+                    value={plan.financialCompany || ""}
+                    onChange={(e) => handleInputChange(index, e)}
+                    required
+                  >
+                    <option value="">Select Company</option>
+                    {companies?.map((company) => (
+                      <option key={company._id} value={company.companyName}>
+                        {company.companyName}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
 
 
               <Col md={4}>

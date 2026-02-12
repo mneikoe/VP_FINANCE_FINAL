@@ -1,3 +1,4 @@
+// Client\src\redux\feature\ClientRedux\ClientThunx.js
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "../../../config/axios";
 
@@ -44,7 +45,7 @@ export const updateFamilyMember = createAsyncThunk(
       return response?.data; // Return full response (clientId, familyMembers)
     } catch (error) {
       return rejectWithValue(
-        error?.response?.data?.error 
+        error?.response?.data?.error
       );
     }
   }
@@ -158,7 +159,7 @@ export const addFuturePrioritiesAndNeeds = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding future priorities and needs."
+        "An error occurred while adding future priorities and needs."
       );
     }
   }
@@ -177,7 +178,7 @@ export const updateFuturePrioritiesAndNeeds = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while updating future priorities and needs."
+        "An error occurred while updating future priorities and needs."
       );
     }
   }
@@ -199,7 +200,7 @@ export const addProposedFinancialPlan = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while adding proposed financial plan."
+        "An error occurred while adding proposed financial plan."
       );
     }
   }
@@ -221,7 +222,7 @@ export const updateProposedFinancialPlan = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.error ||
-          "An error occurred while updating proposed financial plan."
+        "An error occurred while updating proposed financial plan."
       );
     }
   }
@@ -229,33 +230,14 @@ export const updateProposedFinancialPlan = createAsyncThunk(
 
 
 
-// 5. Add Proposed Financial Plan
-// export const addProposedFinancialPlan = createAsyncThunk(
-//   'client/addProposedFinancialPlan',
-//   async ({ clientId, formData }, { rejectWithValue }) => {
-//     try {
-//       const response = await axios.put(`/api/client/add/proposedplan/${clientId}`, formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//       });
-//       console.log("Add proposed plan successfully", response?.data);
-//       return response?.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error?.response?.data?.message || error?.response?.data?.error || "An error occurred while adding the proposed financial plan."
-//       );
-//     }
-//   }
-// );
 
 
 // update Proposed status
 export const updateProposedStatus = createAsyncThunk(
   'client/updateProposedStatus',
   async ({ id, planss }, { rejectWithValue }) => {
-    console.log(id,planss);
-    
+    console.log(id, planss);
+
     try {
       const response = await axios.put(`/api/client/add/updateproposedplan/${id}`, planss, {
         headers: {
@@ -263,7 +245,7 @@ export const updateProposedStatus = createAsyncThunk(
         },
       });
       console.log(response);
-      
+
       console.log("Add proposed plan successfully", response?.data);
       return response?.data;
     } catch (error) {
@@ -273,6 +255,7 @@ export const updateProposedStatus = createAsyncThunk(
     }
   }
 );
+
 
 
 // 6: Get All Clients
@@ -321,7 +304,7 @@ export const updateCleintStatus = createAsyncThunk(
   'client/update/status',
   async ({ id, status }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/client/update/status/${id}`, {status});
+      const response = await axios.put(`/api/client/update/status/${id}`, { status });
       console.log("Update Client Status successfully", response?.data)
       return response?.data;
     } catch (error) {
@@ -339,14 +322,14 @@ export const updateCleintStatus = createAsyncThunk(
 
 // 9.update client personal Details
 export const updateClientPersonalDetails = createAsyncThunk(
-  'client/update/personal/details', 
-  async({id, personalDetails}, {rejectWithValue}) => {
+  'client/update/personal/details',
+  async ({ id, personalDetails }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/client/update/personaldetails/${id}`, {personalDetails});
+      const response = await axios.put(`/api/client/update/personaldetails/${id}`, { personalDetails });
       console.log("Update Client Personal Details successfully", response?.data)
       return response?.data;
     } catch (error) {
-       return rejectWithValue(error?.response?.data?.error || "An error occured while updating the personal Details of the client.")
+      return rejectWithValue(error?.response?.data?.error || "An error occured while updating the personal Details of the client.")
 
     }
   }
@@ -354,25 +337,25 @@ export const updateClientPersonalDetails = createAsyncThunk(
 
 
 export const updateImage = createAsyncThunk(
-  'client/update/image', 
-  async({firstId,secondID, image}, {rejectWithValue}) => {
+  'client/update/image',
+  async ({ firstId, secondID, image }, { rejectWithValue }) => {
     console.log(firstId)
     console.log(secondID)
     console.log(image)
 
-      const formData = new FormData();
-      formData.append("document", image); // 👈 multer.single('document')
-      formData.append("secondID", secondID);
+    const formData = new FormData();
+    formData.append("document", image); // 👈 multer.single('document')
+    formData.append("secondID", secondID);
 
     try {
-      const response = await axios.put(`/api/client/update/image/${firstId}`, formData,{
-        headers:{"Content-Type":"multipart/form-data"}
+      const response = await axios.put(`/api/client/update/image/${firstId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
 
       console.log("Update Client Personal Details successfully", response?.data)
       return response?.data;
     } catch (error) {
-       return rejectWithValue(error?.response?.data?.error || "An error occured while updating the personal Details of the client.")
+      return rejectWithValue(error?.response?.data?.error || "An error occured while updating the personal Details of the client.")
 
     }
   }
@@ -388,7 +371,7 @@ export const deleteClientById = createAsyncThunk(
       console.log("Delete Client successfully", response?.data)
       return response?.data;
     } catch (error) {
-          return rejectWithValue(error?.response?.data?.error || "An error occured while deleting a client.")
+      return rejectWithValue(error?.response?.data?.error || "An error occured while deleting a client.")
     }
   }
 )
@@ -412,3 +395,70 @@ export const getAllFamilyMembers = createAsyncThunk(
   }
 );
 
+// 12 KYC 
+export const createKyc = createAsyncThunk(
+  "client/createKyc",
+  async ({ clientId, formData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `/api/client/kyc/create/${clientId}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message || "Error creating KYC."
+      );
+    }
+  }
+);
+export const fetchKycsByClient = createAsyncThunk(
+  "client/fetchKycs",
+  async (clientId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `/api/client/kyc/${clientId}`
+      );
+      return response?.data?.kycs;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message || "Error fetching KYCs."
+      );
+    }
+  }
+);
+export const updateKyc = createAsyncThunk(
+  "client/updateKyc",
+  async ({ id, formData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `/api/client/kyc/${id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message || "Error updating KYC."
+      );
+    }
+  }
+);
+export const deleteKyc = createAsyncThunk(
+  "client/deleteKyc",
+  async (id, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/api/client/kyc/${id}`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message || "Error deleting KYC."
+      );
+    }
+  }
+);

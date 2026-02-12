@@ -4,6 +4,7 @@ const kycController = require("../Controller/kycdocument");
 
 // CRUD Routes
 kycrouter.post("/", kycController.createKycDocument);        // Create
+kycrouter.get("/client/:clientId", kycController.getKycByClientId); 
 kycrouter.get("/", kycController.getAllKycDocuments);        // Read All
 kycrouter.get("/:id", kycController.getKycDocumentById);     // Read One
 kycrouter.put("/:id", kycController.updateKycDocument);      // Update

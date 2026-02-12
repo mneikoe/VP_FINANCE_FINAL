@@ -1,22 +1,3 @@
-// const mongoose = require("mongoose");
-
-// const FinancialProductSchema = new mongoose.Schema(
-//   {
-//     name: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-//   },
-//   {
-//     timestamps: true,
-//   }
-// );
-
-// module.exports = mongoose.model("FinancialProduct", FinancialProductSchema);
-
-
-
 const mongoose = require("mongoose");
 
 const FinancialProductSchema = new mongoose.Schema(
@@ -71,7 +52,7 @@ const FinancialProductSchema = new mongoose.Schema(
 );
 
 // Index for better search performance
-FinancialProductSchema.index({ name: 1 });
+// FinancialProductSchema.index({ name: 1 });
 FinancialProductSchema.index({ category: 1, isActive: 1 });
 FinancialProductSchema.index({ createdAt: -1 });
 

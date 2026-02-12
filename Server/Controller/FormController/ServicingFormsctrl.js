@@ -1,34 +1,49 @@
-const ServicingForms = require(
-  "../../Models/Forms/ServicingFormsModel"
-);
+const ServicingForms = require("../../Models/Forms/ServicingFormsModel");
 
 const createServicingForm = async (req, res) => {
   try {
-    const {
-      formName,
-      formType,
-      companyName,
-      kindOfForm,
-    } = req.body;
+    const { formName, formType, companyName, kindOfForm } = req.body;
+
+    // validate required fields
+    if (!formName || !formType || !companyName || !kindOfForm) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File is required",
+      });
+    }
 
     const form = await ServicingForms.create({
       formName,
       formType,
       companyName,
       kindOfForm,
-      file: req.file
-        ? {
-            url: `/uploads/forms/${req.file.filename}`,
-            originalName: req.file.originalname,
-          }
-        : null,
+      file: req.file.filename,
     });
 
-    res.status(201).json({ success: true, form });
+    res.status(201).json({
+      success: true,
+      form: {
+        ...form.toObject(),
+        fileUrl: `/forms/${form.file}`,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
+
+module.exports = { createServicingForm };
+
 
 const getServicingForms = async (req, res) => {
   try {
@@ -64,10 +79,7 @@ const updateServicingForm = async (req, res) => {
     const updateData = { ...req.body };
 
     if (req.file) {
-      updateData.file = {
-        url: `/uploads/forms/${req.file.filename}`,
-        originalName: req.file.originalname,
-      };
+      updateData.file = req.file.filename;
     }
 
     const form = await ServicingForms.findByIdAndUpdate(
@@ -81,6 +93,7 @@ const updateServicingForm = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 const deleteServicingForm = async (req, res) => {
   try {

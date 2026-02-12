@@ -238,16 +238,17 @@ const ServicingHealth = () => {
                 <td className="border px-2 py-1">{f.formType}</td>
                 <td className="border px-2 py-1">{f.formName}</td>
                 <td className="border px-2 py-1 text-center">
-                  {f.file?.url && (
+                  {f.file && (
                     <a
-                      href={`${BASE_URL}${f.file.url}`}
+                      href={`${BASE_URL}/forms/${f.file}`}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      
                       className="text-blue-600"
                     >
                       View
                     </a>
                   )}
+
                 </td>
                 <td className="flex border items-center justify-center px-2 py-1 text-center gap-2">
                   <button

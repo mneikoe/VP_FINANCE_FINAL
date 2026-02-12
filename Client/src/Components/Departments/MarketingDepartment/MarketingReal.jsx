@@ -177,7 +177,7 @@ const MarketingReal = () => {
               <p className="text-sm text-gray-600 mb-2">
                 Current file:
                 <a
-                  href={`${BASE_URL}/uploads/${existingFile}`}
+                  href={`${BASE_URL}/forms/${f.file}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 underline ml-1"

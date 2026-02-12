@@ -81,6 +81,7 @@ const RMRoutes = require("./Routes/RMRoutes");
 const marketingFormRoutes = require("./Routes/FormRoutes/MarketingFormRoutes");
 const servicingFormRoutes = require("./Routes/FormRoutes/ServicingFormRoutes");
 const formCompanyRoutes = require("./Routes/FormRoutes/FormCompanyRoutes");
+const departmentFinancialProductRoutes = require( "./Routes/FormRoutes/departmentFinancialProductRoutes");
 
 // STATIC FILES
 app.use(
@@ -161,6 +162,7 @@ app.use("/api/rm", RMRoutes);
 app.use("/api/marketing-forms", marketingFormRoutes);
 app.use("/api/servicing-forms", servicingFormRoutes);
 app.use("/api/form-company", formCompanyRoutes);
+app.use( "/api/department-financial-products", departmentFinancialProductRoutes);
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));

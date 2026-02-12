@@ -32,8 +32,8 @@ const servicingFormsSchema = new mongoose.Schema(
     },
 
     file: {
-      url: String,
-      originalName: String,
+      type: String,
+      required: true,
     },
   },
   { timestamps: true }

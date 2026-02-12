@@ -1,28 +1,29 @@
 const mongoose = require('mongoose');
 
 const kycSchema = new mongoose.Schema({
-  createdDate: {
-    type: Date,
-    default: Date.now,
-  },
   memberName: {
     type: String,
     required: true,
+    trim: true,
   },
   documentName: {
     type: String,
     required: true,
+    trim: true,
   },
   documentNumber: {
     type: String,
     required: true,
+    trim: true,
   },
   remark: {
     type: String,
+    default: "",
   },
-  user :{
-    type : mongoose.Schema.Types.ObjectId,
-    ref : "testSchema"
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "testSchema",
+    required: true,
   },
   fileUrl: {
     type: String,

@@ -1,15 +1,16 @@
-import GetModelByType from "../utils/GetModelByType.js";
-import FinancialProductModel from "../Models/FinancialProductModel.js";
-import mongoose from "mongoose";
-import path from "path";
-import fs from "fs";
-import Employee from "../Models/employeeModel.js";
-import SusProsClient from "../Models/SusProsClientSchema.js";
-import Telecaller from "../Models/telecallerModel.js";
-import HR from "../Models/HRModel.js";
+const GetModelByType = require("../utils/GetModelByType");
+const FinancialProductModel = require("../Models/FinancialProductModel");
+const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
+const Employee = require("../Models/employeeModel");
+const SusProsClient = require("../Models/SusProsClientSchema");
+const Telecaller = require("../Models/telecallerModel");
+const HR = require("../Models/HRModel");
+
 
 // createTask function mein sirf formChecklists part update karo:
-export const createTask = async (req, res) => {
+const createTask = async (req, res) => {
   try {
     if (!req.body.type) {
       return res.status(400).json({
@@ -178,7 +179,7 @@ export const createTask = async (req, res) => {
   }
 };
 // TaskCtrl.js में getAllTasks function को update करें:
-export const getAllTasks = async (req, res) => {
+const getAllTasks = async (req, res) => {
   try {
     const type = req.query.type || "composite";
     const status = req.query.status || "template"; // Default to template
@@ -258,187 +259,7 @@ export const getAllTasks = async (req, res) => {
   }
 };
 
-// ✅ Update task
-// export const updateTask = async (req, res) => {
-//   try {
-//     const type = req.body.type || "composite";
-//     const { id } = req.params;
-
-//     console.log(`🔄 Updating ${type} task: ${id}`);
-
-//     const TaskModel = GetModelByType(type);
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Invalid task ID",
-//       });
-//     }
-
-//     const existingTask = await TaskModel.findById(id);
-//     if (!existingTask) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Task not found",
-//       });
-//     }
-
-//     // Handle depart update
-//     let departArray = existingTask.depart;
-//     if (req.body.depart !== undefined) {
-//       if (Array.isArray(req.body.depart)) {
-//         departArray = req.body.depart;
-//       } else if (typeof req.body.depart === "string") {
-//         departArray = req.body.depart.split(",");
-//       }
-//     }
-
-//     // Prepare updates
-//     const updates = {
-//       ...(req.body.cat && { cat: req.body.cat }),
-//       ...(req.body.sub && { sub: req.body.sub }),
-//       depart: departArray,
-//       ...(req.body.name && { name: req.body.name }),
-//       ...(req.body.estimatedDays && {
-//         estimatedDays: parseInt(req.body.estimatedDays),
-//       }),
-//       ...(req.body.templatePriority && {
-//         templatePriority: req.body.templatePriority,
-//       }),
-//       ...(req.body.email_descp !== undefined && {
-//         email_descp: req.body.email_descp,
-//       }),
-//       ...(req.body.sms_descp !== undefined && {
-//         sms_descp: req.body.sms_descp,
-//       }),
-//       ...(req.body.whatsapp_descp !== undefined && {
-//         whatsapp_descp: req.body.whatsapp_descp,
-//       }),
-//       ...(req.body.status && { status: req.body.status }),
-//       descp: {
-//         text: req.body.descpText || existingTask.descp.text,
-//         image: existingTask.descp.image,
-//       },
-//     };
-
-//     // Handle image update
-//     if (req.files?.image?.[0]) {
-//       updates.descp.image = req.files.image[0].filename;
-
-//       if (existingTask.descp.image) {
-//         try {
-//           await fs.unlink(
-//             path.join(__dirname, "../uploads", existingTask.descp.image)
-//           );
-//         } catch (err) {
-//           console.log("Old image file not found or already deleted");
-//         }
-//       }
-//     } else if (req.body.existingImage) {
-//       // Keep existing image if not changed
-//       updates.descp.image = req.body.existingImage;
-//     }
-
-//     // Handle checklists
-//     if (req.body.checklists !== undefined) {
-//       updates.checklists = Array.isArray(req.body.checklists)
-//         ? req.body.checklists.filter((item) => item && item.trim() !== "")
-//         : [];
-//     }
-
-//     // Handle formChecklists (composite update) with newDownloadIndices / newSampleIndices
-//     if (req.body.formChecklists) {
-//       try {
-//         const parsed = JSON.parse(req.body.formChecklists);
-//         let newDownloadIndices = [];
-//         let newSampleIndices = [];
-//         if (req.body.newDownloadIndices) {
-//           try {
-//             newDownloadIndices =
-//               typeof req.body.newDownloadIndices === "string"
-//                 ? JSON.parse(req.body.newDownloadIndices)
-//                 : req.body.newDownloadIndices;
-//           } catch (e) { }
-//         }
-//         if (req.body.newSampleIndices) {
-//           try {
-//             newSampleIndices =
-//               typeof req.body.newSampleIndices === "string"
-//                 ? JSON.parse(req.body.newSampleIndices)
-//                 : req.body.newSampleIndices;
-//           } catch (e) { }
-//         }
-//         const downloadFiles = req.files?.downloadFormUrl
-//           ? Array.isArray(req.files.downloadFormUrl)
-//             ? req.files.downloadFormUrl
-//             : [req.files.downloadFormUrl]
-//           : [];
-//         const sampleFiles = req.files?.sampleFormUrl
-//           ? Array.isArray(req.files.sampleFormUrl)
-//             ? req.files.sampleFormUrl
-//             : [req.files.sampleFormUrl]
-//           : [];
-
-//         updates.formChecklists = parsed
-//           .map((item, index) => {
-//             let downloadFormUrl = item.downloadFormUrl || "";
-//             let sampleFormUrl = item.sampleFormUrl || "";
-//             const di = newDownloadIndices.indexOf(index);
-//             if (di !== -1 && downloadFiles[di]) {
-//               const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
-//               if (old) {
-//                 try {
-//                   fs.unlink(path.join(__dirname, "../uploads", old));
-//                 } catch (err) { }
-//               }
-//               downloadFormUrl = downloadFiles[di].filename;
-//             }
-//             const si = newSampleIndices.indexOf(index);
-//             if (si !== -1 && sampleFiles[si]) {
-//               const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
-//               if (old) {
-//                 try {
-//                   fs.unlink(path.join(__dirname, "../uploads", old));
-//                 } catch (err) { }
-//               }
-//               sampleFormUrl = sampleFiles[si].filename;
-//             }
-//             return {
-//               name: item.name?.trim() || "",
-//               downloadFormUrl,
-//               sampleFormUrl,
-//             };
-//           })
-//           .filter((item) => item.name !== "");
-//       } catch (err) {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Invalid formChecklists format",
-//         });
-//       }
-//     }
-//     const updated = await TaskModel.findByIdAndUpdate(id, updates, {
-//       new: true,
-//       runValidators: true,
-//     }).populate("cat", "name category");
-
-//     console.log(`✅ ${type} task updated successfully`);
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Task updated successfully",
-//       task: updated,
-//     });
-//   } catch (error) {
-//     console.error("❌ Update error:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Update failed",
-//       error: error.message,
-//     });
-//   }
-// };
-export const updateTask = async (req, res) => {
+const updateTask = async (req, res) => {
   try {
     const type = req.body.type || "composite";
     const { id } = req.params;
@@ -624,7 +445,7 @@ export const updateTask = async (req, res) => {
 };
 
 // TaskCtrl.js - assignCompositeTask function fix:
-export const assignCompositeTask = async (req, res) => {
+const assignCompositeTask = async (req, res) => {
   try {
     const {
       taskId,
@@ -870,7 +691,7 @@ export const assignCompositeTask = async (req, res) => {
   }
 };
 // ✅ UPDATED: Get tasks by role - now checks array
-export const getTasksByRole = async (req, res) => {
+const getTasksByRole = async (req, res) => {
   try {
     const { role } = req.params;
     const TaskModel = GetModelByType("composite");
@@ -912,7 +733,7 @@ export const getTasksByRole = async (req, res) => {
 
 // TaskCtrl.js - getAssignedTasks function mein YEH UPDATE KARO
 
-export const getAssignedTasks = async (req, res) => {
+const getAssignedTasks = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const TaskModel = GetModelByType("individual");
@@ -1014,7 +835,7 @@ export const getAssignedTasks = async (req, res) => {
 };
 
 // ✅ NEW: Get composite task templates for assignment
-export const getCompositeTemplates = async (req, res) => {
+const getCompositeTemplates = async (req, res) => {
   try {
     const TaskModel = GetModelByType("composite");
 
@@ -1049,7 +870,7 @@ export const getCompositeTemplates = async (req, res) => {
 };
 
 // ✅ NEW: Get tasks by employee role (updated for array)
-export const getTasksByEmployeeRole = async (req, res) => {
+const getTasksByEmployeeRole = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
@@ -1104,7 +925,7 @@ export const getTasksByEmployeeRole = async (req, res) => {
 
 // TaskCtrl.js - getTaskById function UPDATE
 
-export const getTaskById = async (req, res) => {
+const getTaskById = async (req, res) => {
   try {
     const type = req.query.type || "individual"; // Default individual rakh lo
     const { id } = req.params;
@@ -1192,7 +1013,7 @@ export const getTaskById = async (req, res) => {
 };
 
 // ✅ Delete task (with proper error handling)
-export const deleteTask = async (req, res) => {
+const deleteTask = async (req, res) => {
   try {
     const type = req.query.type || "composite";
     const { id } = req.params;
@@ -1292,7 +1113,7 @@ export const deleteTask = async (req, res) => {
 // TaskCtrl.js में नीचे दिए functions add करें:
 
 // ✅ Marketing Templates Fetch
-export const getMarketingTemplates = async (req, res) => {
+const getMarketingTemplates = async (req, res) => {
   try {
     const MarketingTask = GetModelByType("marketing");
 
@@ -1334,7 +1155,7 @@ export const getMarketingTemplates = async (req, res) => {
 };
 
 // ✅ UPDATED: Assign Marketing Task with Client/Prospect Support
-export const assignMarketingTask = async (req, res) => {
+const assignMarketingTask = async (req, res) => {
   try {
     const {
       taskId,
@@ -1580,7 +1401,7 @@ export const assignMarketingTask = async (req, res) => {
 };
 
 // ✅ Marketing Tasks by Employee Role
-export const getMarketingTasksByEmployeeRole = async (req, res) => {
+const getMarketingTasksByEmployeeRole = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
@@ -1635,7 +1456,7 @@ export const getMarketingTasksByEmployeeRole = async (req, res) => {
 };
 
 // ✅ Assigned Marketing Tasks for Employee
-export const getAssignedMarketingTasks = async (req, res) => {
+const getAssignedMarketingTasks = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const IndividualTask = GetModelByType("individual");
@@ -1704,7 +1525,7 @@ export const getAssignedMarketingTasks = async (req, res) => {
 };
 
 // ✅ Marketing Task Statistics
-export const getMarketingTaskStats = async (req, res) => {
+const getMarketingTaskStats = async (req, res) => {
   try {
     const MarketingTask = GetModelByType("marketing");
     const IndividualTask = GetModelByType("individual");
@@ -1767,7 +1588,7 @@ export const getMarketingTaskStats = async (req, res) => {
 };
 
 // ✅ Get Marketing Task by ID
-export const getMarketingTaskById = async (req, res) => {
+const getMarketingTaskById = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1808,7 +1629,7 @@ export const getMarketingTaskById = async (req, res) => {
 };
 
 // ✅ Update Marketing Task
-export const updateMarketingTask = async (req, res) => {
+const updateMarketingTask = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1983,7 +1804,7 @@ export const updateMarketingTask = async (req, res) => {
 };
 
 // ✅ Delete Marketing Task
-export const deleteMarketingTask = async (req, res) => {
+const deleteMarketingTask = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2048,7 +1869,7 @@ export const deleteMarketingTask = async (req, res) => {
 // TaskCtrl.js में नीचे दिए functions add करें:
 
 // ✅ Service Templates Fetch
-export const getServiceTemplates = async (req, res) => {
+const getServiceTemplates = async (req, res) => {
   try {
     const ServiceTask = GetModelByType("service");
 
@@ -2090,7 +1911,7 @@ export const getServiceTemplates = async (req, res) => {
 };
 
 // ✅ UPDATED: Assign Service Task with Client/Prospect Support
-export const assignServiceTask = async (req, res) => {
+const assignServiceTask = async (req, res) => {
   try {
     const {
       taskId,
@@ -2333,7 +2154,7 @@ export const assignServiceTask = async (req, res) => {
 };
 
 // ✅ Service Tasks by Employee Role
-export const getServiceTasksByEmployeeRole = async (req, res) => {
+const getServiceTasksByEmployeeRole = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
@@ -2388,7 +2209,7 @@ export const getServiceTasksByEmployeeRole = async (req, res) => {
 };
 
 // ✅ Assigned Service Tasks for Employee
-export const getAssignedServiceTasks = async (req, res) => {
+const getAssignedServiceTasks = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const IndividualTask = GetModelByType("individual");
@@ -2457,7 +2278,7 @@ export const getAssignedServiceTasks = async (req, res) => {
 };
 
 // ✅ Service Task Statistics
-export const getServiceTaskStats = async (req, res) => {
+const getServiceTaskStats = async (req, res) => {
   try {
     const ServiceTask = GetModelByType("service");
     const IndividualTask = GetModelByType("individual");
@@ -2520,7 +2341,7 @@ export const getServiceTaskStats = async (req, res) => {
 };
 
 // ✅ Get Service Task by ID
-export const getServiceTaskById = async (req, res) => {
+const getServiceTaskById = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2561,7 +2382,7 @@ export const getServiceTaskById = async (req, res) => {
 };
 
 // ✅ Update Service Task
-export const updateServiceTask = async (req, res) => {
+const updateServiceTask = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2736,7 +2557,7 @@ export const updateServiceTask = async (req, res) => {
 };
 
 // ✅ Delete Service Task
-export const deleteServiceTask = async (req, res) => {
+const deleteServiceTask = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2799,7 +2620,7 @@ export const deleteServiceTask = async (req, res) => {
   }
 };
 
-export const updateEntityTaskStatus = async (req, res) => {
+const updateEntityTaskStatus = async (req, res) => {
   try {
     const { entityId, taskId } = req.params;
     const {
@@ -3035,7 +2856,7 @@ export const updateEntityTaskStatus = async (req, res) => {
 
 // TaskCtrl.js - getEntityTaskHistory function FIX KARO:
 
-export const getEntityTaskHistory = async (req, res) => {
+const getEntityTaskHistory = async (req, res) => {
   try {
     const { entityId } = req.params;
     const {
@@ -3167,7 +2988,7 @@ export const getEntityTaskHistory = async (req, res) => {
 };
 
 // ✅ GET SPECIFIC TASK STATUS FOR ENTITY (ALSO FIX THIS ONE)
-export const getEntityTaskStatus = async (req, res) => {
+const getEntityTaskStatus = async (req, res) => {
   try {
     const { entityId, taskId } = req.params;
 
@@ -3236,7 +3057,7 @@ export const getEntityTaskStatus = async (req, res) => {
 // TaskCtrl.js mein yeh function add karo:
 
 // TaskCtrl.js mein simple status update function:
-export const updateTaskStatus = async (req, res) => {
+const updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { status, remarks, employeeId, employeeName } = req.body;
@@ -3282,7 +3103,7 @@ export const updateTaskStatus = async (req, res) => {
 };
 
 // ✅ RM Complete + Forward to OE: mark RM task completed, create Individual task for OE
-export const forwardTaskToOE = async (req, res) => {
+const forwardTaskToOE = async (req, res) => {
   try {
     const { taskId, oeId, remark } = req.body;
     const rmId = req.body.rmId || req.body.employeeId;
@@ -3385,7 +3206,7 @@ export const forwardTaskToOE = async (req, res) => {
 };
 
 // ✅ Get assigned tasks for OE with forwardedFromRM and client/prospect details by oeType
-export const getOEAssignedTasks = async (req, res) => {
+const getOEAssignedTasks = async (req, res) => {
   try {
     const oeId = req.query.oeId || req.params.oeId;
     if (!oeId) {
@@ -3476,7 +3297,7 @@ export const getOEAssignedTasks = async (req, res) => {
 };
 
 // ✅ OE forward back to RM: update status, add remark and files
-export const oeForwardToRM = async (req, res) => {
+const oeForwardToRM = async (req, res) => {
   try {
     const { taskId, status, remark } = req.body;
     const oeId = req.body.oeId || req.body.employeeId;
@@ -3540,7 +3361,7 @@ export const oeForwardToRM = async (req, res) => {
 };
 
 // ✅ Employee Report List: OA panel jaisa - Telecaller/HR ke liye Telecaller & HR models se fetch
-export const getEmployeeReportList = async (req, res) => {
+const getEmployeeReportList = async (req, res) => {
   try {
     const { role, startDate, endDate } = req.query;
     const IndividualTask = GetModelByType("individual");
@@ -3721,7 +3542,7 @@ export const getEmployeeReportList = async (req, res) => {
 };
 
 // ✅ Employee Activity Report: Employee na mile to Telecaller/HR se resolve (OA panel align)
-export const getEmployeeActivityReport = async (req, res) => {
+const getEmployeeActivityReport = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const { startDate, endDate } = req.query;
@@ -3930,4 +3751,42 @@ export const getEmployeeActivityReport = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+module.exports = {
+  createTask,
+  getAllTasks,
+  updateTask,
+  assignCompositeTask,
+  getTasksByRole,
+  getAssignedTasks,
+  getCompositeTemplates,
+  getTasksByEmployeeRole,
+  getTaskById,
+  deleteTask,
+  getMarketingTemplates,
+  assignMarketingTask,
+  getMarketingTasksByEmployeeRole,
+  getAssignedMarketingTasks,
+  getMarketingTaskStats,
+  getMarketingTaskById,
+  updateMarketingTask,
+  deleteMarketingTask,
+  getServiceTemplates,
+  assignServiceTask,
+  getServiceTasksByEmployeeRole,
+  getAssignedServiceTasks,
+  getServiceTaskStats,
+  getServiceTaskById,
+  updateServiceTask,
+  deleteServiceTask,
+  updateEntityTaskStatus,
+  getEntityTaskHistory,
+  getEntityTaskStatus,
+  updateTaskStatus,
+  forwardTaskToOE,
+  getOEAssignedTasks,
+  oeForwardToRM,
+  getEmployeeReportList,
+  getEmployeeActivityReport,
 };

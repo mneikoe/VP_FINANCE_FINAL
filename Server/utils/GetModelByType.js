@@ -1,8 +1,8 @@
 // utils/GetModelByType.js
-import CompositeTask from "../Models/CompositeTaskModel.js";
-import MarketingTask from "../Models/MarketingTaskModel.js";
-import ServiceTask from "../Models/ServiceTaskModel.js";
-import IndividualTask from "../Models/IndividualTaskModel.js";
+const CompositeTask = require("../Models/CompositeTaskModel");
+const MarketingTask = require("../Models/MarketingTaskModel");
+const ServiceTask = require("../Models/ServiceTaskModel");
+const IndividualTask = require("../Models/IndividualTaskModel");
 
 const GetModelByType = (type) => {
   console.log(`🔍 Getting model for type: ${type}`);
@@ -26,4 +26,4 @@ const GetModelByType = (type) => {
   return model;
 };
 
-export default GetModelByType;
+module.exports = GetModelByType;

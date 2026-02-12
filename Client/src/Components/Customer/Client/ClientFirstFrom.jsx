@@ -25,6 +25,51 @@ import { FaPiggyBank } from "react-icons/fa";
 // import { useParams } from "react-router-dom";
 
 const ClientFirstFrom = () => {
+
+  const initialFormState = {
+    salutation: "",
+    groupName: "",
+    gender: "",
+    organisation: "",
+    designation: "",
+    mobileNo: "",
+    contactNo: "",
+    whatsappNo: "",
+    emailId: "",
+    paName: "",
+    paMobileNo: "",
+    annualIncome: "",
+    grade: "",
+    preferredAddressType: "resi",
+    resiAddr: "",
+    resiLandmark: "",
+    resiPincode: "",
+    officeAddr: "",
+    officeLandmark: "",
+    officePincode: "",
+    preferredMeetingAddr: "",
+    preferredMeetingArea: "",
+    subArea: "",
+    city: "",
+    bestTime: "",
+    time: "10:00 AM",
+    adharNumber: "",
+    panCardNumber: "",
+    hobbies: "",
+    nativePlace: "",
+    socialLink: "",
+    habits: "",
+    leadSource: "",
+    leadName: "",
+    leadOccupation: "",
+    leadOccupationType: "",
+    callingPurpose: "",
+    name: "",
+    allocatedCRE: "",
+    allocatedRM: "",
+    remark: "",
+  };
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
@@ -33,6 +78,8 @@ const ClientFirstFrom = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [clientData, setClientData] = useState(null);
   const [familyDetail, setFamilyDetail] = useState(null);
+  const [personalFormData, setPersonalFormData] = useState(initialFormState);
+  const [familyMembers, setFamilyMembers] = useState([]);
 
 
 
@@ -43,7 +90,7 @@ const ClientFirstFrom = () => {
     if (tabs === "proposed") {
       setActiveTab("proposed");
     }
-  }, [tabs]); // tabs pe dependency daalo
+  }, [tabs]);
 
   useEffect(() => {
     dispatch(getAllOccupationTypes());
@@ -149,6 +196,8 @@ const ClientFirstFrom = () => {
             onClientCreated={handleClientCreated}
             setFamilyDetail={setFamilyDetail}
             changeTab={changeTab}
+            formData={personalFormData}
+            setFormData={setPersonalFormData}
           />
         )}
         {activeTab === "family" && (
@@ -158,6 +207,7 @@ const ClientFirstFrom = () => {
             onClientCreated={handleClientCreated}
             familyDetail={familyDetail}
             setFamilyDetail={setFamilyDetail}
+            setFamilyMembers={setFamilyMembers}
           />
         )}
         {activeTab === "financial" && (
@@ -183,7 +233,16 @@ const ClientFirstFrom = () => {
         {activeTab === "kyc" && (
           <KycForm
             clientId={clientId}
-            familyMembers={familyDetail || []}
+            familyMembers={[
+              {
+                _id: "self",
+                name:
+                  clientData?.personalDetails?.groupName ||
+                  clientData?.groupName ||
+                  "Self",
+              },
+              ...(clientData?.familyMembers || []),
+            ]}
           />
         )}
       </div>

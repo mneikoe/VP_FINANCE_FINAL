@@ -44,6 +44,12 @@ const Navbarfristn = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const handleNavigateAndClose = (path) => {
+    closeAllDropdowns();   // close every dropdown
+    navigate(path);        // then navigate
+  };
+
+
   return (
     <div className="font-sans">
       {/* Blue Header - Original color */}
@@ -59,26 +65,27 @@ const Navbarfristn = () => {
       {/* Main Navigation */}
       <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-2">
+          <div className="flex flex-wrap justify-between items-center py-2 gap-2">
             {/* Mobile Menu Button */}
-            <button
+            {/* <button
               className="lg:hidden text-gray-700 focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </button>
+            </button> */}
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex space-x-0 items-center">
               {/* Dashboard */}
-              <Link
-                to="/"
+              <button
                 className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                onClick={closeAllDropdowns}
+                onClick={() => handleNavigateAndClose("/")}
               >
                 <FiGrid className="text-lg mb-1" />
-                <span className="text-xs font-medium">Dashboard</span>
-              </Link>
+                <div className="flex items-center">
+                  <span className="text-xs font-medium">Dashboard</span>
+                </div>
+              </button>
 
               {/* Masters Dropdown */}
               <div className="relative group">
@@ -94,7 +101,7 @@ const Navbarfristn = () => {
                 </button>
 
                 {openDropdown === "masters" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute top-full left-0 mt-0 p-4 w-screen lg:w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
                     <div className="grid grid-cols-3 gap-4">
                       {/* Task Master */}
                       <div>
@@ -219,7 +226,7 @@ const Navbarfristn = () => {
                   className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
                   onClick={() => toggleDropdown("customers")}
                 >
-                  <FiLayers className="text-lg mb-1" />
+                  <FiUser className="text-lg mb-1" />
                   <div className="flex items-center">
                     <span className="text-xs font-medium">Customers</span>
                     <FiChevronDown className="ml-1 text-xs" />
@@ -227,7 +234,7 @@ const Navbarfristn = () => {
                 </button>
 
                 {openDropdown === "customers" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute top-full left-0 mt-0 p-4 w-screen lg:w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
                     <div className="grid grid-cols-3 gap-4">
                       {/* Suspect */}
                       <div>
@@ -325,8 +332,8 @@ const Navbarfristn = () => {
                 </button>
 
                 {openDropdown === "employee" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[900px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
-                    <div className="grid grid-cols-4 gap-4">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 p-4 w-screen lg:w-[800px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                    <div className="grid grid-cols-3">
                       {/* Office Admin */}
                       <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
@@ -459,7 +466,7 @@ const Navbarfristn = () => {
               </div>
 
               {/* Departments Dropdown */}
-              <div className="relative group">
+              <div className="relative group ">
                 <button
                   className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[120px]"
                   onClick={() => toggleDropdown("departments")}
@@ -472,13 +479,15 @@ const Navbarfristn = () => {
                 </button>
 
                 {openDropdown === "departments" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[800px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
-                    <div className="grid grid-cols-5 gap-4">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 p-4 
+                    w-[950px] min-w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50 overflow-x-auto">
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
 
                       {/* Marketing Master */}
                       <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Marketing Master
+                          Department Master
                         </h6>
                         <div className="space-y-1">
                           {[
@@ -486,7 +495,10 @@ const Navbarfristn = () => {
                               name: "Add Company",
                               to: "/department-company",
                             },
-
+                            {
+                              name: "Add Financial Product",
+                              to: "/department-financial",
+                            },
                           ].map((item, idx) => (
                             <Link
                               key={idx}
@@ -600,14 +612,18 @@ const Navbarfristn = () => {
                               name: "Composite Data",
                               to: "/servicing-composite",
                             },
-                            { name: "Life Insurance", 
-                              to: "/servicing-life" },
+                            {
+                              name: "Life Insurance",
+                              to: "/servicing-life"
+                            },
                             {
                               name: "Health Insurance",
                               to: "/servicing-health",
                             },
-                            { name: "Mutual Fund", 
-                              to: "/servicing-mutual" },
+                            {
+                              name: "Mutual Fund",
+                              to: "/servicing-mutual"
+                            },
                             {
                               name: "Real Estate",
                               to: "/servicing-realestate",
@@ -975,13 +991,24 @@ const Navbarfristn = () => {
             </div>
 
             {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <FiLogOut className="mr-2" />
-              Logout
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Mobile Menu Button */}
+              <button
+                className="lg:hidden text-gray-700 focus:outline-none"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center px-3 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <FiLogOut className="mr-2" />
+                Logout
+              </button>
+            </div>
           </div>
 
           {/* Mobile Navigation */}

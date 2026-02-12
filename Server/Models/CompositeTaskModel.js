@@ -1,5 +1,5 @@
 // models/CompositeTaskModel.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const CompositeTaskSchema = new mongoose.Schema(
   {
@@ -126,4 +126,5 @@ const CompositeTask =
   mongoose.models.CompositeTask ||
   mongoose.model("CompositeTask", CompositeTaskSchema);
 
-export default CompositeTask;
+module.exports = CompositeTask;
+

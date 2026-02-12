@@ -33,55 +33,66 @@ const PersonalDetailsForm = ({
   onClientCreated,
   setFamilyDetail,
   changeTab,
+  formData,
+  setFormData,
 }) => {
   const dispatch = useDispatch();
 
   // ✅ UPDATED INITIAL STATE WITH NEW FIELDS (SAME AS PROSPECT)
-  const initialFormState = {
-    salutation: "",
-    groupName: "",
-    gender: "",
-    organisation: "",
-    designation: "",
-    mobileNo: "",
-    contactNo: "",
-    whatsappNo: "",
-    emailId: "",
-    paName: "",
-    paMobileNo: "",
-    annualIncome: "",
-    grade: "",
-    preferredAddressType: "resi",
-    resiAddr: "",
-    resiLandmark: "",
-    resiPincode: "",
-    officeAddr: "",
-    officeLandmark: "",
-    officePincode: "",
-    preferredMeetingAddr: "",
-    preferredMeetingArea: "",
-    subArea: "", // ✅ NEW FIELD
-    city: "",
-    bestTime: "",
-    time: "10:00 AM", // ✅ NEW TIME FIELD
-    adharNumber: "",
-    panCardNumber: "",
-    hobbies: "",
-    nativePlace: "",
-    socialLink: "",
-    habits: "",
-    leadSource: "",
-    leadName: "",
-    leadOccupation: "",
-    leadOccupationType: "",
-    callingPurpose: "",
-    name: "",
-    allocatedCRE: "",
-    allocatedRM: "", // ✅ NEW FIELD FOR RM
-    remark: "",
-  };
+  // const initialFormState = {
+  //   salutation: "",
+  //   groupName: "",
+  //   gender: "",
+  //   organisation: "",
+  //   designation: "",
+  //   mobileNo: "",
+  //   contactNo: "",
+  //   whatsappNo: "",
+  //   emailId: "",
+  //   paName: "",
+  //   paMobileNo: "",
+  //   annualIncome: "",
+  //   grade: "",
+  //   preferredAddressType: "resi",
+  //   resiAddr: "",
+  //   resiLandmark: "",
+  //   resiPincode: "",
+  //   officeAddr: "",
+  //   officeLandmark: "",
+  //   officePincode: "",
+  //   preferredMeetingAddr: "",
+  //   preferredMeetingArea: "",
+  //   subArea: "", // ✅ NEW FIELD
+  //   city: "",
+  //   bestTime: "",
+  //   time: "10:00 AM", // ✅ NEW TIME FIELD
+  //   adharNumber: "",
+  //   panCardNumber: "",
+  //   hobbies: "",
+  //   nativePlace: "",
+  //   socialLink: "",
+  //   habits: "",
+  //   leadSource: "",
+  //   leadName: "",
+  //   leadOccupation: "",
+  //   leadOccupationType: "",
+  //   callingPurpose: "",
+  //   name: "",
+  //   allocatedCRE: "",
+  //   allocatedRM: "", // ✅ NEW FIELD FOR RM
+  //   remark: "",
+  // };
 
-  const [formData, setFormData] = useState(initialFormState);
+  // const [formData, setFormData] = useState(initialFormState);
+
+  // const localInitialState = initialFormState;
+
+  // useEffect(() => {
+  //   if (!formData) {
+  //     setFormData(localInitialState);
+  //   }
+  // }, []);
+
   const [occupations, setOccupations] = useState([]);
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
@@ -229,17 +240,24 @@ const PersonalDetailsForm = ({
   useEffect(() => {
     if (isEdit && clientData) {
       setFormData(clientData.personalDetails);
-    } else {
-      setFormData(initialFormState);
     }
   }, [isEdit, clientData]);
 
+  // useEffect(() => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     grade: gradeMap[prev.annualIncome] || "",
+  //   }));
+  // }, [formData.annualIncome]);
   useEffect(() => {
+    if (!formData) return;
+
     setFormData((prev) => ({
       ...prev,
-      grade: gradeMap[prev.annualIncome] || "",
+      grade: gradeMap[prev?.annualIncome] || "",
     }));
-  }, [formData.annualIncome]);
+  }, [formData?.annualIncome]);
+
 
   // ✅ FILTER SUBAREAS BASED ON SELECTED AREA (SAME AS PROSPECT)
   useEffect(() => {
@@ -410,7 +428,7 @@ const PersonalDetailsForm = ({
         })
       );
       if (result) {
-        setFormData(initialFormState);
+        // setFormData(initialFormState);
         toast.info("Client details updated successfully");
         if (onClientCreated) onClientCreated(clientData._id);
       }

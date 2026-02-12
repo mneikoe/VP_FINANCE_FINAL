@@ -5,11 +5,18 @@ import {
   createKyc,
   fetchKycsByClient,
   deleteKyc,
-} from "../../../redux/feature/ClientRedux/KycThunx";
+} from "../../../redux/feature/ClientRedux/ClientThunx";
+import { useNavigate } from "react-router-dom";
+
+
+
 
 const KycForm = ({ clientId, familyMembers = [] }) => {
   const dispatch = useDispatch();
-  const { kycData, loading } = useSelector((state) => state.Kyc);
+  const { kycs, loading } = useSelector((state) => state.client);
+
+
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     memberName: "",
@@ -71,11 +78,14 @@ const KycForm = ({ clientId, familyMembers = [] }) => {
             required
           >
             <option value="">Select Member</option>
-            {familyMembers.map((m, i) => (
-              <option key={i} value={m.name}>
-                {m.name}
-              </option>
-            ))}
+
+            {familyMembers
+              ?.filter((m) => m?.name?.trim()) // remove empty names
+              .map((m) => (
+                <option key={m._id} value={m.name.trim()}>
+                  {m.name.trim() || m.relation}
+                </option>
+              ))}
           </Form.Select>
         </Form.Group>
 
@@ -119,9 +129,23 @@ const KycForm = ({ clientId, familyMembers = [] }) => {
           />
         </Form.Group>
 
-        <Button type="submit" disabled={loading}>
-          Save KYC
-        </Button>
+        <div className="d-flex justify-content-between align-items-center">
+          <Button type="submit" disabled={loading}>
+            Save KYC
+          </Button>
+
+          <Button
+            type="button"
+            variant="success"
+            onClick={() =>
+              navigate("/client", {
+                state: { tab: "display" },
+              })
+            }
+          >
+            Save Client Details
+          </Button>
+        </div>
       </Form>
 
       <hr />
@@ -136,7 +160,7 @@ const KycForm = ({ clientId, familyMembers = [] }) => {
           </tr>
         </thead>
         <tbody>
-          {kycData?.map((k) => (
+          {kycs?.map((k) => (
             <tr key={k._id}>
               <td>{k.memberName}</td>
               <td>{k.documentName}</td>

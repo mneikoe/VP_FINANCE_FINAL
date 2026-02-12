@@ -767,193 +767,7 @@ exports.addFamilyMember = async (req, res) => {
   }
 };
 
-//   try {
-//     const { clientId } = req.params;
 
-//     if (!clientId) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Client ID is required" });
-//     }
-
-//     // Find the client
-//     const client = await clientModel.findById(clientId);
-//     if (!client) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Client not found" });
-//     }
-
-//     // console.log("Request body:", req.body);
-//     // console.log("Request files:", req.files);
-
-//     // Parse JSON strings if they exist, otherwise use empty arrays
-//     let insuranceData = [];
-//     let investmentsData = [];
-//     let loansData = [];
-
-//     console.log(req.body.insurance);
-//     console.log(req.body.investments);
-//     console.log(req.body.loans);
-
-//     const insurance = req?.body?.insurance?.map((item) => {
-//       if (!item.submissionDate || item.submissionDate.trim() === "") {
-//         return {
-//           ...item,
-//           submissionDate: new Date().toISOString().split("T")[0], // format YYYY-MM-DD
-//         };
-//       }
-//       return item;
-//     });
-
-//     const investments = req?.body?.investments?.map((item) => {
-//       if (!item.submissionDate || item.submissionDate.trim() === "") {
-//         return {
-//           ...item,
-//           submissionDate: new Date().toISOString().split("T")[0], // format YYYY-MM-DD
-//         };
-//       }
-//       return item;
-//     });
-
-//     const loans = req?.body?.loans?.map((item) => {
-//       if (!item.submissionDate || item.submissionDate.trim() === "") {
-//         return {
-//           ...item,
-//           submissionDate: new Date().toISOString().split("T")[0], // format YYYY-MM-DD
-//         };
-//       }
-//       return item;
-//     });
-
-//     try {
-//       // Handle both JSON strings and direct arrays
-//       if (req.body.insurance) {
-//         // typeof req.body.insurance === "string"
-//         //   ? JSON.parse(req.body.insurance)
-//         //   : req.body.insurance;
-//         insuranceData =
-//           typeof req.body.insurance === "string"
-//             ? JSON.parse(insurance)
-//             : insurance;
-//       }
-
-//       if (req.body.investments) {
-//         investmentsData =
-//           typeof req.body.investments === "string"
-//             ? JSON.parse(investments)
-//             : investments;
-//       }
-
-//       if (req.body.loans) {
-//         loansData =
-//           typeof req.body.loans === "string"
-//             ? JSON.parse(loans)
-//             : loans;
-//       }
-//     } catch (parseError) {
-//       console.error("JSON parsing error:", parseError);
-//       return res.status(400).json({
-//         success: false,
-//         message: "Invalid JSON data format",
-//         error: parseError.message,
-//       });
-//     }
-
-//     // Ensure arrays are actually arrays
-//     insuranceData = Array.isArray(insuranceData) ? insuranceData : [];
-//     investmentsData = Array.isArray(investmentsData) ? investmentsData : [];
-//     loansData = Array.isArray(loansData) ? loansData : [];
-
-//     console.log("Parsed data:", { insuranceData, investmentsData, loansData });
-
-//     // Attach document filenames to each item if files exist
-//     // const attachFiles = (dataArray, uploadedFilesArray = []) => {
-//     //   if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
-//     //     dataArray.forEach((item, index) => {
-//     //       if (uploadedFilesArray[index]) {
-//     //         item.document = uploadedFilesArray[index].filename;
-//     //       }
-//     //     });
-//     //   }
-//     // };
-
-//     const attachFiles = (dataArray, uploadedFilesArray = []) => {
-//       if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
-//         dataArray.forEach((item, index) => {
-//           if (uploadedFilesArray[index]) {
-//             item.document = uploadedFilesArray[index].filename;
-//           } else {
-//             item.document = null;
-//           }
-//         });
-//       }
-//     };
-
-//     // Safely access file arrays
-//     const insuranceFiles = req.files?.insuranceDocuments || [];
-//     const investmentFiles = req.files?.investmentDocuments || [];
-//     const loanFiles = req.files?.loanDocuments || [];
-
-//     attachFiles(insuranceData, insuranceFiles);
-//     attachFiles(investmentsData, investmentFiles);
-//     attachFiles(loansData, loanFiles);
-
-//     // Initialize financialInfo if not present
-//     if (!client.financialInfo) {
-//       client.financialInfo = {
-//         insurance: [],
-//         investments: [],
-//         loans: [],
-//       };
-//     }
-
-//     // Append new data (only if arrays have content)
-//     if (insuranceData.length > 0) {
-//       client.financialInfo.insurance.push(...insuranceData);
-//     }
-//     if (investmentsData.length > 0) {
-//       client.financialInfo.investments.push(...investmentsData);
-//     }
-//     if (loansData.length > 0) {
-//       client.financialInfo.loans.push(...loansData);
-//     }
-
-//     // Check if any data was actually added
-//     const totalItemsAdded =
-//       insuranceData.length + investmentsData.length + loansData.length;
-//     if (totalItemsAdded === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "No financial data provided",
-//       });
-//     }
-
-//     // Save client
-//     await client.save();
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Financial info with documents added successfully",
-//       financialInfo: client.financialInfo,
-//       clientId: client._id,
-//       added: {
-//         insurance: insuranceData.length,
-//         investments: investmentsData.length,
-//         loans: loansData.length,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Error in addFinancialInfo:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//       error: error.message,
-//     });
-//   }
-// };
-
-// add future priorities and needs
 // ✅ Add Future Priorities & Needs
 exports.addFuturePrioritiesAndNeeds = async (req, res) => {
   try {
@@ -1708,19 +1522,22 @@ exports.createKyc = async (req, res) => {
 exports.getKycsByClient = async (req, res) => {
   try {
     const { clientId } = req.params;
-    const kycs = await Kyc.find({ user: clientId });
-    if (kycs.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No Kycs found for this Cleint.",
-      });
-    }
 
-    return res.status(200).json({ success: true, kycs });
+    const kycs = await Kyc.find({ user: clientId });
+
+    return res.status(200).json({
+      success: true,
+      kycs: kycs || [],
+    });
+
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
+
 
 // DELETE a KYC document
 exports.deleteKyc = async (req, res) => {

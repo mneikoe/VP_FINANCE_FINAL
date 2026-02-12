@@ -83,8 +83,8 @@ import EmployeeDetails from "../Components/Employee/OfficeAdmin/EmployeeDetails"
 import OEDashboard from "../Components/OEDashboard/OEDashboard";
 
 // Department Components:
-
 import FormCompanyMaster from "../Components/Departments/Masters/FormCompanyMaster";
+import FinancialProductMaster from "../Components/Departments/Masters/FinancialProductMaster";
 // marketing
 import MarketingLife from "../Components/Departments/MarketingDepartment/MarketingLife";
 import MarketingHealth from "../Components/Departments/MarketingDepartment/MarketingHealth";
@@ -96,6 +96,8 @@ import ServicingLife from "../Components/Departments/ServicingDepartment/Servici
 import ServicingHealth from "../Components/Departments/ServicingDepartment/ServicingHealth"
 import ServicingReal from "../Components/Departments/ServicingDepartment/ServicingReal";
 import ServicingMutual from "../Components/Departments/ServicingDepartment/ServicingMutual";
+//account department
+import IncomeHead from "../Components/Departments/AccountDepartment/IncomeHead/IncomeHead"
 
 // Import new HR Dashboard modules
 import HRDashboardHome from "../Components/HRDashboard/HRDashboardHome";
@@ -284,6 +286,9 @@ const AppRoutes = () => {
         <Route path="/CRE" element={<CREDashboard />} />
         {/* departments */}
         <Route path="/department-company" element={<FormCompanyMaster />} />
+        <Route path="/department-financial" element={<FinancialProductMaster />} />
+        {/* accounts department */}
+        <Route path="/income-head" element={<IncomeHead />} />
         {/* marketing */}
         <Route path="/marketing-life" element={<MarketingLife />} />
         <Route path="/marketing-health" element={<MarketingHealth />} />

@@ -26,7 +26,7 @@ const createMarketingForm = async (req, res) => {
       formName,
       formType,
       kindOfForm,
-      file: req.file.path,
+      file: req.file.filename,
     });
 
     return res.status(201).json({
@@ -94,7 +94,7 @@ const updateMarketingForm = async (req, res) => {
     const updatedData = { ...req.body };
 
     if (req.file) {
-      updatedData.file = req.file.path;
+      updatedData.file = req.file.filename;
     }
 
     const form = await MarketingForm.findByIdAndUpdate(id, updatedData, {

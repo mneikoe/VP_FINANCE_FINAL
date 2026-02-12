@@ -1,4 +1,5 @@
-const Kycdocument = require("../Models/kycmodel/documentname");
+// const Kycdocument = require("../Models/kycmodel/documentname");
+const kyc = require("../Models/kyc")
 const mongoose = require("mongoose");
 // ✅ Create KYC Document
 exports.createKycDocument = async (req, res) => {
@@ -13,6 +14,19 @@ exports.createKycDocument = async (req, res) => {
     res.status(500).json({ message: "Error creating KYC Document", error: error.message });
   }
 };
+
+exports.getKycByClientId = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+
+    const kycs = await KycModel.find({ clientId });
+
+    res.status(200).json(kycs);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching KYC", error });
+  }
+};
+
 
 // ✅ Get All KYC Documents
 exports.getAllKycDocuments = async (req, res) => {

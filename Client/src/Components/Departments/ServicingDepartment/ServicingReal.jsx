@@ -13,7 +13,7 @@ import {
 } from "../../../redux/feature/ServicingForms/servicingFormsThunk";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-const KIND_OF_FORM = "real estate"; // 🔒 FIXED
+const KIND_OF_FORM = "real estate"; 
 
 const ServicingReal = () => {
   const dispatch = useDispatch();
@@ -240,7 +240,7 @@ const ServicingReal = () => {
                 <td className="border px-2 py-1 text-center">
                   {f.file?.url && (
                     <a
-                      href={`${BASE_URL}${f.file.url}`}
+                      href={`${BASE_URL}/forms/${f.file}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600"

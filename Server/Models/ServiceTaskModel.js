@@ -1,5 +1,6 @@
 // models/ServiceTaskModel.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+
 
 const ServiceTaskSchema = new mongoose.Schema(
   {
@@ -113,4 +114,4 @@ const ServiceTask =
   mongoose.models.ServiceTask ||
   mongoose.model("ServiceTask", ServiceTaskSchema);
 
-export default ServiceTask;
+module.exports = ServiceTask;

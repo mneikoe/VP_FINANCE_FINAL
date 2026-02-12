@@ -231,7 +231,7 @@ const MarketingHealth = () => {
                 <td className="border px-2 py-1">{f.formName}</td>
                 <td className="border px-2 py-1 text-center">
                   <a
-                    href={`${BASE_URL}/uploads/${f.file}`}
+                    href={`${BASE_URL}/forms/${f.file}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600"

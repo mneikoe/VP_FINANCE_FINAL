@@ -1,5 +1,6 @@
 // models/MarketingTaskModel.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+
 
 const MarketingTaskSchema = new mongoose.Schema(
   {
@@ -127,4 +128,4 @@ const MarketingTask =
   mongoose.models.MarketingTask ||
   mongoose.model("MarketingTask", MarketingTaskSchema);
 
-export default MarketingTask;
+module.exports = MarketingTask;

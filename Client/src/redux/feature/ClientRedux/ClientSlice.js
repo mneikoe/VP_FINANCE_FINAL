@@ -14,25 +14,28 @@ import {
   updateCleintStatus,
   updateClientPersonalDetails,
   deleteClientById,
-  getAllFamilyMembers
+  getAllFamilyMembers,
+  createKyc,
+  fetchKycsByClient,
+  updateKyc,
+  deleteKyc
 } from "./ClientThunx";
 
 
 const initialState = {
   clients: [],
-  currentClient: null,
-  loading: false,
-  success: false,
-  error: null,
+  singleClient: null,
   clientData: null,
-  familyMembers: null,
+  familyMembers: [],
   financialInfo: null,
   futurePriorities: null,
   proposedPlan: null,
-  clients: [],
-  singleClient: null,
-  familyMembers : [],
+  loading: false,
+  success: false,
+  error: null,
+  kycs: [],
 };
+
 
 
 
@@ -207,27 +210,27 @@ const clientSlice = createSlice({
         const deletedId = action.payload.id || action.payload._id;
         state.clients = state.clients.filter(client => client._id !== deletedId);
       })
-    
+
       .addCase(deleteClientById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
 
       })
-      .addCase(getAllFamilyMembers.pending, (state)=>{
+      .addCase(getAllFamilyMembers.pending, (state) => {
         state.loading = true;
         state.error = null;
         state.success = false;
       })
-      .addCase(getAllFamilyMembers.fulfilled, (state, action)=>{
+      .addCase(getAllFamilyMembers.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
         state.familyMembers = action.payload
       })
-      .addCase(getAllFamilyMembers.rejected, (state, action)=>{
+      .addCase(getAllFamilyMembers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-            // updateFuturePrioritiesAndNeeds
+      // updateFuturePrioritiesAndNeeds
       .addCase(updateFuturePrioritiesAndNeeds.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -242,7 +245,7 @@ const clientSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-          .addCase(updateProposedFinancialPlan.pending, (state) => {
+      .addCase(updateProposedFinancialPlan.pending, (state) => {
         state.loading = true;
         state.error = null;
         state.success = false;
@@ -256,6 +259,72 @@ const clientSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+
+      // CREATE KYC
+      .addCase(createKyc.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createKyc.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload?.uploaded) {
+          state.kycs.push(action.payload.uploaded);
+        }
+      })
+      .addCase(createKyc.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // FETCH KYCS
+      .addCase(fetchKycsByClient.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchKycsByClient.fulfilled, (state, action) => {
+        state.loading = false;
+        state.kycs = action.payload || [];
+      })
+      .addCase(fetchKycsByClient.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // UPDATE KYC
+      .addCase(updateKyc.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateKyc.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedKyc = action.payload?.updated;
+        if (!updatedKyc) return;
+
+        const index = state.kycs.findIndex(
+          (k) => k._id === updatedKyc._id
+        );
+
+        if (index !== -1) {
+          state.kycs[index] = updatedKyc;
+        }
+      })
+      .addCase(updateKyc.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // DELETE KYC
+      .addCase(deleteKyc.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(deleteKyc.fulfilled, (state, action) => {
+        state.loading = false;
+        state.kycs = state.kycs.filter(
+          (k) => k._id !== action.payload
+        );
+      })
+      .addCase(deleteKyc.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
 
   },
 });

@@ -176,7 +176,7 @@ const ServicingLife = () => {
               <p className="text-sm mb-2">
                 Current file:
                 <a
-                  href={`${BASE_URL}${existingFile.url}`}
+                  href={`${BASE_URL}/forms/${existingFile}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 ml-1"
@@ -238,13 +238,11 @@ const ServicingLife = () => {
                 <td className="border px-2 py-1">{f.formType}</td>
                 <td className="border px-2 py-1">{f.formName}</td>
                 <td className="border px-2 py-1 text-center">
-                  {f.file?.url && (
-                    <a
-                      href={`${BASE_URL}${f.file.url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600"
-                    >
+                  {f.file && (
+                    <a 
+                    href={`${BASE_URL}/forms/${f.file}`}
+
+                    target="_blank">
                       View
                     </a>
                   )}

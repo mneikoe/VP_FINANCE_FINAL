@@ -240,9 +240,9 @@ const ServicingMutual = () => {
                 <td className="border px-2 py-1 text-center">
                   {f.file?.url && (
                     <a
-                      href={`${BASE_URL}${f.file.url}`}
+                      href={`${BASE_URL}/forms/${f.file}`}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      
                       className="text-blue-600"
                     >
                       View

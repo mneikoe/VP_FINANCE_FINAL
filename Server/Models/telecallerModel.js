@@ -1,6 +1,3 @@
-
-
-
 const mongoose = require("mongoose");
 
 const telecallerSchema = new mongoose.Schema({

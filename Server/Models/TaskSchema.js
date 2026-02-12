@@ -1,5 +1,6 @@
 // TaskSchema.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+
 
 const TaskSchema = new mongoose.Schema(
   {
@@ -113,4 +114,4 @@ const TaskSchema = new mongoose.Schema(
   }
 );
 
-export default TaskSchema;
+module.exports = TaskSchema;

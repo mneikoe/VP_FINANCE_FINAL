@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-// import {
-//   fetchProducts,
-//   addProduct,
-//   updateProduct,
-//   deleteProduct,
-// } from "../../../redux/feature/"; // apna path lagao
 import {
   //  fetchFinancialProduct,
   deleteFinancialProduct,
@@ -17,14 +11,13 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 
 const FinancialProduct = () => {
   const dispatch = useDispatch();
-  // const products = useSelector((state) => state.financialProduct
-  // ); // redux reducer se data
+ 
 
   const products = useSelector(
     (state) => state.financialProduct.FinancialProducts
   );
 
-  console.log(products, "ldkjfsf");
+  console.log(products, "Products");
 
   const [name, setName] = useState("");
   const [editId, setEditId] = useState(null);
