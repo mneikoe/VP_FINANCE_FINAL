@@ -4,55 +4,65 @@ import {
   Button,
   Modal,
   Form,
-  Badge,
+  Tag,
   Card,
   Alert,
-  Pagination,
+  Space,
   Dropdown,
-  InputGroup,
-  FormControl,
+  Input,
   Row,
   Col,
-  ListGroup,
-  Spinner,
-} from "react-bootstrap";
-import axios from "axios";
+  List,
+  Spin,
+  Badge,
+  Typography,
+  Divider,
+  Tooltip,
+  Empty,
+  Select,
+  DatePicker,
+  Radio,
+  Pagination,
+} from "antd";
 import {
-  FaUserCheck,
-  FaUsers,
-  FaClock,
-  FaPaperPlane,
-  FaFilter,
-  FaSearch,
-  FaExclamationCircle,
-  FaFlag,
-  FaStar,
-  FaCalendarDay,
-  FaCheck,
-  FaUserFriends,
-  FaList,
-  FaCheckCircle,
-  FaTimes,
-  FaEye,
-  FaHistory,
-  FaBullhorn,
-  FaBuilding,
-  FaSync,
-  FaUserPlus,
-  FaListAlt,
-  FaSort,
-  FaSortUp,
-  FaSortDown,
-} from "react-icons/fa";
+  UserOutlined,
+  TeamOutlined,
+  ClockCircleOutlined,
+  SendOutlined,
+  FilterOutlined,
+  SearchOutlined,
+  ExclamationCircleOutlined,
+  FlagOutlined,
+  CalendarOutlined,
+  CheckOutlined,
+  UsergroupAddOutlined,
+  CheckCircleOutlined,
+  UserAddOutlined,
+  CloseOutlined,
+  HistoryOutlined,
+  BuildOutlined,
+  SyncOutlined,
+  ClearOutlined,
+  DownOutlined,
+  NotificationOutlined,
+  UserSwitchOutlined,
+  SortAscendingOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import axios from "axios";
 
-// ✅ Import ClientProspectSelectionModal
+// Import ClientProspectSelectionModal
 import ClientProspectSelectionModal from "../ClientProspectSelectionModal";
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
 
 const MarketingAssignments = () => {
   const [marketingTasks, setMarketingTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [employeesByRole, setEmployeesByRole] = useState({});
@@ -60,7 +70,7 @@ const MarketingAssignments = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // ✅ NEW: Client/Prospect Modal State
+  // Client/Prospect Modal State
   const [showClientProspectModal, setShowClientProspectModal] = useState(false);
 
   // Assign Form State - SINGLE EMPLOYEE ONLY with Client/Prospect
@@ -70,7 +80,6 @@ const MarketingAssignments = () => {
     dueDate: "",
     selectedEmployee: null,
     selectedRole: "",
-    // ✅ NEW: Client/Prospect fields
     selectedClients: [],
     selectedProspects: [],
     clientRemarks: "",
@@ -79,10 +88,8 @@ const MarketingAssignments = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
 
-  // Fetch marketing tasks - सिर्फ TEMPLATE status वाले
+  // Fetch marketing tasks
   const fetchMarketingTasks = async () => {
     setLoading(true);
     setRefreshing(true);
@@ -94,7 +101,7 @@ const MarketingAssignments = () => {
       setMarketingTasks(tasks);
     } catch (error) {
       console.error("Error fetching marketing tasks:", error);
-      setErrorMessage("Failed to load marketing tasks. Please try again.");
+      message.error("Failed to load marketing tasks. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,7 +118,6 @@ const MarketingAssignments = () => {
 
       let allEmployees = [];
 
-      // Response structure check करें
       if (allEmployeesResponse.data) {
         if (
           allEmployeesResponse.data.success &&
@@ -128,7 +134,6 @@ const MarketingAssignments = () => {
         }
       }
 
-      // Filter employees by role (case-insensitive)
       const normalizedRole = role.toLowerCase();
       const roleEmployees = allEmployees.filter((emp) => {
         const empRole = (
@@ -140,7 +145,6 @@ const MarketingAssignments = () => {
         const isRoleMatch =
           empRole.includes(normalizedRole) || normalizedRole.includes(empRole);
 
-        // Check if employee is active
         const isActive =
           !emp.dateOfTermination &&
           !emp.terminationDate &&
@@ -162,7 +166,7 @@ const MarketingAssignments = () => {
       );
     } catch (error) {
       console.error("Error fetching employees:", error);
-      setErrorMessage("Failed to load employees. Please try again.");
+      message.error("Failed to load employees. Please try again.");
     } finally {
       setLoadingEmployees(false);
     }
@@ -176,33 +180,28 @@ const MarketingAssignments = () => {
   const handleAssignClick = (task) => {
     setSelectedTask(task);
 
-    // Since marketing tasks have single role, use the first role
     const role = task.depart?.[0] || "";
     if (role) {
       fetchEmployeesForRole(role);
     }
 
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + (task.estimatedDays || 1));
+    const dueDate = dayjs().add(task.estimatedDays || 1, "day");
 
-    // Pre-select if there's an existing assignment
     let selectedEmployee = null;
     if (task.assignments && task.assignments.length > 0) {
       selectedEmployee =
         task.assignments[0].employeeId?._id || task.assignments[0].employeeId;
     }
 
-    // Pre-select client/prospect if already assigned
     const selectedClients = task.assignedClients || [];
     const selectedProspects = task.assignedProspects || [];
 
     setAssignForm({
       priority: task.templatePriority || "medium",
       remarks: "",
-      dueDate: dueDate.toISOString().split("T")[0],
+      dueDate: dueDate,
       selectedEmployee: selectedEmployee,
       selectedRole: role,
-      // ✅ NEW: Client/Prospect pre-selection
       selectedClients,
       selectedProspects,
       clientRemarks: "",
@@ -212,16 +211,13 @@ const MarketingAssignments = () => {
     setShowAssignModal(true);
   };
 
-  // ✅ NEW: Handle Client/Prospect Selection Button Click
+  // Handle Client/Prospect Selection
   const handleClientProspectSelect = () => {
     setShowClientProspectModal(true);
   };
 
-  // ✅ NEW: Handle Client/Prospect Selection Confirm
+  // Handle Client/Prospect Selection Confirm
   const handleClientProspectConfirm = (selectionData) => {
-    console.log("🎯 Client/Prospect Selection Confirmed:", selectionData);
-
-    // Update assignForm with new selections
     setAssignForm((prev) => ({
       ...prev,
       selectedClients: selectionData.clients,
@@ -230,12 +226,14 @@ const MarketingAssignments = () => {
       prospectRemarks: selectionData.prospectRemarks,
     }));
 
-    // Show success message
-    const successMsg = `Selected ${selectionData.clients.length} client(s) and ${selectionData.prospects.length} prospect(s)`;
-    setSuccessMessage(successMsg);
-    setTimeout(() => setSuccessMessage(""), 3000);
+    const totalSelected =
+      selectionData.clients.length + selectionData.prospects.length;
+    if (totalSelected > 0) {
+      message.success(
+        `Selected ${selectionData.clients.length} client(s) and ${selectionData.prospects.length} prospect(s)`
+      );
+    }
 
-    // Close the modal
     setShowClientProspectModal(false);
   };
 
@@ -243,55 +241,26 @@ const MarketingAssignments = () => {
   const handleEmployeeSelect = (employeeId) => {
     setAssignForm((prev) => ({
       ...prev,
-      selectedEmployee:
-        prev.selectedEmployee === employeeId ? null : employeeId,
+      selectedEmployee: prev.selectedEmployee === employeeId ? null : employeeId,
     }));
   };
 
-  // Handle priority change
-  const handlePriorityChange = (e) => {
-    setAssignForm({ ...assignForm, priority: e.target.value });
-  };
-
-  // Submit assignment - SINGLE EMPLOYEE ONLY with Client/Prospect
+  // Submit assignment
   const handleAssignSubmit = async () => {
     if (!selectedTask || !assignForm.selectedEmployee) {
-      setErrorMessage("Please select an employee to assign");
-      setTimeout(() => setErrorMessage(""), 3000);
+      message.warning("Please select an employee to assign");
       return;
     }
 
     try {
-      const confirmMessage = `Assign "${
-        selectedTask.name
-      }" to selected employee?
-      
-      ${
-        assignForm.selectedClients?.length > 0
-          ? `• For ${assignForm.selectedClients.length} client(s)\n`
-          : ""
-      }
-      ${
-        assignForm.selectedProspects?.length > 0
-          ? `• For ${assignForm.selectedProspects.length} prospect(s)`
-          : ""
-      }
-      
-      Do you want to proceed?`;
-
-      if (!window.confirm(confirmMessage)) {
-        return;
-      }
-
       const response = await axios.post("/api/Task/assign-marketing", {
         taskId: selectedTask._id,
         employeeId: assignForm.selectedEmployee,
         employeeRole: assignForm.selectedRole,
         priority: assignForm.priority,
         remarks: assignForm.remarks,
-        dueDate: assignForm.dueDate,
+        dueDate: assignForm.dueDate.format("YYYY-MM-DD"),
         assignedBy: JSON.parse(localStorage.getItem("user")).id,
-        // ✅ NEW: Send client/prospect data
         clients: assignForm.selectedClients,
         prospects: assignForm.selectedProspects,
         clientAssignmentRemarks: assignForm.clientRemarks,
@@ -299,40 +268,70 @@ const MarketingAssignments = () => {
       });
 
       if (response.data.success) {
-        const successMsg = `✅ Marketing task assigned successfully! ${
-          assignForm.selectedClients?.length > 0
-            ? `for ${assignForm.selectedClients.length} client(s)`
-            : ""
-        } ${
-          assignForm.selectedProspects?.length > 0
-            ? `and ${assignForm.selectedProspects.length} prospect(s)`
-            : ""
-        }`;
-        setSuccessMessage(successMsg);
-        setTimeout(() => setSuccessMessage(""), 10000);
+        const clientCount = assignForm.selectedClients?.length || 0;
+        const prospectCount = assignForm.selectedProspects?.length || 0;
+
+        let successMsg = "Marketing task assigned successfully!";
+        if (clientCount > 0) {
+          successMsg += ` for ${clientCount} client(s)`;
+        }
+        if (prospectCount > 0) {
+          successMsg += ` and ${prospectCount} prospect(s)`;
+        }
+
+        message.success(successMsg);
         setShowAssignModal(false);
         fetchMarketingTasks();
       } else {
-        setErrorMessage("Failed to assign: " + response.data.message);
-        setTimeout(() => setErrorMessage(""), 10000);
+        message.error("Failed to assign: " + response.data.message);
       }
     } catch (error) {
       console.error("Error assigning marketing task:", error);
-      setErrorMessage(
+      message.error(
         "Failed to assign task: " +
           (error.response?.data?.message || error.message)
       );
-      setTimeout(() => setErrorMessage(""), 10000);
     }
   };
 
-  // Sort tasks
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
+  // Get priority config
+  const getPriorityConfig = (priority) => {
+    const configs = {
+      urgent: {
+        color: "error",
+        icon: <ExclamationCircleOutlined />,
+        label: "URGENT",
+      },
+      high: { color: "warning", icon: <FlagOutlined />, label: "HIGH" },
+      medium: { color: "processing", icon: null, label: "MEDIUM" },
+      low: { color: "default", icon: null, label: "LOW" },
+    };
+    return configs[priority] || configs.medium;
+  };
+
+  // Get total selected clients and prospects
+  const getTotalSelectedClientProspects = () => {
+    return (
+      (assignForm.selectedClients?.length || 0) +
+      (assignForm.selectedProspects?.length || 0)
+    );
+  };
+
+  // Get selected employee details
+  const getSelectedEmployeeDetails = () => {
+    if (!assignForm.selectedEmployee || !assignForm.selectedRole) return null;
+
+    const roleEmployees = employeesByRole[assignForm.selectedRole] || [];
+    return roleEmployees.find((emp) => emp._id === assignForm.selectedEmployee);
+  };
+
+  // Get assigned employee name
+  const getAssignedEmployeeName = (task) => {
+    if (task.assignments && task.assignments.length > 0) {
+      const assignment = task.assignments[0];
+      return assignment.employeeId?.name || "Employee";
     }
-    setSortConfig({ key, direction });
+    return null;
   };
 
   // Filter and sort tasks
@@ -346,6 +345,9 @@ const MarketingAssignments = () => {
       const matchesStatus =
         filterStatus === "all" ||
         (filterStatus === "urgent" && task.templatePriority === "urgent") ||
+        (filterStatus === "high" && task.templatePriority === "high") ||
+        (filterStatus === "medium" && task.templatePriority === "medium") ||
+        (filterStatus === "low" && task.templatePriority === "low") ||
         (filterStatus === "assigned" && task.assignments?.length > 0);
 
       return matchesSearch && matchesStatus;
@@ -387,516 +389,383 @@ const MarketingAssignments = () => {
     });
 
   // Pagination
-  const indexOfLastEntry = currentPage * entriesPerPage;
-  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentTasks = filteredTasks.slice(indexOfFirstEntry, indexOfLastEntry);
-  const totalPages = Math.ceil(filteredTasks.length / entriesPerPage);
+  const paginatedTasks = filteredTasks.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
-  // Helper: Get priority badge
-  const getPriorityBadge = (priority) => {
-    const styles = {
-      urgent: { bg: "danger", text: "white", icon: <FaExclamationCircle /> },
-      high: { bg: "warning", text: "dark", icon: <FaFlag /> },
-      medium: { bg: "primary", text: "white", icon: null },
-      low: { bg: "secondary", text: "white", icon: null },
-    };
-
-    const style = styles[priority] || styles.medium;
-
-    return {
-      ...style,
-      label: priority?.toUpperCase() || "MEDIUM",
-    };
-  };
-
-  // Get assignment count for a task
-  const getAssignmentCount = (task) => {
-    return task.assignments?.length || 0;
-  };
-
-  // Get assigned employee name
-  const getAssignedEmployeeName = (task) => {
-    if (task.assignments && task.assignments.length > 0) {
-      const assignment = task.assignments[0];
-      return assignment.employeeId?.name || "Employee";
+  // Handle sort
+  const handleTableChange = (pagination, filters, sorter) => {
+    if (sorter.field) {
+      setSortConfig({
+        key: sorter.field,
+        direction: sorter.order === "ascend" ? "asc" : "desc",
+      });
+    } else {
+      setSortConfig({ key: null, direction: "asc" });
     }
-    return null;
   };
 
-  // Check if employee is selected
-  const isEmployeeSelected = (employeeId) => {
-    return assignForm.selectedEmployee === employeeId;
-  };
+  // Table columns
+  const columns = [
+    {
+      title: "#",
+      width: 60,
+      align: "center",
+      render: (_, __, index) => (
+        <Text type="secondary">
+          {(currentPage - 1) * pageSize + index + 1}
+        </Text>
+      ),
+    },
+    {
+      title: "Task Details",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+      render: (text, record) => {
+        const priorityConfig = getPriorityConfig(record.templatePriority || "medium");
+        const assignmentCount = record.assignments?.length || 0;
+        const assignedEmployee = getAssignedEmployeeName(record);
 
-  // Clear all filters
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setFilterStatus("all");
-    setSortConfig({ key: null, direction: "asc" });
-    setCurrentPage(1);
-  };
+        return (
+          <Space direction="vertical" size={2}>
+            <Space>
+              <Text strong>{text}</Text>
+              <Tag color="cyan" icon={<NotificationOutlined />}>
+                Marketing
+              </Tag>
+              {record.templatePriority === "urgent" && (
+                <Tag color="error" icon={<ExclamationCircleOutlined />}>
+                  URGENT
+                </Tag>
+              )}
+            </Space>
+            <Space size={8} wrap>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <BuildOutlined /> {record.sub}
+              </Text>
+              {assignmentCount > 0 && (
+                <Tag color="blue" icon={<TeamOutlined />}>
+                  {assignmentCount} assigned
+                </Tag>
+              )}
+              {record.assignedClients?.length > 0 && (
+                <Tag color="green" icon={<UserOutlined />}>
+                  {record.assignedClients.length} client(s)
+                </Tag>
+              )}
+              {record.assignedProspects?.length > 0 && (
+                <Tag color="cyan" icon={<UsergroupAddOutlined />}>
+                  {record.assignedProspects.length} prospect(s)
+                </Tag>
+              )}
+            </Space>
+            {assignedEmployee && (
+              <Text type="success" style={{ fontSize: 12 }}>
+                <CheckCircleOutlined /> Assigned to: {assignedEmployee}
+              </Text>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Required Role",
+      dataIndex: "depart",
+      key: "depart",
+      width: 150,
+      render: (roles) => (
+        <Space wrap>
+          {roles?.map((role, idx) => (
+            <Tag key={idx} color="default">
+              {role}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: "Timeline",
+      dataIndex: "estimatedDays",
+      key: "estimatedDays",
+      width: 120,
+      align: "center",
+      sorter: true,
+      render: (days) => (
+        <Space>
+          <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+          <Text>{days || 1} day{(days || 1) !== 1 ? "s" : ""}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Priority",
+      dataIndex: "templatePriority",
+      key: "templatePriority",
+      width: 120,
+      align: "center",
+      sorter: true,
+      render: (priority) => {
+        const config = getPriorityConfig(priority || "medium");
+        return (
+          <Tag color={config.color} icon={config.icon} style={{ minWidth: 90, textAlign: "center" }}>
+            {config.label}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Checklists",
+      dataIndex: "checklists",
+      key: "checklists",
+      width: 100,
+      align: "center",
+      render: (checklists) => (
+        <Tag color="default">{checklists?.length || 0}</Tag>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 150,
+      align: "center",
+      render: (_, record) => {
+        const assignmentCount = record.assignments?.length || 0;
+        return (
+          <Space direction="vertical" size={4}>
+            <Button
+              type={assignmentCount > 0 ? "primary" : "default"}
+              icon={<UserAddOutlined />}
+              onClick={() => handleAssignClick(record)}
+              block
+            >
+              {assignmentCount > 0 ? "Re-assign" : "Assign"}
+            </Button>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Single employee task
+            </Text>
+          </Space>
+        );
+      },
+    },
+  ];
 
-  // Render sort icon
-  const renderSortIcon = (key) => {
-    if (sortConfig.key !== key) return <FaSort className="text-muted" />;
-    return sortConfig.direction === "asc" ? (
-      <FaSortUp className="text-primary" />
-    ) : (
-      <FaSortDown className="text-primary" />
-    );
-  };
+  // Filter menu items
+  const filterMenuItems = [
+    { key: "all", label: "All Templates" },
+    { key: "divider1", type: "divider" },
+    { key: "header1", label: "Priority", type: "group" },
+    { key: "urgent", label: "Urgent Priority" },
+    { key: "high", label: "High Priority" },
+    { key: "medium", label: "Medium Priority" },
+    { key: "low", label: "Low Priority" },
+    { key: "divider2", type: "divider" },
+    { key: "assigned", label: "Already Assigned" },
+  ];
 
-  // ✅ Get total selected clients and prospects count
-  const getTotalSelectedClientProspects = () => {
+  // Sort menu items
+  const sortMenuItems = [
+    { key: "name", label: "Task Name" },
+    { key: "templatePriority", label: "Priority" },
+    { key: "estimatedDays", label: "Timeline" },
+    { key: "assignments", label: "Assignment Count" },
+  ];
+
+  if (loading && marketingTasks.length === 0) {
     return (
-      (assignForm.selectedClients?.length || 0) +
-      (assignForm.selectedProspects?.length || 0)
-    );
-  };
-
-  // Get selected employee details
-  const getSelectedEmployeeDetails = () => {
-    if (!assignForm.selectedEmployee || !assignForm.selectedRole) return null;
-
-    const roleEmployees = employeesByRole[assignForm.selectedRole] || [];
-    return roleEmployees.find((emp) => emp._id === assignForm.selectedEmployee);
-  };
-
-  if (loading) {
-    return (
-      <div className="container-fluid px-2 pt-2 pb-1">
-        <div className="text-center py-4">
-          <Spinner animation="border" role="status" className="text-primary">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-          <h5 className="mt-2 mb-0 text-dark">Loading Marketing Tasks...</h5>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "400px",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <Spin size="large" />
+        <Text type="secondary">Loading Marketing Tasks...</Text>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid px-2 pt-2 pb-2 compact-assignment-page">
+    <div style={{ padding: "24px" }}>
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <div>
-          <h3 className="text-dark mb-0 fw-bold fs-5">
-            <FaBullhorn className="me-2 text-primary" />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <Space direction="vertical" size={4}>
+          <Title level={3} style={{ margin: 0 }}>
+            <NotificationOutlined style={{ marginRight: 12, color: "#1890ff" }} />
             Marketing Task Assignments
-          </h3>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <Badge bg="light" text="dark" className="px-2 py-1 border">
+          </Title>
+          <Text type="secondary">
+            Assign marketing task templates to employees (Single employee per task)
+          </Text>
+        </Space>
+        <Space>
+          <Tag color="cyan" style={{ padding: "4px 12px", fontSize: 14 }}>
             {marketingTasks.length} Templates
-          </Badge>
+          </Tag>
           <Button
-            variant="outline-primary"
+            icon={<SyncOutlined spin={refreshing} />}
             onClick={fetchMarketingTasks}
-            disabled={refreshing}
-            className="d-flex align-items-center"
+            loading={refreshing}
           >
-            <FaSync className={`me-2 ${refreshing ? "spin" : ""}`} />
             Refresh
           </Button>
-        </div>
+        </Space>
       </div>
 
-      {/* Search & Filter */}
-      <Card className="mb-2 border-light shadow-sm">
-        <Card.Body className="p-2">
-          <Row>
-            <Col md={6}>
-              <InputGroup>
-                <InputGroup.Text className="bg-light border-end-0">
-                  <FaSearch className="text-secondary" />
-                </InputGroup.Text>
-                <FormControl
-                  placeholder="Search by task name or company..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border-start-0"
-                />
-                {searchTerm && (
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => setSearchTerm("")}
-                    className="border-start-0"
-                  >
-                    <FaTimes />
-                  </Button>
-                )}
-              </InputGroup>
-            </Col>
-            <Col md={6}>
-              <div className="d-flex gap-2 justify-content-end">
-                <Dropdown>
-                  <Dropdown.Toggle
-                    variant="outline-secondary"
-                    className="d-flex align-items-center"
-                  >
-                    <FaFilter className="me-2" />
-                    {filterStatus === "all"
-                      ? "All Templates"
-                      : filterStatus === "urgent"
-                      ? "Urgent"
-                      : filterStatus === "assigned"
-                      ? "Assigned"
-                      : filterStatus}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => setFilterStatus("all")}>
-                      All Templates
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Header>Priority</Dropdown.Header>
-                    <Dropdown.Item onClick={() => setFilterStatus("urgent")}>
-                      Urgent Priority
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => setFilterStatus("high")}>
-                      High Priority
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => setFilterStatus("medium")}>
-                      Medium Priority
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Item onClick={() => setFilterStatus("assigned")}>
-                      Already Assigned
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                <Dropdown>
-                  <Dropdown.Toggle
-                    variant="outline-secondary"
-                    className="d-flex align-items-center"
-                  >
-                    <FaSort className="me-2" />
-                    Sort
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => handleSort("name")}>
-                      Task Name{" "}
-                      {sortConfig.key === "name" && `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                      onClick={() => handleSort("templatePriority")}
-                    >
-                      Priority{" "}
-                      {sortConfig.key === "templatePriority" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleSort("estimatedDays")}>
-                      Timeline{" "}
-                      {sortConfig.key === "estimatedDays" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleSort("assignments")}>
-                      Assignment Count{" "}
-                      {sortConfig.key === "assignments" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                {(searchTerm || filterStatus !== "all") && (
-                  <Button variant="outline-danger" onClick={handleClearFilters}>
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
+      {/* Search & Filter Bar */}
+      <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: "16px 20px" }}>
+        <Row gutter={16} align="middle">
+          <Col flex="auto">
+            <Input
+              placeholder="Search by task name or company..."
+              prefix={<SearchOutlined />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+              size="large"
+            />
+          </Col>
+          <Col>
+            <Space>
+              <Dropdown
+                menu={{
+                  items: filterMenuItems,
+                  onClick: ({ key }) => {
+                    if (!["divider1", "divider2", "header1"].includes(key)) {
+                      setFilterStatus(key);
+                    }
+                  },
+                }}
+              >
+                <Button size="large" icon={<FilterOutlined />}>
+                  {filterStatus === "all"
+                    ? "All Templates"
+                    : filterStatus === "urgent"
+                    ? "Urgent"
+                    : filterStatus === "high"
+                    ? "High Priority"
+                    : filterStatus === "medium"
+                    ? "Medium Priority"
+                    : filterStatus === "low"
+                    ? "Low Priority"
+                    : filterStatus === "assigned"
+                    ? "Assigned"
+                    : filterStatus}{" "}
+                  <DownOutlined />
+                </Button>
+              </Dropdown>
+
+              <Dropdown
+                menu={{
+                  items: sortMenuItems,
+                  onClick: ({ key }) => {
+                    setSortConfig({
+                      key,
+                      direction:
+                        sortConfig.key === key && sortConfig.direction === "asc"
+                          ? "desc"
+                          : "asc",
+                    });
+                  },
+                }}
+              >
+                <Button size="large" icon={<SortAscendingOutlined />}>
+                  Sort <DownOutlined />
+                </Button>
+              </Dropdown>
+
+              {(searchTerm || filterStatus !== "all") && (
+                <Button
+                  size="large"
+                  icon={<ClearOutlined />}
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterStatus("all");
+                    setSortConfig({ key: null, direction: "asc" });
+                    setCurrentPage(1);
+                  }}
+                  danger
+                >
+                  Clear
+                </Button>
+              )}
+            </Space>
+          </Col>
+        </Row>
       </Card>
-
-      {/* Messages */}
-      {successMessage && (
-        <Alert variant="success" className="mb-3 d-flex align-items-center">
-          <FaCheckCircle className="me-2" />
-          {successMessage}
-          <Button
-            variant="link"
-            className="ms-auto p-0"
-            onClick={() => setSuccessMessage("")}
-          >
-            <FaTimes />
-          </Button>
-        </Alert>
-      )}
-
-      {errorMessage && (
-        <Alert variant="danger" className="mb-3 d-flex align-items-center">
-          <FaExclamationCircle className="me-2" />
-          {errorMessage}
-          <Button
-            variant="link"
-            className="ms-auto p-0 text-danger"
-            onClick={() => setErrorMessage("")}
-          >
-            <FaTimes />
-          </Button>
-        </Alert>
-      )}
 
       {/* Main Table */}
-      <Card className="border-light shadow-sm">
-        <Card.Body className="p-0">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-5">
-              <FaBullhorn size={48} className="text-muted mb-3" />
-              <h5 className="text-dark mb-2">No Marketing Tasks Found</h5>
-              <p className="text-muted">
-                {searchTerm || filterStatus !== "all"
-                  ? "No tasks match your search criteria."
-                  : "No marketing task templates available."}
-              </p>
+      <Card bodyStyle={{ padding: 0 }} style={{ overflow: "hidden" }}>
+        {filteredTasks.length === 0 ? (
+          <Empty
+            description="No Marketing Tasks Found"
+            style={{ padding: "60px 0" }}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            {(searchTerm || filterStatus !== "all") && (
+              <Text type="secondary">
+                No tasks match your search criteria.
+              </Text>
+            )}
+          </Empty>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              dataSource={paginatedTasks}
+              rowKey="_id"
+              pagination={false}
+              onChange={handleTableChange}
+              loading={loading}
+              size="middle"
+              scroll={{ x: 1000 }}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 24px",
+                borderTop: "1px solid #f0f0f0",
+              }}
+            >
+              <Text type="secondary">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, filteredTasks.length)} of{" "}
+                {filteredTasks.length} entries
+              </Text>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={filteredTasks.length}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                showSizeChanger
+                pageSizeOptions={["10", "20", "50", "100"]}
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+              />
             </div>
-          ) : (
-            <>
-              <div className="table-responsive">
-                <Table hover className="mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th
-                        className="border-0 py-3 ps-4"
-                        style={{ width: "60px" }}
-                      >
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">#</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("name")}
-                          >
-                            {renderSortIcon("name")}
-                          </Button>
-                        </div>
-                      </th>
-                      <th className="border-0 py-3">
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">Task Details</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("name")}
-                          >
-                            {renderSortIcon("name")}
-                          </Button>
-                        </div>
-                      </th>
-                      <th className="border-0 py-3" style={{ width: "150px" }}>
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">Required Role</span>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "120px" }}
-                      >
-                        <div className="d-flex align-items-center justify-content-center">
-                          <span className="fw-semibold">Timeline</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("estimatedDays")}
-                          >
-                            {renderSortIcon("estimatedDays")}
-                          </Button>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "120px" }}
-                      >
-                        <div className="d-flex align-items-center justify-content-center">
-                          <span className="fw-semibold">Priority</span>
-                          <Button
-                            variant="link"
-                            className="p-0 ms-1"
-                            onClick={() => handleSort("templatePriority")}
-                          >
-                            {renderSortIcon("templatePriority")}
-                          </Button>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "100px" }}
-                      >
-                        <span className="fw-semibold">Checklists</span>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "150px" }}
-                      >
-                        <span className="fw-semibold">Action</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTasks.map((task, index) => {
-                      const priorityInfo = getPriorityBadge(
-                        task.templatePriority || "medium"
-                      );
-                      const taskNumber = indexOfFirstEntry + index + 1;
-                      const assignmentCount = getAssignmentCount(task);
-                      const assignedEmployee = getAssignedEmployeeName(task);
-
-                      return (
-                        <tr key={task._id}>
-                          <td className="align-middle py-3 ps-4">
-                            <div className="text-dark fw-semibold">
-                              {taskNumber}
-                            </div>
-                          </td>
-                          <td className="align-middle py-3">
-                            <div>
-                              <h6 className="mb-1 fw-semibold text-dark">
-                                {task.name}
-                                {task.templatePriority === "urgent" && (
-                                  <Badge bg="danger" className="ms-2 px-2 py-1">
-                                    <FaExclamationCircle className="me-1" />
-                                    URGENT
-                                  </Badge>
-                                )}
-                                <Badge bg="info" className="ms-2 px-2 py-1">
-                                  Marketing
-                                </Badge>
-                              </h6>
-                              <div className="d-flex align-items-center flex-wrap gap-2">
-                                <small className="text-muted">
-                                  <FaBuilding className="me-1" />
-                                  {task.sub}
-                                </small>
-                                {assignmentCount > 0 && (
-                                  <small className="text-primary">
-                                    <FaUserFriends className="me-1" />
-                                    {assignmentCount} assigned
-                                  </small>
-                                )}
-                                {/* ✅ Show client/prospect counts */}
-                                {task.assignedClients?.length > 0 && (
-                                  <small className="text-success">
-                                    <FaUserCheck className="me-1" />
-                                    {task.assignedClients.length} client(s)
-                                  </small>
-                                )}
-                                {task.assignedProspects?.length > 0 && (
-                                  <small className="text-info">
-                                    <FaUsers className="me-1" />
-                                    {task.assignedProspects.length} prospect(s)
-                                  </small>
-                                )}
-                              </div>
-                              {assignedEmployee && (
-                                <small className="text-success d-block mt-1">
-                                  <FaCheckCircle className="me-1" size={12} />
-                                  Assigned to: {assignedEmployee}
-                                </small>
-                              )}
-                            </div>
-                          </td>
-                          <td className="align-middle py-3">
-                            <div className="d-flex flex-wrap gap-1">
-                              {task.depart?.map((role, idx) => (
-                                <Badge
-                                  key={idx}
-                                  bg="light"
-                                  text="dark"
-                                  className="px-2 py-1 border"
-                                >
-                                  {role}
-                                </Badge>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <div className="d-flex align-items-center justify-content-center">
-                              <FaClock className="me-2 text-secondary" />
-                              <span className="fw-semibold">
-                                {task.estimatedDays || 1} day
-                                {task.estimatedDays !== 1 ? "s" : ""}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Badge
-                              bg={priorityInfo.bg}
-                              className="px-3 py-2"
-                              style={{ minWidth: "90px" }}
-                            >
-                              {priorityInfo.icon}
-                              {priorityInfo.label}
-                            </Badge>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Badge
-                              bg="light"
-                              text="dark"
-                              className="px-3 py-2 border"
-                            >
-                              {task.checklists?.length || 0}
-                            </Badge>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Button
-                              variant={assignmentCount > 0 ? "primary" : "dark"}
-                              onClick={() => handleAssignClick(task)}
-                              className="d-flex align-items-center justify-content-center w-100"
-                              size="sm"
-                            >
-                              <FaUserCheck className="me-2" />
-                              {assignmentCount > 0 ? "Re-assign" : "Assign"}
-                            </Button>
-                            {assignmentCount > 0 && (
-                              <small className="text-muted d-block mt-1">
-                                Single employee task
-                              </small>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="d-flex justify-content-between align-items-center p-3 border-top">
-                  <div className="text-muted">
-                    Showing {indexOfFirstEntry + 1} to{" "}
-                    {Math.min(indexOfLastEntry, filteredTasks.length)} of{" "}
-                    {filteredTasks.length} entries
-                  </div>
-                  <Pagination className="mb-0">
-                    <Pagination.Prev
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      className="border"
-                    />
-                    {[...Array(totalPages)].map((_, i) => (
-                      <Pagination.Item
-                        key={i + 1}
-                        active={i + 1 === currentPage}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className="border"
-                      >
-                        {i + 1}
-                      </Pagination.Item>
-                    ))}
-                    <Pagination.Next
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      className="border"
-                    />
-                  </Pagination>
-                </div>
-              )}
-            </>
-          )}
-        </Card.Body>
+          </>
+        )}
       </Card>
 
-      {/* ✅ NEW: Client/Prospect Selection Modal */}
+      {/* Client/Prospect Selection Modal */}
       <ClientProspectSelectionModal
         show={showClientProspectModal}
         onHide={() => setShowClientProspectModal(false)}
@@ -911,465 +780,394 @@ const MarketingAssignments = () => {
         title={`Select Clients & Prospects for "${selectedTask?.name}"`}
       />
 
-      {/* Assign Modal - SINGLE EMPLOYEE with Client/Prospect */}
+      {/* Assign Modal - SINGLE EMPLOYEE */}
       <Modal
-        show={showAssignModal}
-        onHide={() => setShowAssignModal(false)}
-        size="lg"
-        centered
-        backdrop="static"
-      >
-        <Modal.Header className="bg-light border-bottom py-3">
-          <Modal.Title className="d-flex align-items-center w-100">
-            <FaBullhorn className="me-3 text-primary" />
-            <div className="flex-grow-1">
-              <h5 className="mb-0 fw-bold">Assign Marketing Task</h5>
-              <small className="text-muted">
-                Select one employee to assign this marketing task
-              </small>
-            </div>
+        title={
+          <Space>
+            <NotificationOutlined style={{ color: "#1890ff" }} />
+            <span>Assign Marketing Task</span>
+            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+              Select one employee to assign this marketing task
+            </Text>
+          </Space>
+        }
+        open={showAssignModal}
+        onCancel={() => setShowAssignModal(false)}
+        width={800}
+        footer={
+          <Space>
+            <Button onClick={() => setShowAssignModal(false)}>Cancel</Button>
             <Button
-              variant="link"
-              onClick={() => setShowAssignModal(false)}
-              className="p-0 ms-auto"
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleAssignSubmit}
+              disabled={!assignForm.selectedEmployee}
             >
-              <FaTimes />
+              {assignForm.selectedEmployee
+                ? "Assign to Selected Employee"
+                : "Select Employee First"}
             </Button>
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="p-4">
-          {selectedTask && (
-            <>
-              {/* Task Info */}
-              <div className="mb-4 p-3 border flex-grow-1 rounded bg-light">
-                <Row className="align-items-center">
-                  <Col md={8}>
-                    <h5 className="mb-2 fw-bold text-dark">
+          </Space>
+        }
+        destroyOnClose
+      >
+        {selectedTask && (
+          <>
+            {/* Task Info Card */}
+            <Card
+              size="small"
+              style={{ marginBottom: 24, backgroundColor: "#fafafa" }}
+            >
+              <Row align="middle">
+                <Col span={16}>
+                  <Space direction="vertical" size={4}>
+                    <Text strong style={{ fontSize: 16 }}>
                       {selectedTask.name}
-                    </h5>
-                    <div className="d-flex flex-wrap gap-3">
-                      <div>
-                        <small className="text-muted d-block">Company</small>
-                        <span className="fw-semibold">{selectedTask.sub}</span>
-                      </div>
-                      <div>
-                        <small className="text-muted d-block">Role</small>
-                        <Badge bg="secondary">{assignForm.selectedRole}</Badge>
-                      </div>
-                      <div>
-                        <small className="text-muted d-block">Days</small>
-                        <span className="fw-semibold">
-                          <FaClock className="me-1" />
-                          {selectedTask.estimatedDays || 1}
-                        </span>
-                      </div>
-                      <div>
-                        <small className="text-muted d-block">Priority</small>
-                        <Badge
-                          bg={
-                            getPriorityBadge(
-                              selectedTask.templatePriority || "medium"
-                            ).bg
-                          }
-                        >
-                          {selectedTask.templatePriority || "medium"}
-                        </Badge>
-                      </div>
-                      {selectedTask.assignments &&
-                        selectedTask.assignments.length > 0 && (
-                          <div>
-                            <small className="text-muted d-block">
-                              Assigned
-                            </small>
-                            <span className="fw-semibold text-primary">
-                              <FaUserFriends className="me-1" />
-                              {selectedTask.assignments.length}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </Col>
-                  <Col md={4} className="text-end">
-                    <div>
-                      <small className="text-muted d-block">Due Date</small>
-                      <h6 className="mb-0">
-                        <FaCalendarDay className="me-2" />
-                        {assignForm.dueDate}
-                      </h6>
-                    </div>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* Assignment Settings */}
-              <div className="mb-4">
-                <h6 className="mb-3 fw-bold border-bottom pb-2">
-                  Assignment Settings
-                </h6>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Priority</label>
-                      <Form.Select
-                        value={assignForm.priority}
-                        onChange={handlePriorityChange}
-                      >
-                        <option value="low">Low Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="high">High Priority</option>
-                        <option value="urgent">Urgent Priority</option>
-                      </Form.Select>
-                      <small className="text-muted">
-                        Template priority:{" "}
-                        {selectedTask.templatePriority || "medium"}
-                      </small>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Due Date</label>
-                      <Form.Control
-                        type="date"
-                        value={assignForm.dueDate}
-                        onChange={(e) =>
-                          setAssignForm({
-                            ...assignForm,
-                            dueDate: e.target.value,
-                          })
+                    </Text>
+                    <Space size={16} wrap>
+                      <Space>
+                        <BuildOutlined />
+                        <Text type="secondary">{selectedTask.sub}</Text>
+                      </Space>
+                      <Space>
+                        <Tag color="default">{assignForm.selectedRole}</Tag>
+                      </Space>
+                      <Space>
+                        <ClockCircleOutlined />
+                        <Text type="secondary">
+                          {selectedTask.estimatedDays || 1} day(s)
+                        </Text>
+                      </Space>
+                      <Tag
+                        color={
+                          getPriorityConfig(selectedTask.templatePriority || "medium")
+                            .color
                         }
-                        min={new Date().toISOString().split("T")[0]}
-                      />
-                      <small className="text-muted">
-                        Based on {selectedTask.estimatedDays || 1} day(s)
-                      </small>
-                    </div>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* ✅ NEW: Client & Prospect Selection Section */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Client & Prospect Selection</h6>
-                  <small className="text-muted">
-                    {getTotalSelectedClientProspects()} selected
-                  </small>
-                </div>
-
-                <Button
-                  variant="outline-primary"
-                  onClick={handleClientProspectSelect}
-                  className="w-100 py-3 d-flex align-items-center justify-content-center"
-                >
-                  <FaUsers className="me-2" />
-                  {getTotalSelectedClientProspects() > 0
-                    ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
-                    : "Select Clients & Prospects (Optional)"}
-                </Button>
-
-                {/* Show selected counts */}
-                {getTotalSelectedClientProspects() > 0 && (
-                  <div className="mt-3">
-                    <Row>
-                      {assignForm.selectedClients?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="success" className="py-2">
-                            <FaUserFriends className="me-2" />
-                            <strong>
-                              {assignForm.selectedClients.length}
-                            </strong>{" "}
-                            client(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                      {assignForm.selectedProspects?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="info" className="py-2">
-                            <FaUsers className="me-2" />
-                            <strong>
-                              {assignForm.selectedProspects.length}
-                            </strong>{" "}
-                            prospect(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                    </Row>
-
-                    {/* Show remarks if any */}
-                    {assignForm.clientRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-success fw-bold">
-                          Client Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.clientRemarks}</p>
-                      </Alert>
-                    )}
-
-                    {assignForm.prospectRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-info fw-bold">
-                          Prospect Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.prospectRemarks}</p>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-                <small className="text-muted d-block mt-1">
-                  Optional - You can select clients and/or prospects for whom
-                  this marketing task is being assigned
-                </small>
-              </div>
-
-              {/* Employee Selection - SINGLE EMPLOYEE */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Select Employee</h6>
-                  <small className="text-muted">
-                    {assignForm.selectedRole} role only
-                  </small>
-                </div>
-
-                {loadingEmployees ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </Spinner>
-                    <p className="mt-2 text-muted">Loading employees...</p>
-                  </div>
-                ) : (
-                  <Card className="border h-100">
-                    <Card.Header className="bg-light border-bottom d-flex justify-content-between align-items-center py-2">
-                      <div>
-                        <Badge bg="dark" className="me-2">
-                          {assignForm.selectedRole}
-                        </Badge>
-                        <small className="text-muted">
-                          (
-                          {
-                            (employeesByRole[assignForm.selectedRole] || [])
-                              .length
-                          }{" "}
-                          employees)
-                        </small>
-                      </div>
-                    </Card.Header>
-                    <Card.Body className="p-0">
-                      <div
-                        className="employee-list"
-                        style={{
-                          maxHeight: "250px",
-                          overflowY: "auto",
-                        }}
                       >
-                        <ListGroup variant="flush">
-                          {(employeesByRole[assignForm.selectedRole] || [])
-                            .length === 0 ? (
-                            <ListGroup.Item className="text-muted text-center py-3">
-                              No active employees available for this role
-                            </ListGroup.Item>
-                          ) : (
-                            (
-                              employeesByRole[assignForm.selectedRole] || []
-                            ).map((employee) => {
-                              const isSelected = isEmployeeSelected(
-                                employee._id
-                              );
-                              return (
-                                <ListGroup.Item
-                                  key={employee._id}
-                                  className="d-flex align-items-center py-2 px-3 border-bottom"
-                                  onClick={() =>
-                                    handleEmployeeSelect(employee._id)
-                                  }
-                                  style={{
-                                    cursor: "pointer",
-                                    backgroundColor: isSelected
-                                      ? "#f8f9fa"
-                                      : "white",
-                                  }}
-                                >
-                                  <div className="me-3">
-                                    <div
-                                      className={`border ${
-                                        isSelected
-                                          ? "bg-dark border-dark"
-                                          : "border-secondary"
-                                      } rounded-circle`}
-                                      style={{
-                                        width: "20px",
-                                        height: "20px",
-                                      }}
-                                    >
-                                      {isSelected && (
-                                        <FaCheck
-                                          className="text-white"
-                                          style={{
-                                            fontSize: "12px",
-                                            margin: "2px",
-                                          }}
-                                        />
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex-grow-1">
-                                    <div className="fw-medium">
-                                      {employee.name}
-                                    </div>
-                                    <small className="text-muted">
-                                      {employee.employeeCode} •{" "}
-                                      {employee.designation || employee.role}
-                                    </small>
-                                  </div>
-                                </ListGroup.Item>
-                              );
-                            })
-                          )}
-                        </ListGroup>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                )}
+                        {selectedTask.templatePriority || "medium"}
+                      </Tag>
+                      {selectedTask.assignments?.length > 0 && (
+                        <Tag color="blue" icon={<TeamOutlined />}>
+                          {selectedTask.assignments.length} assigned
+                        </Tag>
+                      )}
+                    </Space>
+                  </Space>
+                </Col>
+                <Col span={8} style={{ textAlign: "right" }}>
+                  <Space direction="vertical" size={2}>
+                    <Text type="secondary">Due Date</Text>
+                    <Text strong>
+                      <CalendarOutlined />{" "}
+                      {assignForm.dueDate?.format("DD/MM/YYYY")}
+                    </Text>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+
+            {/* Assignment Settings */}
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ marginBottom: 16 }}>
+                Assignment Settings
+              </Title>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Priority" style={{ marginBottom: 0 }}>
+                    <Select
+                      value={assignForm.priority}
+                      onChange={(value) =>
+                        setAssignForm({ ...assignForm, priority: value })
+                      }
+                      style={{ width: "100%" }}
+                    >
+                      <Option value="low">Low Priority</Option>
+                      <Option value="medium">Medium Priority</Option>
+                      <Option value="high">High Priority</Option>
+                      <Option value="urgent">Urgent Priority</Option>
+                    </Select>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Template priority:{" "}
+                      {selectedTask.templatePriority || "medium"}
+                    </Text>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Due Date" style={{ marginBottom: 0 }}>
+                    <DatePicker
+                      value={assignForm.dueDate}
+                      onChange={(date) =>
+                        setAssignForm({ ...assignForm, dueDate: date })
+                      }
+                      disabledDate={(current) =>
+                        current && current < dayjs().startOf("day")
+                      }
+                      style={{ width: "100%" }}
+                    />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Based on {selectedTask.estimatedDays || 1} day(s)
+                    </Text>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider />
+
+            {/* Client & Prospect Selection */}
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Title level={5} style={{ margin: 0 }}>
+                  Client & Prospect Selection
+                </Title>
+                <Badge count={getTotalSelectedClientProspects()} showZero />
               </div>
 
-              {/* Remarks */}
-              <div className="mb-4">
-                <label className="form-label fw-semibold">
-                  Additional Instructions
-                </label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
+              <Button
+                block
+                size="large"
+                icon={<UsergroupAddOutlined />}
+                onClick={handleClientProspectSelect}
+                style={{ height: 56 }}
+              >
+                {getTotalSelectedClientProspects() > 0
+                  ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
+                  : "Select Clients & Prospects (Optional)"}
+              </Button>
+
+              {getTotalSelectedClientProspects() > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <Row gutter={16}>
+                    {assignForm.selectedClients?.length > 0 && (
+                      <Col span={12}>
+                        <Alert
+                          message={
+                            <>
+                              <TeamOutlined />{" "}
+                              <strong>{assignForm.selectedClients.length}</strong>{" "}
+                              client(s) selected
+                            </>
+                          }
+                          type="success"
+                          showIcon={false}
+                        />
+                      </Col>
+                    )}
+                    {assignForm.selectedProspects?.length > 0 && (
+                      <Col span={12}>
+                        <Alert
+                          message={
+                            <>
+                              <UsergroupAddOutlined />{" "}
+                              <strong>{assignForm.selectedProspects.length}</strong>{" "}
+                              prospect(s) selected
+                            </>
+                          }
+                          type="info"
+                          showIcon={false}
+                        />
+                      </Col>
+                    )}
+                  </Row>
+
+                  {assignForm.clientRemarks && (
+                    <Alert
+                      message={
+                        <>
+                          <Text strong style={{ color: "#52c41a" }}>
+                            Client Remarks:
+                          </Text>
+                          <br />
+                          {assignForm.clientRemarks}
+                        </>
+                      }
+                      type="success"
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
+
+                  {assignForm.prospectRemarks && (
+                    <Alert
+                      message={
+                        <>
+                          <Text strong style={{ color: "#1890ff" }}>
+                            Prospect Remarks:
+                          </Text>
+                          <br />
+                          {assignForm.prospectRemarks}
+                        </>
+                      }
+                      type="info"
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
+                </div>
+              )}
+              <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+                Optional - You can select clients and/or prospects for whom this
+                marketing task is being assigned
+              </Text>
+            </div>
+
+            <Divider />
+
+            {/* Employee Selection - SINGLE EMPLOYEE */}
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Title level={5} style={{ margin: 0 }}>
+                  Select Employee
+                </Title>
+                <Tag color="blue">{assignForm.selectedRole} role only</Tag>
+              </div>
+
+              {loadingEmployees ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <Spin />
+                  <p style={{ marginTop: 16 }}>Loading employees...</p>
+                </div>
+              ) : (
+                <Card
+                  size="small"
+                  bodyStyle={{ padding: 0, maxHeight: 300, overflowY: "auto" }}
+                >
+                  <List
+                    dataSource={employeesByRole[assignForm.selectedRole] || []}
+                    renderItem={(employee) => {
+                      const isSelected =
+                        assignForm.selectedEmployee === employee._id;
+                      return (
+                        <List.Item
+                          style={{
+                            padding: "12px 16px",
+                            cursor: "pointer",
+                            backgroundColor: isSelected ? "#e6f7ff" : "white",
+                            borderBottom: "1px solid #f0f0f0",
+                            transition: "background-color 0.2s",
+                          }}
+                          onClick={() => handleEmployeeSelect(employee._id)}
+                        >
+                          <Radio
+                            checked={isSelected}
+                            style={{ marginRight: 12 }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <Text strong>{employee.name}</Text>
+                            <br />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {employee.employeeCode} •{" "}
+                              {employee.designation || employee.role}
+                            </Text>
+                          </div>
+                        </List.Item>
+                      );
+                    }}
+                    locale={{ emptyText: "No active employees available for this role" }}
+                  />
+                </Card>
+              )}
+            </div>
+
+            <Divider />
+
+            {/* Remarks */}
+            <div style={{ marginBottom: 24 }}>
+              <Form.Item label="Additional Instructions">
+                <TextArea
+                  rows={3}
                   placeholder="Add any notes or instructions for the employee..."
                   value={assignForm.remarks}
                   onChange={(e) =>
                     setAssignForm({ ...assignForm, remarks: e.target.value })
                   }
                 />
-                <small className="text-muted">
-                  Optional - These notes will be visible to the assigned
-                  employee
-                </small>
-              </div>
+              </Form.Item>
+              <Text type="secondary">
+                Optional - These notes will be visible to the assigned employee
+              </Text>
+            </div>
 
-              {/* Assignment History */}
-              {selectedTask.assignments &&
-                selectedTask.assignments.length > 0 && (
-                  <Alert variant="light" className="border mb-4">
-                    <div className="d-flex align-items-center mb-2">
-                      <FaHistory className="me-2 text-info" />
-                      <h6 className="mb-0">Previous Assignments</h6>
-                      <Badge bg="info" className="ms-2">
-                        {selectedTask.assignments.length}
-                      </Badge>
-                    </div>
-                    <div className="bg-white p-2 rounded border">
+            {/* Previous Assignments */}
+            {selectedTask.assignments && selectedTask.assignments.length > 0 && (
+              <Alert
+                message={
+                  <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space>
+                      <HistoryOutlined style={{ color: "#1890ff" }} />
+                      <Text strong>Previous Assignments</Text>
+                      <Badge count={selectedTask.assignments.length} />
+                    </Space>
+                    <div style={{ backgroundColor: "white", padding: 12, borderRadius: 6 }}>
                       {selectedTask.assignments.map((assignment, idx) => (
-                        <div key={idx} className="mb-2">
-                          <small className="text-muted">
-                            {new Date(
-                              assignment.assignedAt
-                            ).toLocaleDateString()}{" "}
-                            - {assignment.employeeId?.name || "Employee"}
-                          </small>
+                        <div key={idx} style={{ marginBottom: idx < selectedTask.assignments.length - 1 ? 8 : 0 }}>
+                          <Text type="secondary">
+                            {dayjs(assignment.assignedAt).format("DD/MM/YYYY")} -{" "}
+                            {assignment.employeeId?.name || "Employee"}
+                          </Text>
                         </div>
                       ))}
                     </div>
-                  </Alert>
-                )}
+                  </Space>
+                }
+                type="info"
+                style={{ marginBottom: 24 }}
+              />
+            )}
 
-              {/* Selected Employee Summary */}
-              {assignForm.selectedEmployee && (
-                <Alert variant="light" className="border">
-                  <div className="d-flex align-items-center mb-2">
-                    <FaCheckCircle className="me-2 text-success" />
-                    <h6 className="mb-0">Selected Employee</h6>
-                  </div>
-                  <div className="bg-white p-3 rounded border">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <span className="fw-medium">
-                          {getSelectedEmployeeDetails()?.name || "Employee"}
-                        </span>
+            {/* Selected Employee Summary */}
+            {assignForm.selectedEmployee && (
+              <Alert
+                message={
+                  <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space>
+                      <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                      <Text strong>Selected Employee</Text>
+                    </Space>
+                    <div
+                      style={{
+                        backgroundColor: "white",
+                        padding: 12,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
                         <div>
-                          <small className="text-muted">
-                            Role: {assignForm.selectedRole}
-                          </small>
+                          <Text strong>
+                            {getSelectedEmployeeDetails()?.name || "Employee"}
+                          </Text>
+                          <br />
+                          <Text type="secondary">Role: {assignForm.selectedRole}</Text>
                         </div>
+                        <Tag color="blue">Selected</Tag>
                       </div>
-                      <Badge bg="dark">Selected</Badge>
                     </div>
-                  </div>
-                </Alert>
-              )}
-            </>
-          )}
-        </Modal.Body>
-
-        <Modal.Footer className="bg-light border-top">
-          <Button
-            variant="outline-secondary"
-            onClick={() => setShowAssignModal(false)}
-            className="border"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAssignSubmit}
-            disabled={!assignForm.selectedEmployee}
-            className="fw-semibold"
-          >
-            <FaPaperPlane className="me-2" />
-            {assignForm.selectedEmployee
-              ? `Assign to Selected Employee`
-              : "Select Employee First"}
-          </Button>
-        </Modal.Footer>
+                  </Space>
+                }
+                type="success"
+              />
+            )}
+          </>
+        )}
       </Modal>
-
-      <style jsx global>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .employee-list::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .employee-list::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-
-        .employee-list::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 3px;
-        }
-
-        .employee-list::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-
-        .compact-assignment-page .table-responsive {
-          margin-top: 0;
-        }
-
-        .compact-assignment-page th,
-        .compact-assignment-page td {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-      `}</style>
     </div>
   );
 };

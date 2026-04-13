@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Button, Spinner, Card } from "react-bootstrap";
-import DataTable from "react-data-table-component";
 import { useNavigate } from "react-router-dom";
+import {
+  Table,
+  Button,
+  Card,
+  Space,
+  Typography,
+  Tag,
+  Tooltip,
+  Input,
+  Spin,
+  Popconfirm,
+  message,
+  Badge,
+  Dropdown,
+  Empty,
+} from "antd";
 import {
   EyeOutlined,
   EditOutlined,
@@ -11,18 +25,38 @@ import {
   EnvironmentOutlined,
   UserOutlined,
   SearchOutlined,
+  ReloadOutlined,
+  ClearOutlined,
+  FilterOutlined,
+  DownOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  WhatsAppOutlined,
+  BankOutlined,
+  DollarOutlined,
+  TrophyOutlined,
+  CalendarOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axiosInstance from "../../config/axios";
-import { Modal, message, Tag } from "antd";
+
+const { Title, Text } = Typography;
 
 function ProspectAppointmentList() {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedProspect, setSelectedProspect] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [tableParams, setTableParams] = useState({
+    pagination: {
+      current: 1,
+      pageSize: 10,
+      showSizeChanger: true,
+      pageSizeOptions: ["10", "20", "50", "100"],
+      showTotal: (total) => `Total ${total} prospects`,
+    },
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,11 +71,11 @@ function ProspectAppointmentList() {
       if (response.data && response.data.success) {
         const prospectsData = response.data.prospects || [];
 
-
         const processedProspects = prospectsData.map((prospect, index) => {
           const personalDetails = prospect.personalDetails || {};
 
           return {
+            key: prospect._id,
             id: prospect._id || index,
             sn: index + 1,
             groupCode: personalDetails.groupCode || "-",
@@ -79,6 +113,7 @@ function ProspectAppointmentList() {
             createdAt: prospect.createdAt
               ? dayjs(prospect.createdAt).format("DD/MM/YYYY")
               : "-",
+            rawCreatedAt: prospect.createdAt,
             rawData: prospect,
           };
         });
@@ -94,8 +129,8 @@ function ProspectAppointmentList() {
       console.error("Error fetching prospects:", error);
       message.error(
         error.response?.data?.message ||
-        error.message ||
-        "Error loading prospects."
+          error.message ||
+          "Error loading prospects."
       );
       setProspects([]);
       setFilteredData([]);
@@ -136,17 +171,13 @@ function ProspectAppointmentList() {
     setFilteredData(filtered);
   }, [searchText, prospects]);
 
-  const handleDelete = (prospect) => {
-    if (window.confirm(`Are you sure you want to delete ${prospect.name}?`)) {
-      axiosInstance
-        .delete(`/api/prospect/delete/${prospect.id}`)
-        .then(() => {
-          message.success("Prospect deleted successfully");
-          fetchProspects();
-        })
-        .catch((error) => {
-          message.error("Failed to delete prospect");
-        });
+  const handleDelete = async (id, name) => {
+    try {
+      await axiosInstance.delete(`/api/prospect/delete/${id}`);
+      message.success(`${name} deleted successfully`);
+      fetchProspects();
+    } catch (error) {
+      message.error("Failed to delete prospect");
     }
   };
 
@@ -158,354 +189,459 @@ function ProspectAppointmentList() {
     navigate(`/prospect/detail/${id}`);
   };
 
-  const handleConvertToClient = (prospect) => {
-    if (window.confirm(`Convert ${prospect.name} to Client?`)) {
-      axiosInstance
-        .put(`/api/prospect/convert/${prospect.id}`, {
-          status: "client",
-        })
-        .then(() => {
-          message.success("Converted to Client successfully");
-          fetchProspects();
-        })
-        .catch((error) => {
-          message.error("Failed to convert");
-        });
+  const handleConvertToClient = async (prospect) => {
+    try {
+      await axiosInstance.put(`/api/prospect/convert/${prospect.id}`, {
+        status: "client",
+      });
+      message.success(`${prospect.name} converted to Client successfully`);
+      fetchProspects();
+    } catch (error) {
+      message.error("Failed to convert prospect");
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchProspects();
+  };
+
+  const handleTableChange = (pagination, filters, sorter) => {
+    setTableParams({
+      pagination,
+      filters,
+      ...sorter,
+    });
+  };
+
+  const getGenderColor = (gender) => {
+    switch (gender?.toLowerCase()) {
+      case "male":
+        return "blue";
+      case "female":
+        return "pink";
+      default:
+        return "default";
+    }
+  };
+
+  const getGradeColor = (grade) => {
+    switch (grade?.toUpperCase()) {
+      case "A":
+        return "green";
+      case "B":
+        return "orange";
+      case "C":
+        return "red";
+      default:
+        return "default";
     }
   };
 
   const columns = [
     {
-      name: "#",
-      cell: (row) => row.sn,
-      sortable: true,
-      width: "60px",
-      center: true,
-    },
-    {
-      name: "Group Code",
-      selector: (row) => row.groupCode,
-      sortable: true,
-      cell: (row) => (
-        <span style={{ fontWeight: "bold", color: "#1890ff" }}>
-          {row.groupCode}
-        </span>
+      title: "#",
+      width: 60,
+      align: "center",
+      fixed: "left",
+      render: (_, __, index) => (
+        <Text type="secondary">
+          {(tableParams.pagination.current - 1) * tableParams.pagination.pageSize + index + 1}
+        </Text>
       ),
-      width: "120px",
     },
     {
-      name: "Group Head",
-      selector: (row) => row.groupName,
-      sortable: true,
-      width: "150px",
-    },
-    {
-      name: "Name",
-      selector: (row) => row.name,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{row.name}</div>
-          <div style={{ fontSize: "12px", color: "#666" }}>{row.gender}</div>
-        </div>
+      title: "Group Code",
+      dataIndex: "groupCode",
+      key: "groupCode",
+      width: 120,
+      fixed: "left",
+      sorter: (a, b) => a.groupCode.localeCompare(b.groupCode),
+      render: (text) => (
+        <Tag color="cyan" style={{ fontWeight: 500 }}>
+          {text}
+        </Tag>
       ),
-      width: "150px",
     },
     {
-      name: "Contact",
-      selector: (row) => row.mobile,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div>
-            <PhoneOutlined style={{ marginRight: 5 }} />
-            {row.mobile}
-          </div>
-          {row.whatsapp !== "-" && (
-            <div style={{ fontSize: "12px", color: "#666" }}>
-              WA: {row.whatsapp}
-            </div>
+      title: "Group Head",
+      dataIndex: "groupName",
+      key: "groupName",
+      width: 150,
+      sorter: (a, b) => a.groupName.localeCompare(b.groupName),
+      render: (text) => (
+        <Space>
+          <UserOutlined />
+          {text}
+        </Space>
+      ),
+    },
+    {
+      title: "Prospect Info",
+      key: "prospectInfo",
+      width: 180,
+      sorter: (a, b) => a.name.localeCompare(b.name),
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Text strong>{record.name}</Text>
+          <Space size={4}>
+            <Tag color={getGenderColor(record.gender)}>{record.gender}</Tag>
+            <Tag color={getGradeColor(record.grade)}>Grade: {record.grade}</Tag>
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: "Contact",
+      key: "contact",
+      width: 160,
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Space size={4}>
+            <PhoneOutlined />
+            <Text>{record.mobile}</Text>
+          </Space>
+          {record.whatsapp !== "-" && (
+            <Space size={4}>
+              <WhatsAppOutlined style={{ color: "#25D366" }} />
+              <Text type="secondary">{record.whatsapp}</Text>
+            </Space>
           )}
-        </div>
-      ),
-      width: "150px",
-    },
-    {
-      name: "Email",
-      selector: (row) => row.email,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <MailOutlined style={{ marginRight: 5 }} />
-          {row.email}
-        </div>
-      ),
-      width: "200px",
-    },
-    {
-      name: "Organisation",
-      selector: (row) => row.organisation,
-      sortable: true,
-      width: "150px",
-    },
-    {
-      name: "Designation",
-      selector: (row) => row.designation,
-      sortable: true,
-      width: "120px",
-    },
-    {
-      name: "Annual Income",
-      selector: (row) => row.annualIncome,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div>{row.annualIncome}</div>
-          <span
-            style={{
-              fontSize: "12px",
-              backgroundColor: "#52c41a",
-              color: "white",
-              padding: "2px 8px",
-              borderRadius: "4px",
-            }}
-          >
-            Grade: {row.grade}
-          </span>
-        </div>
-      ),
-      width: "150px",
-    },
-    {
-      name: "Location",
-      selector: (row) => row.city,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <EnvironmentOutlined style={{ marginRight: 5 }} />
-          {row.city}
-          {row.preferredMeetingArea !== "-" && (
-            <div style={{ fontSize: "12px", color: "#666" }}>
-              Area: {row.preferredMeetingArea}
-            </div>
+          {record.contact !== "-" && record.contact !== record.mobile && (
+            <Space size={4}>
+              <PhoneOutlined />
+              <Text type="secondary">{record.contact}</Text>
+            </Space>
           )}
-        </div>
+        </Space>
       ),
-      width: "150px",
     },
     {
-      name: "Lead Source",
-      selector: (row) => row.leadSource,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div>{row.leadSource}</div>
-          {row.leadName !== "-" && (
-            <div style={{ fontSize: "12px", color: "#666" }}>
-              {row.leadName}
-            </div>
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      width: 200,
+      ellipsis: true,
+      sorter: (a, b) => a.email.localeCompare(b.email),
+      render: (text) => (
+        <Tooltip title={text}>
+          <Space>
+            <MailOutlined />
+            <Text>{text}</Text>
+          </Space>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Organisation",
+      key: "organisation",
+      width: 160,
+      sorter: (a, b) => a.organisation.localeCompare(b.organisation),
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Space>
+            <BankOutlined />
+            <Text>{record.organisation}</Text>
+          </Space>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.designation}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Income",
+      key: "income",
+      width: 130,
+      align: "right",
+      sorter: (a, b) => {
+        const aIncome = parseFloat(a.annualIncome) || 0;
+        const bIncome = parseFloat(b.annualIncome) || 0;
+        return aIncome - bIncome;
+      },
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ alignItems: "flex-end" }}>
+          <Space>
+            <DollarOutlined />
+            <Text strong>{record.annualIncome}</Text>
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: "Location",
+      key: "location",
+      width: 160,
+      sorter: (a, b) => a.city.localeCompare(b.city),
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Space>
+            <EnvironmentOutlined />
+            <Text>{record.city}</Text>
+          </Space>
+          {record.preferredMeetingArea !== "-" && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Area: {record.preferredMeetingArea}
+            </Text>
           )}
-        </div>
+        </Space>
       ),
-      width: "150px",
     },
     {
-      name: "Allocated CRE",
-      selector: (row) => row.allocatedCRE,
-      sortable: true,
-      width: "120px",
-    },
-    {
-      name: "Created At",
-      selector: (row) => row.createdAt,
-      sortable: true,
-      width: "120px",
-    },
-    {
-      name: "Actions",
-      cell: (row) => (
-        <div className="d-flex flex-wrap gap-1">
-          <Button
-            variant="info"
-            size="sm"
-            onClick={() => handleView(row.id)}
-            className="text-nowrap"
-            style={{
-              backgroundColor: "#1890ff",
-              borderColor: "#1890ff",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <EyeOutlined /> View
-          </Button>
-          <Button
-            variant="warning"
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="text-nowrap"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <EditOutlined /> Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            className="text-nowrap"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <DeleteOutlined /> Delete
-          </Button>
-        </div>
+      title: "Lead Info",
+      key: "leadInfo",
+      width: 150,
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Tag color="purple">{record.leadSource}</Tag>
+          {record.leadName !== "-" && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.leadName}
+            </Text>
+          )}
+        </Space>
       ),
-      ignoreRowClick: true,
-      width: "220px",
     },
     {
-      name: "Convert",
-      cell: (row) => (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => handleConvertToClient(row)}
-          className="text-nowrap"
-          style={{
-            backgroundColor: "#52c41a",
-            borderColor: "#52c41a",
-            fontWeight: "bold",
-          }}
+      title: "Allocated To",
+      dataIndex: "allocatedCRE",
+      key: "allocatedCRE",
+      width: 130,
+      sorter: (a, b) => a.allocatedCRE.localeCompare(b.allocatedCRE),
+      render: (text) => (
+        <Tag color="geekblue" icon={<UserOutlined />}>
+          {text}
+        </Tag>
+      ),
+    },
+    {
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 110,
+      sorter: (a, b) => {
+        return new Date(a.rawCreatedAt || 0) - new Date(b.rawCreatedAt || 0);
+      },
+      defaultSortOrder: "descend",
+      render: (text) => (
+        <Space>
+          <CalendarOutlined />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 240,
+      fixed: "right",
+      render: (_, record) => (
+        <Space wrap>
+          <Tooltip title="View Details">
+            <Button
+              type="primary"
+              ghost
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleView(record.id)}
+            >
+              View
+            </Button>
+          </Tooltip>
+          <Tooltip title="Edit Prospect">
+            <Button
+              type="default"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              style={{ borderColor: "#faad14", color: "#faad14" }}
+            >
+              Edit
+            </Button>
+          </Tooltip>
+          <Popconfirm
+            title="Delete Prospect"
+            description={`Are you sure you want to delete ${record.name}?`}
+            onConfirm={() => handleDelete(record.id, record.name)}
+            okText="Yes"
+            cancelText="No"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+            >
+              Delete
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+    {
+      title: "Convert",
+      key: "convert",
+      width: 110,
+      fixed: "right",
+      render: (_, record) => (
+        <Popconfirm
+          title="Convert to Client"
+          description={`Convert ${record.name} to Client?`}
+          onConfirm={() => handleConvertToClient(record)}
+          okText="Yes"
+          cancelText="No"
         >
-          To Client
-        </Button>
+          <Button
+            type="primary"
+            size="small"
+            icon={<SwapOutlined />}
+            style={{
+              backgroundColor: "#52c41a",
+              borderColor: "#52c41a",
+            }}
+          >
+            To Client
+          </Button>
+        </Popconfirm>
       ),
-      ignoreRowClick: true,
-      width: "120px",
     },
   ];
 
-  if (loading)
+  if (loading && prospects.length === 0) {
     return (
-      <div className="text-center mt-4">
-        <Spinner animation="border" />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "400px",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <Spin size="large" />
+        <Text type="secondary">Loading prospects...</Text>
       </div>
     );
+  }
 
   return (
-    <div className="w-100 p-2 mt-4">
-      <div className="d-flex align-items-center mb-3">
-        <UserOutlined
-          style={{ fontSize: "24px", color: "#1890ff", marginRight: "10px" }}
-        />
-        <h3 style={{ margin: 0 }}>Prospects List</h3>
-        <span
-          style={{
-            marginLeft: "15px",
-            backgroundColor: "#52c41a",
-            color: "white",
-            padding: "4px 12px",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "bold",
-          }}
-        >
-          {filteredData.length} Prospects
-        </span>
-        <div className="ms-auto">
-          <Button
-            variant="primary"
-            onClick={fetchProspects}
-            disabled={loading}
+    <div style={{ padding: "24px" }}>
+      <Card
+        bordered={false}
+        style={{
+          boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)",
+        }}
+      >
+        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          {/* Header */}
+          <div
             style={{
               display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
-              gap: "4px",
+              flexWrap: "wrap",
+              gap: "16px",
             }}
           >
-            {loading ? <Spinner size="sm" /> : "Refresh"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="card shadow-sm">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          pagination
-          defaultSortFieldId="createdAt"
-          defaultSortAsc={false}
-          highlightOnHover
-          responsive
-          striped
-          bordered
-          fixedHeader
-          fixedHeaderScrollHeight="600px"
-          progressPending={loading}
-          progressComponent={
-            <div className="py-5">
-              <Spinner animation="border" />
-            </div>
-          }
-          subHeader
-          subHeaderComponent={
-            <div className="w-100 d-flex justify-content-between">
-              <div className="input-group" style={{ maxWidth: "600px" }}>
-                <span className="input-group-text">
-                  <SearchOutlined />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search prospects by name, mobile, email, organisation, etc..."
-                  className="form-control"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-              </div>
-              <div className="ms-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setSearchText("")}
-                  disabled={!searchText}
+            <Space direction="vertical" size={4}>
+              <Space align="center" size={12}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    backgroundColor: "#e6f7ff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  Clear
-                </Button>
-              </div>
+                  <UserOutlined style={{ fontSize: 24, color: "#1890ff" }} />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0 }}>
+                    Prospects List
+                  </Title>
+                  <Badge
+                    
+                    style={{ backgroundColor: "#52c41a" }}
+                    showZero
+                  >
+                    <Text type="secondary" style={{ marginLeft: 8 }}>
+                      Total Prospects
+                    </Text>
+                  </Badge>
+                </div>
+              </Space>
+            </Space>
+
+            <Space>
+              <Input
+                placeholder="Search by name, mobile, email, organisation..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 350 }}
+                allowClear
+                size="large"
+              />
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                size="large"
+              >
+                Refresh
+              </Button>
+            </Space>
+          </div>
+
+          {/* Quick Stats */}
+          {filteredData.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: "16px",
+                flexWrap: "wrap",
+                padding: "12px 0",
+                borderBottom: "1px solid #f0f0f0",
+              }}
+            >
+              <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
+                <UserOutlined /> Total: {filteredData.length}
+              </Tag>
+             
             </div>
-          }
-          customStyles={{
-            headCells: {
-              style: {
-                backgroundColor: "#f8f9fa",
-                fontWeight: "bold",
-                fontSize: "14px",
-              },
-            },
-            cells: {
-              style: {
-                padding: "12px",
-                verticalAlign: "middle",
-                fontSize: "14px",
-              },
-            },
-            rows: {
-              style: {
-                "&:hover": {
-                  backgroundColor: "#f5f5f5",
-                },
-              },
-            },
-          }}
-        />
-      </div>
+          )}
+
+          {/* Table */}
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            pagination={tableParams.pagination}
+            onChange={handleTableChange}
+            loading={loading}
+            scroll={{ x: 2000, y: "calc(100vh - 350px)" }}
+            size="middle"
+            bordered
+            sticky
+            rowKey="id"
+            showSorterTooltip
+            tableLayout="auto"
+            locale={{
+              emptyText: (
+                <Empty
+                  description={
+                    searchText
+                      ? "No prospects match your search criteria"
+                      : "No prospects found"
+                  }
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
+          />
+        </Space>
+      </Card>
     </div>
   );
 }

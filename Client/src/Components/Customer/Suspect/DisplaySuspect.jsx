@@ -1,15 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, Spinner } from "react-bootstrap";
-import DataTable from "react-data-table-component";
+import { Button, Spin, Dropdown, Space, Card, Typography, Input, Tag } from "antd";
+import { 
+  SearchOutlined, 
+  ReloadOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  EyeOutlined,
+  DownOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
+  CalendarOutlined
+} from "@ant-design/icons";
+import Table from "antd/es/table";
 import { toast } from "react-toastify";
 import {
   deleteSuspectById,
   updateSuspectStatus,
 } from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { useNavigate } from "react-router-dom";
-import { Dropdown, ButtonGroup } from "react-bootstrap";
-import axios from "../../../config/axios"; // Import axios directly
+import axios from "../../../config/axios";
+
+const { Title, Text } = Typography;
 
 function DisplaySuspect() {
   const dispatch = useDispatch();
@@ -19,8 +33,16 @@ function DisplaySuspect() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [filteredData, setFilteredData] = useState([]);
+  const [tableParams, setTableParams] = useState({
+    pagination: {
+      current: 1,
+      pageSize: 10,
+      showSizeChanger: true,
+      pageSizeOptions: ['10', '20', '50', '100'],
+      showTotal: (total) => `Total ${total} items`,
+    },
+  });
 
-  // Function to fetch appointment scheduled suspects directly from API
   const fetchAppointmentSuspects = async () => {
     try {
       setLoading(true);
@@ -28,7 +50,6 @@ function DisplaySuspect() {
       const response = await axios.get(`/api/suspect/allappointmentscheduled`);
       console.log("API Response:", response.data);
 
-      // Handle different response structures
       let suspectsData;
       if (response.data.data?.appointments) {
         suspectsData = response.data.data.appointments;
@@ -57,17 +78,14 @@ function DisplaySuspect() {
   }, []);
 
   useEffect(() => {
-    // Process and filter data
     const mappedData = suspects.map((suspect) => {
       const personal = suspect.personalDetails || {};
 
-      // Get appointment scheduled information
       const appointmentTasks =
         suspect.callTasks?.filter(
           (task) => task.taskStatus === "Appointment Scheduled"
         ) || [];
 
-      // Get the latest appointment
       const latestAppointment = appointmentTasks.reduce((latest, task) => {
         if (!latest) return task;
         const taskDate = new Date(task.taskDate || 0);
@@ -75,7 +93,6 @@ function DisplaySuspect() {
         return taskDate > latestDate ? task : latest;
       }, null);
 
-      // Get telecaller information
       const telecallerName =
         suspect.assignedTo?.username ||
         (suspect.assignedTo && typeof suspect.assignedTo === "object"
@@ -84,21 +101,20 @@ function DisplaySuspect() {
       const telecallerMobile = suspect.assignedTo?.mobileno || "-";
 
       return {
+        key: suspect._id,
         id: suspect._id,
         groupCode: personal.groupCode || "-",
         grade: personal.grade || "-",
         groupName: personal.groupName || "-",
         name: personal.name || "-",
         gender: personal.gender || "-",
-        mobile: personal.mobileNo ? `Mobile: ${personal.mobileNo}` : "",
-        contactNo: personal.contactNo ? `Contact: ${personal.contactNo}` : "",
+        mobile: personal.mobileNo || "",
+        contactNo: personal.contactNo || "",
         leadSource: personal.leadSource || "-",
         leadName: personal.leadName || "-",
         area: personal.preferredMeetingArea || "-",
         callingPurpose: personal.callingPurpose || "-",
         createdAt: suspect.createdAt || new Date().toISOString(),
-
-        // Appointment related fields
         appointmentDate: latestAppointment?.nextAppointmentDate
           ? new Date(latestAppointment.nextAppointmentDate).toLocaleDateString()
           : "Not set",
@@ -106,10 +122,11 @@ function DisplaySuspect() {
         scheduledDate: latestAppointment?.taskDate
           ? new Date(latestAppointment.taskDate).toLocaleDateString()
           : "Not set",
-
         appointmentRemarks: latestAppointment?.taskRemarks || "-",
-        rawAppointmentDate: latestAppointment?.nextAppointmentDate, // For sorting
-        rawSuspectData: suspect, // Keep original data for reference
+        rawAppointmentDate: latestAppointment?.nextAppointmentDate,
+        rawSuspectData: suspect,
+        telecallerName,
+        telecallerMobile,
       };
     });
 
@@ -152,7 +169,6 @@ function DisplaySuspect() {
       try {
         await dispatch(deleteSuspectById(id)).unwrap();
         toast.success("Suspect deleted successfully");
-        // Refresh the list
         fetchAppointmentSuspects();
       } catch (err) {
         toast.error(err || "Failed to delete suspect");
@@ -173,7 +189,6 @@ function DisplaySuspect() {
       .unwrap()
       .then(() => {
         toast.success("Suspect status updated successfully");
-        // Refresh the list
         fetchAppointmentSuspects();
       })
       .catch((err) => {
@@ -185,260 +200,340 @@ function DisplaySuspect() {
     fetchAppointmentSuspects();
   };
 
+  const handleTableChange = (pagination, filters, sorter) => {
+    setTableParams({
+      pagination,
+      filters,
+      ...sorter,
+    });
+  };
+
+  const getGenderColor = (gender) => {
+    switch(gender?.toLowerCase()) {
+      case 'male': return 'blue';
+      case 'female': return 'pink';
+      default: return 'default';
+    }
+  };
+
   const columns = [
     {
-      name: "#",
-      cell: (row, index) => index + 1,
-      sortable: false,
-      width: "60px",
-    },
-    {
-      name: "Group Code",
-      selector: (row) => row.groupCode,
-      sortable: false,
-      width: "120px",
-    },
-    {
-      name: "Grade",
-      selector: (row) => row.grade,
-      sortable: false,
-      width: "80px",
-      center: true,
-    },
-    {
-      name: "Group Head",
-      selector: (row) => row.groupName,
-      sortable: false,
-      width: "150px",
-    },
-    {
-      name: "Name",
-      selector: (row) => row.name,
-      sortable: false,
-      width: "150px",
-    },
-    {
-      name: "Gender",
-      selector: (row) => row.gender,
-      sortable: false,
-      width: "100px",
-    },
-    {
-      name: "Contact Numbers",
-      cell: (row) => (
-        <div style={{ whiteSpace: "pre-line", lineHeight: "1.4" }}>
-          {row.mobile && <div>{row.mobile}</div>}
-          {row.contactNo && <div>{row.contactNo}</div>}
-          {!row.mobile && !row.contactNo && "-"}
-        </div>
+      title: '#',
+      width: 60,
+      align: 'center',
+      render: (_, __, index) => (
+        <Text type="secondary">
+          {(tableParams.pagination.current - 1) * tableParams.pagination.pageSize + index + 1}
+        </Text>
       ),
-      sortable: false,
-      width: "180px",
     },
     {
-      name: "Lead Source",
-      selector: (row) => row.leadSource,
-      sortable: false,
-      width: "150px",
+      title: 'Group Code',
+      dataIndex: 'groupCode',
+      key: 'groupCode',
+      width: 120,
+      sorter: (a, b) => a.groupCode.localeCompare(b.groupCode),
+      render: (text) => <Tag color="orange">{text}</Tag>,
     },
     {
-      name: "Lead Name",
-      selector: (row) => row.leadName,
-      sortable: false,
-      width: "150px",
+      title: 'Grade',
+      dataIndex: 'grade',
+      key: 'grade',
+      width: 80,
+      align: 'center',
+      sorter: (a, b) => a.grade - b.grade,
+      render: (text) => (
+        <Tag color={text === 'A' ? 'green' : text === 'B' ? 'orange' : 'default'}>
+          {text}
+        </Tag>
+      ),
     },
     {
-      name: "Area",
-      selector: (row) => row.area,
-      sortable: false,
-      width: "150px",
+      title: 'Group Head',
+      dataIndex: 'groupName',
+      key: 'groupName',
+      width: 150,
+      sorter: (a, b) => a.groupName.localeCompare(b.groupName),
+      render: (text) => (
+        <Space>
+          <UserOutlined />
+          {text}
+        </Space>
+      ),
     },
     {
-      name: "Calling Purpose",
-      selector: (row) => row.callingPurpose,
-      sortable: false,
-      width: "150px",
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 150,
+      sorter: (a, b) => a.name.localeCompare(b.name),
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Tag color={getGenderColor(record.gender)}>{record.gender}</Tag>
+        </Space>
+      ),
     },
     {
-      name: "Appointment Date",
-      selector: (row) => row.appointmentDate,
-      sortable: true,
-      sortFunction: (a, b) => {
-        return (
-          new Date(a.rawAppointmentDate || 0) -
-          new Date(b.rawAppointmentDate || 0)
-        );
+      title: 'Contact Info',
+      key: 'contact',
+      width: 180,
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          {record.mobile && (
+            <Space size={4}>
+              <PhoneOutlined />
+              <Text>{record.mobile}</Text>
+            </Space>
+          )}
+          {record.contactNo && (
+            <Space size={4}>
+              <PhoneOutlined />
+              <Text type="secondary">{record.contactNo}</Text>
+            </Space>
+          )}
+          {!record.mobile && !record.contactNo && <Text type="secondary">-</Text>}
+        </Space>
+      ),
+    },
+    {
+      title: 'Lead Source',
+      dataIndex: 'leadSource',
+      key: 'leadSource',
+      width: 130,
+      sorter: (a, b) => a.leadSource.localeCompare(b.leadSource),
+      render: (text) => (
+        <Tag color="purple">{text}</Tag>
+      ),
+    },
+    {
+      title: 'Lead Name',
+      dataIndex: 'leadName',
+      key: 'leadName',
+      width: 130,
+      sorter: (a, b) => a.leadName.localeCompare(b.leadName),
+    },
+    {
+      title: 'Area',
+      dataIndex: 'area',
+      key: 'area',
+      width: 130,
+      sorter: (a, b) => a.area.localeCompare(b.area),
+      render: (text) => (
+        <Space>
+          <EnvironmentOutlined />
+          {text}
+        </Space>
+      ),
+    },
+    {
+      title: 'Calling Purpose',
+      dataIndex: 'callingPurpose',
+      key: 'callingPurpose',
+      width: 130,
+      sorter: (a, b) => a.callingPurpose.localeCompare(b.callingPurpose),
+    },
+    {
+      title: 'Appointment Date',
+      dataIndex: 'appointmentDate',
+      key: 'appointmentDate',
+      width: 150,
+      sorter: (a, b) => {
+        return new Date(a.rawAppointmentDate || 0) - new Date(b.rawAppointmentDate || 0);
       },
-      width: "190px",
+      defaultSortOrder: 'ascend',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Space>
+            <CalendarOutlined />
+            <Text>{text}</Text>
+          </Space>
+          <Space>
+            <ClockCircleOutlined />
+            <Text type="secondary">{record.appointmentTime}</Text>
+          </Space>
+        </Space>
+      ),
     },
     {
-      name: "Appointment Time",
-      selector: (row) => row.appointmentTime,
-      sortable: false,
-      width: "190px",
+      title: 'Scheduled Date',
+      dataIndex: 'scheduledDate',
+      key: 'scheduledDate',
+      width: 130,
+      sorter: (a, b) => a.scheduledDate.localeCompare(b.scheduledDate),
+      render: (text) => (
+        <Space>
+          <ClockCircleOutlined />
+          {text}
+        </Space>
+      ),
     },
     {
-      name: "Scheduled Date",
-      selector: (row) => row.scheduledDate,
-      sortable: false,
-      width: "190px",
+      title: 'Remarks',
+      dataIndex: 'appointmentRemarks',
+      key: 'appointmentRemarks',
+      width: 180,
+      ellipsis: true,
+      render: (text) => (
+        <Text 
+          ellipsis={{ tooltip: text }}
+          style={{ maxWidth: 160 }}
+        >
+          {text}
+        </Text>
+      ),
     },
-
     {
-      name: "Appointment Remarks",
-      selector: (row) => row.appointmentRemarks,
-      sortable: false,
-      width: "180px",
-      wrap: true,
-    },
-    {
-      name: "Actions",
-      cell: (row) => (
-        <div className="d-flex flex-wrap gap-1">
+      title: 'Actions',
+      key: 'actions',
+      width: 220,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space wrap>
           <Button
-            variant="warning"
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="text-nowrap"
+            type="primary"
+            ghost
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
           >
             Edit
           </Button>
           <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDelete(row.id)}
-            className="text-nowrap"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
           >
             Delete
           </Button>
           <Button
-            variant="success"
-            size="sm"
-            onClick={() => handleView(row.id)}
-            className="text-nowrap"
+            type="primary"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record.id)}
           >
             View
           </Button>
-        </div>
+        </Space>
       ),
-      ignoreRowClick: true,
-      width: "220px",
     },
     {
-      name: "Convert",
-      cell: (row) => (
-        <Dropdown as={ButtonGroup}>
-          <Dropdown.Toggle variant="primary" size="sm" className="text-nowrap">
-            Convert Status
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item
-              onClick={() => handleConvertStatus(row.id, "client")}
-            >
-              Client
-            </Dropdown.Item>
-            <Dropdown.Item
-              onClick={() => handleConvertStatus(row.id, "prospect")}
-            >
-              Prospect
-            </Dropdown.Item>
-          </Dropdown.Menu>
+      title: 'Convert',
+      key: 'convert',
+      width: 140,
+      fixed: 'right',
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'client',
+                label: 'Convert to Client',
+                onClick: () => handleConvertStatus(record.id, 'client'),
+              },
+              {
+                key: 'prospect',
+                label: 'Convert to Prospect',
+                onClick: () => handleConvertStatus(record.id, 'prospect'),
+              },
+            ],
+          }}
+        >
+          <Button type="primary" size="small">
+            Convert <DownOutlined />
+          </Button>
         </Dropdown>
       ),
-      ignoreRowClick: true,
-      width: "140px",
     },
   ];
 
-  if (loading)
+  if (loading && suspects.length === 0) {
     return (
-      <div className="text-center mt-4">
-        <Spinner animation="border" />
-        <p>Loading appointment scheduled suspects...</p>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '400px',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <Spin size="large" />
+        <Text type="secondary">Loading appointment scheduled suspects...</Text>
       </div>
     );
+  }
 
-  if (error) return <p className="text-danger">Error: {error}</p>;
+  if (error) {
+    return (
+      <Card>
+        <Text type="danger">Error: {error}</Text>
+      </Card>
+    );
+  }
 
   return (
-    <div className="w-100 p-2 mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h3 className="mb-0">Appointment Scheduled Suspect List</h3>
-          <p className="text-muted mb-0">
-            Showing {filteredData.length} suspects with "Appointment Scheduled"
-            status
-          </p>
-        </div>
-        <div className="d-flex gap-2">
-          <Button
-            variant="info"
-            onClick={handleRefresh}
-            className="text-nowrap"
-          >
-            <i className="bi bi-arrow-clockwise me-1"></i> Refresh
-          </Button>
-        </div>
-      </div>
-
-      <div className="card shadow-sm">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          pagination
-          defaultSortFieldId="appointmentDate"
-          defaultSortAsc={true}
-          highlightOnHover
-          responsive
-          striped
-          bordered
-          fixedHeader
-          fixedHeaderScrollHeight="600px"
-          progressPending={loading}
-          progressComponent={
-            <div className="py-5">
-              <Spinner animation="border" />
-            </div>
-          }
-          subHeader
-          subHeaderComponent={
-            <div className="w-100 d-flex justify-content-between">
-              <input
-                type="text"
-                placeholder="Search by Group Code, Grade, Name, Contact, Telecaller, or Appointment Date..."
-                className="form-control"
+    <div style={{ padding: '10px' }}>
+      <Card 
+        bordered={false}
+        style={{ 
+          boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)'
+        }}
+      >
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <Space direction="vertical" size={4}>
+              <Title level={4} style={{ margin: 0 }}>
+                Appointment Scheduled Suspects
+              </Title>
+              <Text type="secondary">
+                Showing {filteredData.length} suspects with "Appointment Scheduled" status
+              </Text>
+            </Space>
+            
+            <Space>
+              <Input
+                placeholder="Search by any field..."
+                prefix={<SearchOutlined />}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 280 }}
+                allowClear
               />
-              <div className="d-flex gap-2 ms-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setSearchText("")}
-                  disabled={!searchText}
-                >
-                  Clear
-                </Button>
-              </div>
-            </div>
-          }
-          customStyles={{
-            headCells: {
-              style: {
-                backgroundColor: "#f8f9fa",
-                fontWeight: "bold",
-                fontSize: "14px",
-              },
-            },
-            cells: {
-              style: {
-                padding: "8px",
-                verticalAlign: "middle",
-                fontSize: "13px",
-              },
-            },
-          }}
-        />
-      </div>
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={handleRefresh}
+              >
+                Refresh
+              </Button>
+            </Space>
+          </div>
+
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            pagination={tableParams.pagination}
+            onChange={handleTableChange}
+            loading={loading}
+            scroll={{ 
+              x: 2200,
+              y: 'calc(100vh - 300px)'
+            }}
+            size="middle"
+            bordered
+            sticky
+            rowKey="id"
+            showSorterTooltip
+            tableLayout="auto"
+          />
+        </Space>
+      </Card>
     </div>
   );
 }

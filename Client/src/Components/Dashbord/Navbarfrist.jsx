@@ -524,60 +524,7 @@ const Navbarfristn = () => {
                 {openDropdown === "departments" && (
                   <div className="absolute left-0 top-full z-50 mt-0 w-[920px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-4 gap-4">
-                      {/* HR Department */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          HR Department
-                        </h6>
-                        <div className="space-y-1">
-                          {[{ name: "All Employees", to: "/add-employee" }].map(
-                            (item, idx) => (
-                              <Link
-                                key={idx}
-                                to={item.to}
-                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                                onClick={closeAllDropdowns}
-                              >
-                                {item.name}
-                              </Link>
-                            )
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Account Department */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Account Department
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            { name: "Income Head", to: "/income-head" },
-                            { name: "Expenses Head", to: "/expenses-head" },
-                            { name: "Salary & Wages", to: "/salary-wages" },
-                            { name: "Incentives", to: "/incentives" },
-                            { name: "Office Purchase", to: "/office-purchase" },
-                            {
-                              name: "Utility Expenses",
-                              to: "/utility-expenses",
-                            },
-                            { name: "Loss & Discount", to: "/loss-discount" },
-                            {
-                              name: "Promotional Expenses",
-                              to: "/promotional-expenses",
-                            },
-                          ].map((item, idx) => (
-                            <Link
-                              key={idx}
-                              to={item.to}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item.name}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
+                     
 
                       {/* Marketing Department */}
                       <div>
@@ -646,18 +593,7 @@ const Navbarfristn = () => {
                           ))}
                         </div>
 
-                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
-                          RM
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/crm-department"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            RM Department
-                          </Link>
-                        </div>
+                       
                       </div>
                     </div>
                   </div>
@@ -796,7 +732,7 @@ const Navbarfristn = () => {
                   <div className="absolute left-0 top-full z-50 mt-0 w-[440px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-2 gap-4">
                       {/* CRM Records */}
-                      <div>
+                      {/* <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
                           CRM RECORDS
                         </h6>
@@ -817,7 +753,7 @@ const Navbarfristn = () => {
                             </Link>
                           ))}
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* CRM Activities */}
                       <div>
@@ -845,7 +781,7 @@ const Navbarfristn = () => {
                       </div>
 
                       {/* CRM Insurance & Funds */}
-                      <div className="col-span-2">
+                      {/* <div className="col-span-2">
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
                           CRM INSURANCE & FUNDS
                         </h6>
@@ -868,7 +804,7 @@ const Navbarfristn = () => {
                             </Link>
                           ))}
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 )}
