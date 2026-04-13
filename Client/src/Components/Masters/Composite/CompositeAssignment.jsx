@@ -4,58 +4,76 @@ import {
   Button,
   Modal,
   Form,
-  Badge,
+  Tag,
   Card,
   Alert,
-  Pagination,
+  Space,
   Dropdown,
-  InputGroup,
-  FormControl,
+  Input,
   Row,
   Col,
-  ListGroup,
-  Spinner,
-} from "react-bootstrap";
-import axios from "axios";
+  List,
+  Spin,
+  Badge,
+  Typography,
+  Divider,
+  Tooltip,
+  Empty,
+  Select,
+  DatePicker,
+  message,
+  Checkbox,
+  Pagination,
+} from "antd";
 import {
-  FaUserCheck,
-  FaCalendarAlt,
-  FaUsers,
-  FaClock,
-  FaPaperPlane,
-  FaFilter,
-  FaSearch,
-  FaExclamationCircle,
-  FaFlag,
-  FaStar,
-  FaCalendarDay,
-  FaCheck,
-  FaUserFriends,
-  FaList,
-  FaCheckCircle,
-  FaUserPlus,
-  FaTimes,
-  FaEye,
-  FaEdit,
-  FaTrash,
-  FaHistory,
-  FaBuilding,
-  FaListAlt,
-  FaUserTie,
-  FaSort,
-  FaSortUp,
-  FaSortDown,
-  FaSync,
-} from "react-icons/fa";
+  UserOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+  ClockCircleOutlined,
+  SendOutlined,
+  FilterOutlined,
+  SearchOutlined,
+  ExclamationCircleOutlined,
+  FlagOutlined,
+  StarOutlined,
+  CalendarFilled,
+  CheckOutlined,
+  UsergroupAddOutlined,
+  UnorderedListOutlined,
+  CheckCircleOutlined,
+  UserAddOutlined,
+  CloseOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  HistoryOutlined,
+  BuildOutlined,
+  AppstoreOutlined,
+  UserSwitchOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+  SyncOutlined,
+  ReloadOutlined,
+  ClearOutlined,
+  DownOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import axios from "axios";
 
-// ✅ Import ClientProspectSelectionModal
+// Import ClientProspectSelectionModal
 import ClientProspectSelectionModal from "../ClientProspectSelectionModal";
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
 
 const CompositeAssignments = () => {
   const [compositeTasks, setCompositeTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [employeesByRole, setEmployeesByRole] = useState({});
@@ -63,7 +81,7 @@ const CompositeAssignments = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // ✅ NEW: Client/Prospect Modal State
+  // Client/Prospect Modal State
   const [showClientProspectModal, setShowClientProspectModal] = useState(false);
 
   // Assign Form State
@@ -72,7 +90,6 @@ const CompositeAssignments = () => {
     remarks: "",
     dueDate: "",
     selectedEmployees: {},
-    // ✅ NEW: Client/Prospect fields
     selectedClients: [],
     selectedProspects: [],
     clientRemarks: "",
@@ -81,10 +98,9 @@ const CompositeAssignments = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [form] = Form.useForm();
 
-  // Fetch composite tasks - सिर्फ TEMPLATE status वाले
+  // Fetch composite tasks
   const fetchCompositeTasks = async () => {
     setLoading(true);
     setRefreshing(true);
@@ -93,45 +109,37 @@ const CompositeAssignments = () => {
         "/api/Task?type=composite&status=template"
       );
       const tasks = response.data?.tasks || response.data || [];
-      console.log(tasks);
       setCompositeTasks(tasks);
     } catch (error) {
       console.error("Error fetching composite tasks:", error);
-      setErrorMessage("Failed to load tasks. Please try again.");
+      message.error("Failed to load tasks. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Fetch employees by role - EmployeeList वाला ही API use करें
+  // Fetch employees by role
   const fetchEmployeesByRole = async (roles) => {
     setLoadingEmployees(true);
     try {
       const employeesMap = {};
 
-      // सभी employees एक बार में fetch करें
       const allEmployeesResponse = await axios.get(
         "/api/employee/getAllEmployees"
       );
 
       let allEmployees = [];
 
-      // Response structure check करें
       if (allEmployeesResponse.data) {
-        // Structure 1: { success: true, data: [...] }
         if (
           allEmployeesResponse.data.success &&
           Array.isArray(allEmployeesResponse.data.data)
         ) {
           allEmployees = allEmployeesResponse.data.data;
-        }
-        // Structure 2: Direct array
-        else if (Array.isArray(allEmployeesResponse.data)) {
+        } else if (Array.isArray(allEmployeesResponse.data)) {
           allEmployees = allEmployeesResponse.data;
-        }
-        // Structure 3: { employees: [...] }
-        else if (
+        } else if (
           allEmployeesResponse.data.employees &&
           Array.isArray(allEmployeesResponse.data.employees)
         ) {
@@ -139,15 +147,10 @@ const CompositeAssignments = () => {
         }
       }
 
-      console.log(`Total employees fetched: ${allEmployees.length}`);
-
-      // हर role के लिए employees filter करें
       roles.forEach((role) => {
-        // Case-insensitive role match
         const normalizedRole = role.toLowerCase();
 
         const roleEmployees = allEmployees.filter((emp) => {
-          // Check multiple possible role fields
           const empRole = (
             emp.role ||
             emp.designation ||
@@ -158,7 +161,6 @@ const CompositeAssignments = () => {
             empRole.includes(normalizedRole) ||
             normalizedRole.includes(empRole);
 
-          // Check if employee is active (not terminated)
           const isActive =
             !emp.dateOfTermination &&
             !emp.terminationDate &&
@@ -172,15 +174,12 @@ const CompositeAssignments = () => {
         });
 
         employeesMap[role] = roleEmployees;
-        console.log(
-          `Role "${role}" has ${roleEmployees.length} active employees`
-        );
       });
 
       setEmployeesByRole(employeesMap);
     } catch (error) {
       console.error("Error in fetchEmployeesByRole:", error);
-      setErrorMessage("Failed to load employees. Please try again.");
+      message.error("Failed to load employees. Please try again.");
     } finally {
       setLoadingEmployees(false);
     }
@@ -198,21 +197,17 @@ const CompositeAssignments = () => {
       fetchEmployeesByRole(task.depart);
     }
 
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + (task.estimatedDays || 1));
+    const dueDate = dayjs().add(task.estimatedDays || 1, "day");
 
-    // Existing assignments को pre-select करें
     const existingSelections = {};
     if (task.assignments && task.assignments.length > 0) {
       task.assignments.forEach((assignment) => {
         if (assignment.employeeId && assignment.employeeRole) {
           const role = assignment.employeeRole;
           if (!existingSelections[role]) {
-            existingSelections[role] = assignment.employeeId;
+            existingSelections[role] = [assignment.employeeId];
           } else {
-            existingSelections[role] = existingSelections[role]
-              ? `${existingSelections[role]},${assignment.employeeId}`
-              : assignment.employeeId;
+            existingSelections[role].push(assignment.employeeId);
           }
         }
       });
@@ -221,9 +216,8 @@ const CompositeAssignments = () => {
     setAssignForm({
       priority: task.templatePriority || "medium",
       remarks: "",
-      dueDate: dueDate.toISOString().split("T")[0],
+      dueDate: dueDate,
       selectedEmployees: existingSelections,
-      // ✅ NEW: Add existing client/prospect selections
       selectedClients: task.assignedClients || [],
       selectedProspects: task.assignedProspects || [],
       clientRemarks: "",
@@ -233,16 +227,13 @@ const CompositeAssignments = () => {
     setShowAssignModal(true);
   };
 
-  // ✅ NEW: Handle Client/Prospect Selection Button Click
+  // Handle Client/Prospect Selection
   const handleClientProspectSelect = () => {
     setShowClientProspectModal(true);
   };
 
-  // ✅ NEW: Handle Client/Prospect Selection Confirm
+  // Handle Client/Prospect Selection Confirm
   const handleClientProspectConfirm = (selectionData) => {
-    console.log("🎯 Client/Prospect Selection Confirmed:", selectionData);
-
-    // Update assignForm with new selections
     setAssignForm((prev) => ({
       ...prev,
       selectedClients: selectionData.clients,
@@ -251,29 +242,35 @@ const CompositeAssignments = () => {
       prospectRemarks: selectionData.prospectRemarks,
     }));
 
-    // Show success message
-    const successMsg = `Selected ${selectionData.clients.length} client(s) and ${selectionData.prospects.length} prospect(s)`;
-    setSuccessMessage(successMsg);
-    setTimeout(() => setSuccessMessage(""), 3000);
+    const totalSelected =
+      selectionData.clients.length + selectionData.prospects.length;
+    if (totalSelected > 0) {
+      message.success(
+        `Selected ${selectionData.clients.length} client(s) and ${selectionData.prospects.length} prospect(s)`
+      );
+    }
 
-    // Close the modal
     setShowClientProspectModal(false);
   };
 
   // Handle employee selection
-  const handleEmployeeSelect = (role, employeeId) => {
+  const handleEmployeeSelect = (role, employeeId, checked) => {
     setAssignForm((prev) => {
-      const current = prev.selectedEmployees[role] || "";
+      const current = prev.selectedEmployees[role] || [];
 
-      // FIX: Check if current is a string before calling includes
-      if (typeof current === "string" && current.includes(employeeId)) {
-        const updated = current
-          .split(",")
-          .filter((id) => id !== employeeId)
-          .join(",");
+      if (checked) {
+        return {
+          ...prev,
+          selectedEmployees: {
+            ...prev.selectedEmployees,
+            [role]: [...current, employeeId],
+          },
+        };
+      } else {
+        const updated = current.filter((id) => id !== employeeId);
         const newSelected = { ...prev.selectedEmployees };
 
-        if (updated === "") {
+        if (updated.length === 0) {
           delete newSelected[role];
         } else {
           newSelected[role] = updated;
@@ -283,107 +280,64 @@ const CompositeAssignments = () => {
           ...prev,
           selectedEmployees: newSelected,
         };
-      } else {
-        const newValue = current ? `${current},${employeeId}` : employeeId;
-        return {
-          ...prev,
-          selectedEmployees: {
-            ...prev.selectedEmployees,
-            [role]: newValue,
-          },
-        };
       }
     });
   };
 
   // Select ALL employees for a role
-  const handleSelectAllForRole = (role) => {
+  const handleSelectAllForRole = (role, checked) => {
     const allEmployees = employeesByRole[role] || [];
     if (allEmployees.length === 0) return;
 
-    const allEmployeeIds = allEmployees.map((emp) => emp._id).join(",");
-
-    setAssignForm((prev) => ({
-      ...prev,
-      selectedEmployees: {
-        ...prev.selectedEmployees,
-        [role]: allEmployeeIds,
-      },
-    }));
-  };
-
-  // Clear selection for a role
-  const handleClearSelectionForRole = (role) => {
     setAssignForm((prev) => {
-      const newSelected = { ...prev.selectedEmployees };
-      delete newSelected[role];
-      return {
-        ...prev,
-        selectedEmployees: newSelected,
-      };
+      if (checked) {
+        const allEmployeeIds = allEmployees.map((emp) => emp._id);
+        return {
+          ...prev,
+          selectedEmployees: {
+            ...prev.selectedEmployees,
+            [role]: allEmployeeIds,
+          },
+        };
+      } else {
+        const newSelected = { ...prev.selectedEmployees };
+        delete newSelected[role];
+        return {
+          ...prev,
+          selectedEmployees: newSelected,
+        };
+      }
     });
   };
 
-  // Handle priority change
-  const handlePriorityChange = (e) => {
-    setAssignForm({ ...assignForm, priority: e.target.value });
-  };
-
   // Submit assignment
-  // Submit assignment - Updated with debugging
   const handleAssignSubmit = async () => {
     if (!selectedTask) return;
 
     try {
-      console.log("🚀 Starting assignment process...");
-      console.log("📝 Selected Task:", selectedTask);
-      console.log("👥 Current User:", JSON.parse(localStorage.getItem("user")));
-
       const assignments = [];
 
-      // ✅ DEBUG: Check what employees are selected
-      console.log(
-        "🔍 Selected Employees Object:",
-        assignForm.selectedEmployees
-      );
-
       Object.entries(assignForm.selectedEmployees).forEach(
-        ([role, employeeValue]) => {
-          console.log(`📋 Processing role "${role}":`, employeeValue);
-
-          // FIX: Check if employeeValue exists and is a string
-          if (employeeValue) {
-            const employeeIds =
-              typeof employeeValue === "string"
-                ? employeeValue.split(",").filter((id) => id.trim())
-                : [String(employeeValue)].filter((id) => id.trim());
-
-            console.log(`🆔 Employee IDs for ${role}:`, employeeIds);
-
-            employeeIds.forEach((employeeId) => {
-              if (employeeId.trim()) {
-                assignments.push({
-                  employeeId: employeeId.trim(),
-                  employeeRole: role,
-                  priority: assignForm.priority,
-                  remarks: assignForm.remarks,
-                  dueDate: assignForm.dueDate,
-                });
-              }
-            });
-          }
+        ([role, employeeIds]) => {
+          employeeIds.forEach((employeeId) => {
+            if (employeeId) {
+              assignments.push({
+                employeeId: employeeId,
+                employeeRole: role,
+                priority: assignForm.priority,
+                remarks: assignForm.remarks,
+                dueDate: assignForm.dueDate.format("YYYY-MM-DD"),
+              });
+            }
+          });
         }
       );
 
-      console.log("✅ Final assignments array:", assignments);
-
       if (assignments.length === 0) {
-        setErrorMessage("Please select at least one employee to assign");
-        setTimeout(() => setErrorMessage(""), 3000);
+        message.warning("Please select at least one employee to assign");
         return;
       }
 
-      // ✅ Prepare client/prospect data
       const clientProspectData = {
         clients: assignForm.selectedClients || [],
         prospects: assignForm.selectedProspects || [],
@@ -391,136 +345,94 @@ const CompositeAssignments = () => {
         prospectAssignmentRemarks: assignForm.prospectRemarks || "",
       };
 
-      console.log("🎯 Client/Prospect Data:", clientProspectData);
-
-      const confirmMessage = `Assign "${selectedTask.name}" to ${
-        assignments.length
-      } employee(s)?
-    
-    ${
-      assignForm.selectedClients?.length > 0
-        ? `• For ${assignForm.selectedClients.length} client(s)\n`
-        : ""
-    }
-    ${
-      assignForm.selectedProspects?.length > 0
-        ? `• For ${assignForm.selectedProspects.length} prospect(s)`
-        : ""
-    }
-    
-    Do you want to proceed?`;
-
-      if (!window.confirm(confirmMessage)) {
-        return;
-      }
-
-      // ✅ DEBUG: Check API endpoint and payload
-      const apiEndpoint = "/api/Task/assign-composite";
       const payload = {
         taskId: selectedTask._id,
         assignments,
         assignedBy: JSON.parse(localStorage.getItem("user")).id,
-        // ✅ Send client/prospect data
         ...clientProspectData,
       };
 
-      console.log("📤 Sending to API:", apiEndpoint);
-      console.log("📦 Payload:", payload);
+      const response = await axios.post("/api/Task/assign-composite", payload);
 
-      // ✅ Try with fetch first for better error handling
-      try {
-        const response = await fetch(apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+      if (response.data.success) {
+        const totalAssigned = assignments.length;
+        const clientCount = assignForm.selectedClients?.length || 0;
+        const prospectCount = assignForm.selectedProspects?.length || 0;
 
-        console.log("📥 Response status:", response.status);
-        console.log("📥 Response headers:", response.headers);
-
-        const responseData = await response.json();
-        console.log("📥 Response data:", responseData);
-
-        if (!response.ok) {
-          throw new Error(responseData.message || `HTTP ${response.status}`);
+        let successMsg = `Task assigned to ${totalAssigned} employee(s)`;
+        if (clientCount > 0) {
+          successMsg += ` for ${clientCount} client(s)`;
         }
-
-        if (responseData.success) {
-          const successMsg = `Task assigned to ${
-            assignments.length
-          } employee(s)${
-            assignForm.selectedClients?.length > 0
-              ? ` for ${assignForm.selectedClients.length} client(s)`
-              : ""
-          }${
-            assignForm.selectedProspects?.length > 0
-              ? ` and ${assignForm.selectedProspects.length} prospect(s)`
-              : ""
-          }!`;
-
-          setSuccessMessage(successMsg);
-          setTimeout(() => setSuccessMessage(""), 3000);
-          setShowAssignModal(false);
-          fetchCompositeTasks();
-        } else {
-          throw new Error(responseData.message || "Assignment failed");
+        if (prospectCount > 0) {
+          successMsg += ` and ${prospectCount} prospect(s)`;
         }
-      } catch (fetchError) {
-        console.error("❌ Fetch error:", fetchError);
+        successMsg += "!";
 
-        // Fallback to axios if fetch fails
-        console.log("🔄 Trying with axios...");
-        const response = await axios.post(apiEndpoint, payload);
-
-        if (response.data.success) {
-          const successMsg = `Task assigned to ${
-            assignments.length
-          } employee(s)${
-            assignForm.selectedClients?.length > 0
-              ? ` for ${assignForm.selectedClients.length} client(s)`
-              : ""
-          }${
-            assignForm.selectedProspects?.length > 0
-              ? ` and ${assignForm.selectedProspects.length} prospect(s)`
-              : ""
-          }!`;
-
-          setSuccessMessage(successMsg);
-          setTimeout(() => setSuccessMessage(""), 3000);
-          setShowAssignModal(false);
-          fetchCompositeTasks();
-        }
+        message.success(successMsg);
+        setShowAssignModal(false);
+        fetchCompositeTasks();
+      } else {
+        throw new Error(response.data.message || "Assignment failed");
       }
     } catch (error) {
-      console.error("❌ Error assigning task:", error);
-      console.error("❌ Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      let errorMsg = "Failed to assign task";
-
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message;
-      } else if (error.message.includes("500")) {
-        errorMsg = "Server error - Please check backend logs";
-      }
-
-      setErrorMessage(errorMsg);
-      setTimeout(() => setErrorMessage(""), 5000);
+      console.error("Error assigning task:", error);
+      message.error(
+        error.response?.data?.message || error.message || "Failed to assign task"
+      );
     }
   };
 
-  // Sort tasks
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+  // Get priority config
+  const getPriorityConfig = (priority) => {
+    const configs = {
+      urgent: {
+        color: "error",
+        icon: <ExclamationCircleOutlined />,
+        label: "URGENT",
+      },
+      high: { color: "warning", icon: <FlagOutlined />, label: "HIGH" },
+      medium: { color: "processing", icon: null, label: "MEDIUM" },
+      low: { color: "default", icon: null, label: "LOW" },
+    };
+    return configs[priority] || configs.medium;
+  };
+
+  // Check if all employees are selected for a role
+  const isAllSelectedForRole = (role) => {
+    const selected = assignForm.selectedEmployees[role] || [];
+    const allEmployees = employeesByRole[role] || [];
+    return (
+      allEmployees.length > 0 && selected.length === allEmployees.length
+    );
+  };
+
+  // Check if some employees are selected for a role
+  const isIndeterminateForRole = (role) => {
+    const selected = assignForm.selectedEmployees[role] || [];
+    const allEmployees = employeesByRole[role] || [];
+    return selected.length > 0 && selected.length < allEmployees.length;
+  };
+
+  // Check if employee is selected
+  const isEmployeeSelected = (role, employeeId) => {
+    const selected = assignForm.selectedEmployees[role] || [];
+    return selected.includes(employeeId);
+  };
+
+  // Get total selected employees
+  const getTotalSelectedEmployees = () => {
+    return Object.values(assignForm.selectedEmployees).reduce(
+      (total, ids) => total + ids.length,
+      0
+    );
+  };
+
+  // Get total selected clients and prospects
+  const getTotalSelectedClientProspects = () => {
+    return (
+      (assignForm.selectedClients?.length || 0) +
+      (assignForm.selectedProspects?.length || 0)
+    );
   };
 
   // Filter and sort tasks
@@ -534,6 +446,9 @@ const CompositeAssignments = () => {
       const matchesStatus =
         filterStatus === "all" ||
         (filterStatus === "urgent" && task.templatePriority === "urgent") ||
+        (filterStatus === "high" && task.templatePriority === "high") ||
+        (filterStatus === "medium" && task.templatePriority === "medium") ||
+        (filterStatus === "low" && task.templatePriority === "low") ||
         (filterStatus === "multi-role" && task.depart?.length > 1);
 
       return matchesSearch && matchesStatus;
@@ -575,504 +490,377 @@ const CompositeAssignments = () => {
     });
 
   // Pagination
-  const indexOfLastEntry = currentPage * entriesPerPage;
-  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentTasks = filteredTasks.slice(indexOfFirstEntry, indexOfLastEntry);
-  const totalPages = Math.ceil(filteredTasks.length / entriesPerPage);
+  const paginatedTasks = filteredTasks.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
-  // Helper: Get priority badge
-  const getPriorityBadge = (priority) => {
-    const styles = {
-      urgent: { bg: "danger", text: "white", icon: <FaExclamationCircle /> },
-      high: { bg: "warning", text: "dark", icon: <FaFlag /> },
-      medium: { bg: "primary", text: "white", icon: null },
-      low: { bg: "secondary", text: "white", icon: null },
-    };
-
-    const style = styles[priority] || styles.medium;
-
-    return {
-      ...style,
-      label: priority?.toUpperCase() || "MEDIUM",
-    };
-  };
-
-  // Check if all employees are selected for a role
-  const isAllSelectedForRole = (role) => {
-    const selected = assignForm.selectedEmployees[role];
-    const allEmployees = employeesByRole[role] || [];
-
-    if (!selected || allEmployees.length === 0) return false;
-
-    // FIX: Check if selected is a string
-    if (typeof selected === "string" && selected.includes(",")) {
-      const selectedIds = selected.split(",").map((id) => id.trim());
-      return selectedIds.length === allEmployees.length;
+  // Handle sort
+  const handleTableChange = (pagination, filters, sorter) => {
+    if (sorter.field) {
+      setSortConfig({
+        key: sorter.field,
+        direction: sorter.order === "ascend" ? "asc" : "desc",
+      });
+    } else {
+      setSortConfig({ key: null, direction: "asc" });
     }
-
-    return false;
   };
 
-  // Check if employee is selected
-  const isEmployeeSelected = (role, employeeId) => {
-    const selected = assignForm.selectedEmployees[role];
-    if (!selected) return false;
+  // Table columns
+  const columns = [
+    {
+      title: "#",
+      width: 60,
+      align: "center",
+      render: (_, __, index) => (
+        <Text type="secondary">
+          {(currentPage - 1) * pageSize + index + 1}
+        </Text>
+      ),
+    },
+    {
+      title: "Task Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+      render: (text, record) => {
+        const priorityConfig = getPriorityConfig(record.templatePriority || "medium");
+        const assignmentCount = record.assignments?.length || 0;
+        
+        return (
+          <Space direction="vertical" size={2}>
+            <Space>
+              <Text strong>{text}</Text>
+              {record.templatePriority === "urgent" && (
+                <Tag color="error" icon={<ExclamationCircleOutlined />}>
+                  URGENT
+                </Tag>
+              )}
+            </Space>
+            <Space size={8} wrap>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <BuildOutlined /> {record.sub}
+              </Text>
+              {assignmentCount > 0 && (
+                <Tag color="blue" icon={<TeamOutlined />}>
+                  {assignmentCount} assigned
+                </Tag>
+              )}
+              {record.assignedClients?.length > 0 && (
+                <Tag color="green" icon={<UserOutlined />}>
+                  {record.assignedClients.length} client(s)
+                </Tag>
+              )}
+              {record.assignedProspects?.length > 0 && (
+                <Tag color="cyan" icon={<UsergroupAddOutlined />}>
+                  {record.assignedProspects.length} prospect(s)
+                </Tag>
+              )}
+            </Space>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Required Roles",
+      dataIndex: "depart",
+      key: "depart",
+      width: 200,
+      sorter: true,
+      render: (roles) => (
+        <Space wrap>
+          {roles?.map((role, idx) => (
+            <Tag key={idx} color="default">
+              {role}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: "Timeline",
+      dataIndex: "estimatedDays",
+      key: "estimatedDays",
+      width: 120,
+      align: "center",
+      sorter: true,
+      render: (days) => (
+        <Space>
+          <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+          <Text>{days || 1} day{(days || 1) !== 1 ? "s" : ""}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Priority",
+      dataIndex: "templatePriority",
+      key: "templatePriority",
+      width: 120,
+      align: "center",
+      sorter: true,
+      render: (priority) => {
+        const config = getPriorityConfig(priority || "medium");
+        return (
+          <Tag color={config.color} icon={config.icon} style={{ minWidth: 90, textAlign: "center" }}>
+            {config.label}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Checklists",
+      dataIndex: "checklists",
+      key: "checklists",
+      width: 100,
+      align: "center",
+      render: (checklists) => (
+        <Tag color="default">{checklists?.length || 0}</Tag>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 150,
+      align: "center",
+      render: (_, record) => {
+        const assignmentCount = record.assignments?.length || 0;
+        return (
+          <Space direction="vertical" size={4}>
+            <Button
+              type={assignmentCount > 0 ? "primary" : "default"}
+              icon={<UserAddOutlined />}
+              onClick={() => handleAssignClick(record)}
+              block
+            >
+              {assignmentCount > 0 ? "Assign More" : "Assign"}
+            </Button>
+            {assignmentCount > 0 && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {assignmentCount} assigned
+              </Text>
+            )}
+          </Space>
+        );
+      },
+    },
+  ];
 
-    // FIX: Handle both string and other types
-    if (typeof selected === "string" && selected.includes(",")) {
-      return selected
-        .split(",")
-        .map((id) => id.trim())
-        .includes(employeeId);
-    }
+  // Filter menu items
+  const filterMenuItems = [
+    { key: "all", label: "All Templates" },
+    { key: "divider1", type: "divider" },
+    { key: "header1", label: "Priority", type: "group" },
+    { key: "urgent", label: "Urgent Priority" },
+    { key: "high", label: "High Priority" },
+    { key: "medium", label: "Medium Priority" },
+    { key: "low", label: "Low Priority" },
+    { key: "divider2", type: "divider" },
+    { key: "multi-role", label: "Multi-Role Templates" },
+  ];
 
-    return String(selected) === String(employeeId);
-  };
+  // Sort menu items
+  const sortMenuItems = [
+    { key: "name", label: "Task Name" },
+    { key: "templatePriority", label: "Priority" },
+    { key: "estimatedDays", label: "Timeline" },
+    { key: "depart", label: "Roles" },
+  ];
 
-  // Get assignment count for a task
-  const getAssignmentCount = (task) => {
-    return task.assignments ? task.assignments.length : 0;
-  };
-
-  // Clear all filters
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setFilterStatus("all");
-    setSortConfig({ key: null, direction: "asc" });
-    setCurrentPage(1);
-  };
-
-  // Render sort icon
-  const renderSortIcon = (key) => {
-    if (sortConfig.key !== key) return <FaSort className="text-muted" />;
-    return sortConfig.direction === "asc" ? (
-      <FaSortUp className="text-primary" />
-    ) : (
-      <FaSortDown className="text-primary" />
-    );
-  };
-
-  // Helper function to safely get employee value count
-  const getEmployeeValueCount = (employeeValue) => {
-    if (!employeeValue) return 0;
-
-    if (typeof employeeValue === "string" && employeeValue.includes(",")) {
-      return employeeValue.split(",").filter((id) => id.trim()).length;
-    }
-
-    return 1;
-  };
-
-  // ✅ Get total selected clients and prospects count
-  const getTotalSelectedClientProspects = () => {
+  if (loading && compositeTasks.length === 0) {
     return (
-      (assignForm.selectedClients?.length || 0) +
-      (assignForm.selectedProspects?.length || 0)
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="container-fluid p-4">
-        <div className="text-center p-5">
-          <Spinner animation="border" role="status" className="text-primary">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-          <h4 className="mt-3 text-dark">Loading Tasks...</h4>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "400px",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <Spin size="large" />
+        <Text type="secondary">Loading Tasks...</Text>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid p-4">
+    <div style={{ padding: "24px" }}>
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h3 className="text-dark mb-1 fw-bold">
-            <FaUserCheck className="me-2 text-primary" />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <Space direction="vertical" size={4}>
+          <Title level={3} style={{ margin: 0 }}>
+            <UserSwitchOutlined style={{ marginRight: 12, color: "#1890ff" }} />
             Composite Task Assignments
-          </h3>
-          <p className="text-muted mb-0">
+          </Title>
+          <Text type="secondary">
             Assign composite task templates to employees
-          </p>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <Badge bg="light" text="dark" className="px-3 py-2 border">
+          </Text>
+        </Space>
+        <Space>
+          <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
             {compositeTasks.length} Templates
-          </Badge>
+          </Tag>
           <Button
-            variant="outline-primary"
+            icon={<SyncOutlined spin={refreshing} />}
             onClick={fetchCompositeTasks}
-            disabled={refreshing}
-            className="d-flex align-items-center"
+            loading={refreshing}
           >
-            <FaSync className={`me-2 ${refreshing ? "spin" : ""}`} />
             Refresh
           </Button>
-        </div>
+        </Space>
       </div>
 
-      {/* Search & Filter */}
-      <Card className="mb-4 border-light shadow-sm">
-        <Card.Body className="p-3">
-          <Row>
-            <Col md={6}>
-              <InputGroup>
-                <InputGroup.Text className="bg-light border-end-0">
-                  <FaSearch className="text-secondary" />
-                </InputGroup.Text>
-                <FormControl
-                  placeholder="Search by task name or company..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border-start-0"
-                />
-                {searchTerm && (
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => setSearchTerm("")}
-                    className="border-start-0"
-                  >
-                    <FaTimes />
-                  </Button>
-                )}
-              </InputGroup>
-            </Col>
-            <Col md={6}>
-              <div className="d-flex gap-2 justify-content-end">
-                <Dropdown>
-                  <Dropdown.Toggle
-                    variant="outline-secondary"
-                    className="d-flex align-items-center"
-                  >
-                    <FaFilter className="me-2" />
-                    {filterStatus === "all"
-                      ? "All Templates"
-                      : filterStatus === "urgent"
-                      ? "Urgent"
-                      : filterStatus === "multi-role"
-                      ? "Multi-Role"
-                      : filterStatus}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => setFilterStatus("all")}>
-                      All Templates
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Header>Priority</Dropdown.Header>
-                    <Dropdown.Item onClick={() => setFilterStatus("urgent")}>
-                      Urgent Priority
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => setFilterStatus("high")}>
-                      High Priority
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => setFilterStatus("medium")}>
-                      Medium Priority
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Item
-                      onClick={() => setFilterStatus("multi-role")}
-                    >
-                      Multi-Role Templates
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                <Dropdown>
-                  <Dropdown.Toggle
-                    variant="outline-secondary"
-                    className="d-flex align-items-center"
-                  >
-                    <FaSort className="me-2" />
-                    Sort
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => handleSort("name")}>
-                      Task Name{" "}
-                      {sortConfig.key === "name" && `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                      onClick={() => handleSort("templatePriority")}
-                    >
-                      Priority{" "}
-                      {sortConfig.key === "templatePriority" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleSort("estimatedDays")}>
-                      Timeline{" "}
-                      {sortConfig.key === "estimatedDays" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleSort("depart")}>
-                      Roles{" "}
-                      {sortConfig.key === "depart" &&
-                        `(${sortConfig.direction})`}
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                {(searchTerm || filterStatus !== "all") && (
-                  <Button variant="outline-danger" onClick={handleClearFilters}>
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
+      {/* Search & Filter Bar */}
+      <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: "16px 20px" }}>
+        <Row gutter={16} align="middle">
+          <Col flex="auto">
+            <Input
+              placeholder="Search by task name or company..."
+              prefix={<SearchOutlined />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+              size="large"
+            />
+          </Col>
+          <Col>
+            <Space>
+              <Dropdown
+                menu={{
+                  items: filterMenuItems,
+                  onClick: ({ key }) => {
+                    if (!["divider1", "divider2", "header1"].includes(key)) {
+                      setFilterStatus(key);
+                    }
+                  },
+                }}
+              >
+                <Button size="large" icon={<FilterOutlined />}>
+                  {filterStatus === "all"
+                    ? "All Templates"
+                    : filterStatus === "urgent"
+                    ? "Urgent"
+                    : filterStatus === "high"
+                    ? "High Priority"
+                    : filterStatus === "medium"
+                    ? "Medium Priority"
+                    : filterStatus === "low"
+                    ? "Low Priority"
+                    : filterStatus === "multi-role"
+                    ? "Multi-Role"
+                    : filterStatus}{" "}
+                  <DownOutlined />
+                </Button>
+              </Dropdown>
+
+              <Dropdown
+                menu={{
+                  items: sortMenuItems,
+                  onClick: ({ key }) => {
+                    setSortConfig({
+                      key,
+                      direction:
+                        sortConfig.key === key && sortConfig.direction === "asc"
+                          ? "desc"
+                          : "asc",
+                    });
+                  },
+                }}
+              >
+                <Button size="large" icon={<SortAscendingOutlined />}>
+                  Sort <DownOutlined />
+                </Button>
+              </Dropdown>
+
+              {(searchTerm || filterStatus !== "all") && (
+                <Button
+                  size="large"
+                  icon={<ClearOutlined />}
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterStatus("all");
+                    setSortConfig({ key: null, direction: "asc" });
+                    setCurrentPage(1);
+                  }}
+                  danger
+                >
+                  Clear
+                </Button>
+              )}
+            </Space>
+          </Col>
+        </Row>
       </Card>
-
-      {/* Messages */}
-      {successMessage && (
-        <Alert variant="success" className="mb-3 d-flex align-items-center">
-          <FaCheckCircle className="me-2" />
-          {successMessage}
-          <Button
-            variant="link"
-            className="ms-auto p-0"
-            onClick={() => setSuccessMessage("")}
-          >
-            <FaTimes />
-          </Button>
-        </Alert>
-      )}
-
-      {errorMessage && (
-        <Alert variant="danger" className="mb-3 d-flex align-items-center">
-          <FaExclamationCircle className="me-2" />
-          {errorMessage}
-          <Button
-            variant="link"
-            className="ms-auto p-0 text-danger"
-            onClick={() => setErrorMessage("")}
-          >
-            <FaTimes />
-          </Button>
-        </Alert>
-      )}
 
       {/* Main Table */}
-      <Card className="border-light shadow-sm">
-        <Card.Body className="p-0">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-5">
-              <FaUsers size={48} className="text-muted mb-3" />
-              <h5 className="text-dark mb-2">No Tasks Found</h5>
-              <p className="text-muted">
-                {searchTerm || filterStatus !== "all"
-                  ? "No tasks match your search criteria."
-                  : "No composite task templates available."}
-              </p>
+      <Card bodyStyle={{ padding: 0 }} style={{ overflow: "hidden" }}>
+        {filteredTasks.length === 0 ? (
+          <Empty
+            description="No Tasks Found"
+            style={{ padding: "60px 0" }}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            {(searchTerm || filterStatus !== "all") && (
+              <Text type="secondary">
+                No tasks match your search criteria.
+              </Text>
+            )}
+          </Empty>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              dataSource={paginatedTasks}
+              rowKey="_id"
+              pagination={false}
+              onChange={handleTableChange}
+              loading={loading}
+              size="middle"
+              scroll={{ x: 1100 }}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 24px",
+                borderTop: "1px solid #f0f0f0",
+              }}
+            >
+              <Text type="secondary">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, filteredTasks.length)} of{" "}
+                {filteredTasks.length} entries
+              </Text>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={filteredTasks.length}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                showSizeChanger
+                pageSizeOptions={["10", "20", "50", "100"]}
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+              />
             </div>
-          ) : (
-            <>
-              <div className="table-responsive">
-                <Table hover className="mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th
-                        className="border-0 py-3 ps-4"
-                        style={{ width: "60px" }}
-                      >
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">#</span>
-                        </div>
-                      </th>
-                      <th className="border-0 py-3">
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">Task Name</span>
-                        </div>
-                      </th>
-                      <th className="border-0 py-3" style={{ width: "200px" }}>
-                        <div className="d-flex align-items-center">
-                          <span className="fw-semibold">Required Roles</span>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "120px" }}
-                      >
-                        <div className="d-flex align-items-center justify-content-center">
-                          <span className="fw-semibold">Timeline</span>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "120px" }}
-                      >
-                        <div className="d-flex align-items-center justify-content-center">
-                          <span className="fw-semibold">Priority</span>
-                        </div>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "100px" }}
-                      >
-                        <span className="fw-semibold">Checklists</span>
-                      </th>
-                      <th
-                        className="border-0 py-3 text-center"
-                        style={{ width: "150px" }}
-                      >
-                        <span className="fw-semibold">Action</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTasks.map((task, index) => {
-                      const priorityInfo = getPriorityBadge(
-                        task.templatePriority || "medium"
-                      );
-                      const taskNumber = indexOfFirstEntry + index + 1;
-                      const assignmentCount = getAssignmentCount(task);
-
-                      return (
-                        <tr key={task._id}>
-                          <td className="align-middle py-3 ps-4">
-                            <div className="text-dark fw-semibold">
-                              {taskNumber}
-                            </div>
-                          </td>
-                          <td className="align-middle py-3">
-                            <div>
-                              <h6 className="mb-1 fw-semibold text-dark">
-                                {task.name}
-                                {task.templatePriority === "urgent" && (
-                                  <Badge bg="danger" className="ms-2 px-2 py-1">
-                                    <FaExclamationCircle className="me-1" />
-                                    URGENT
-                                  </Badge>
-                                )}
-                              </h6>
-                              <div className="d-flex align-items-center flex-wrap gap-2">
-                                <small className="text-muted">
-                                  <FaBuilding className="me-1" />
-                                  {task.sub}
-                                </small>
-                                {assignmentCount > 0 && (
-                                  <small className="text-primary">
-                                    <FaUserFriends className="me-1" />
-                                    {assignmentCount} assigned
-                                  </small>
-                                )}
-                                {/* ✅ NEW: Show client/prospect counts */}
-                                {task.assignedClients?.length > 0 && (
-                                  <small className="text-success">
-                                    <FaUserCheck className="me-1" />
-                                    {task.assignedClients.length} client(s)
-                                  </small>
-                                )}
-                                {task.assignedProspects?.length > 0 && (
-                                  <small className="text-info">
-                                    <FaUsers className="me-1" />
-                                    {task.assignedProspects.length} prospect(s)
-                                  </small>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="align-middle py-3">
-                            <div className="d-flex flex-wrap gap-1">
-                              {task.depart?.map((role, idx) => (
-                                <Badge
-                                  key={idx}
-                                  bg="light"
-                                  text="dark"
-                                  className="px-2 py-1 border"
-                                >
-                                  {role}
-                                </Badge>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <div className="d-flex align-items-center justify-content-center">
-                              <FaClock className="me-2 text-secondary" />
-                              <span className="fw-semibold">
-                                {task.estimatedDays || 1} day
-                                {task.estimatedDays !== 1 ? "s" : ""}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Badge
-                              bg={priorityInfo.bg}
-                              className="px-3 py-2"
-                              style={{ minWidth: "90px" }}
-                            >
-                              {priorityInfo.icon}
-                              {priorityInfo.label}
-                            </Badge>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Badge
-                              bg="light"
-                              text="dark"
-                              className="px-3 py-2 border"
-                            >
-                              {task.checklists?.length || 0}
-                            </Badge>
-                          </td>
-                          <td className="align-middle py-3 text-center">
-                            <Button
-                              variant={assignmentCount > 0 ? "primary" : "dark"}
-                              onClick={() => handleAssignClick(task)}
-                              className="d-flex align-items-center justify-content-center w-100"
-                              size="sm"
-                            >
-                              <FaUserCheck className="me-2" />
-                              {assignmentCount > 0 ? "Assign More" : "Assign"}
-                            </Button>
-                            {assignmentCount > 0 && (
-                              <small className="text-muted d-block mt-1">
-                                {assignmentCount} assigned
-                              </small>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="d-flex justify-content-between align-items-center p-3 border-top">
-                  <div className="text-muted">
-                    Showing {indexOfFirstEntry + 1} to{" "}
-                    {Math.min(indexOfLastEntry, filteredTasks.length)} of{" "}
-                    {filteredTasks.length} entries
-                  </div>
-                  <Pagination className="mb-0">
-                    <Pagination.Prev
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      className="border"
-                    />
-                    {[...Array(totalPages)].map((_, i) => (
-                      <Pagination.Item
-                        key={i + 1}
-                        active={i + 1 === currentPage}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className="border"
-                      >
-                        {i + 1}
-                      </Pagination.Item>
-                    ))}
-                    <Pagination.Next
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      className="border"
-                    />
-                  </Pagination>
-                </div>
-              )}
-            </>
-          )}
-        </Card.Body>
+          </>
+        )}
       </Card>
 
-      {/* ✅ NEW: Client/Prospect Selection Modal */}
+      {/* Client/Prospect Selection Modal */}
       <ClientProspectSelectionModal
         show={showClientProspectModal}
         onHide={() => setShowClientProspectModal(false)}
@@ -1089,484 +877,407 @@ const CompositeAssignments = () => {
 
       {/* Assign Modal */}
       <Modal
-        show={showAssignModal}
-        onHide={() => setShowAssignModal(false)}
-        size="lg"
-        centered
-        backdrop="static"
-      >
-        <Modal.Header className="bg-light border-bottom py-3">
-          <Modal.Title className="d-flex align-items-center w-100">
-            <FaUserCheck className="me-3 text-primary" />
-            <div className="flex-grow-1">
-              <h5 className="mb-0 fw-bold">Assign Task to Employees</h5>
-            </div>
+        title={
+          <Space>
+            <UserAddOutlined style={{ color: "#1890ff" }} />
+            <span>Assign Task to Employees</span>
+          </Space>
+        }
+        open={showAssignModal}
+        onCancel={() => setShowAssignModal(false)}
+        width={900}
+        footer={
+          <Space>
+            <Button onClick={() => setShowAssignModal(false)}>Cancel</Button>
             <Button
-              variant="link"
-              onClick={() => setShowAssignModal(false)}
-              className="p-0 ms-auto"
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleAssignSubmit}
+              disabled={getTotalSelectedEmployees() === 0}
             >
-              <FaTimes />
+              {getTotalSelectedEmployees() === 0
+                ? "Select Employees First"
+                : `Assign to ${getTotalSelectedEmployees()} Employee(s)`}
             </Button>
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="p-4">
-          {selectedTask && (
-            <>
-              {/* Task Info */}
-              <div className="mb-4 p-3 border flex-grow-1 rounded bg-light">
-                <Row className="align-items-center">
-                  <Col md={8}>
-                    <h5 className="mb-2 fw-bold text-dark">
+          </Space>
+        }
+        destroyOnClose
+      >
+        {selectedTask && (
+          <>
+            {/* Task Info Card */}
+            <Card
+              size="small"
+              style={{ marginBottom: 24, backgroundColor: "#fafafa" }}
+            >
+              <Row align="middle">
+                <Col span={16}>
+                  <Space direction="vertical" size={4}>
+                    <Text strong style={{ fontSize: 16 }}>
                       {selectedTask.name}
-                    </h5>
-                    <div className="d-flex flex-wrap gap-3">
-                      <div>
-                        <small className="text-muted d-block">Company</small>
-                        <span className="fw-semibold">{selectedTask.sub}</span>
-                      </div>
-                      <div>
-                        <small className="text-muted d-block">Days</small>
-                        <span className="fw-semibold">
-                          <FaClock className="me-1" />
-                          {selectedTask.estimatedDays || 1}
-                        </span>
-                      </div>
-                      <div>
-                        <small className="text-muted d-block">Priority</small>
-                        <Badge
-                          bg={
-                            getPriorityBadge(
-                              selectedTask.templatePriority || "medium"
-                            ).bg
-                          }
-                        >
-                          {selectedTask.templatePriority || "medium"}
-                        </Badge>
-                      </div>
-                      {selectedTask.assignments &&
-                        selectedTask.assignments.length > 0 && (
-                          <div>
-                            <small className="text-muted d-block">
-                              Assigned
-                            </small>
-                            <span className="fw-semibold text-primary">
-                              <FaUserFriends className="me-1" />
-                              {selectedTask.assignments.length}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </Col>
-                  <Col md={4} className="text-end">
-                    <div>
-                      <small className="text-muted d-block">Due Date</small>
-                      <h6 className="mb-0">
-                        <FaCalendarDay className="me-2" />
-                        {assignForm.dueDate}
-                      </h6>
-                    </div>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* Assignment Settings */}
-              <div className="mb-4">
-                <h6 className="mb-3 fw-bold border-bottom pb-2">
-                  Assignment Settings
-                </h6>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Priority</label>
-                      <Form.Select
-                        value={assignForm.priority}
-                        onChange={handlePriorityChange}
-                      >
-                        <option value="low">Low Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="high">High Priority</option>
-                        <option value="urgent">Urgent Priority</option>
-                      </Form.Select>
-                      <small className="text-muted">
-                        Template priority:{" "}
-                        {selectedTask.templatePriority || "medium"}
-                      </small>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div>
-                      <label className="form-label fw-semibold">Due Date</label>
-                      <Form.Control
-                        type="date"
-                        value={assignForm.dueDate}
-                        onChange={(e) =>
-                          setAssignForm({
-                            ...assignForm,
-                            dueDate: e.target.value,
-                          })
+                    </Text>
+                    <Space size={16} wrap>
+                      <Space>
+                        <BuildOutlined />
+                        <Text type="secondary">{selectedTask.sub}</Text>
+                      </Space>
+                      <Space>
+                        <ClockCircleOutlined />
+                        <Text type="secondary">
+                          {selectedTask.estimatedDays || 1} day(s)
+                        </Text>
+                      </Space>
+                      <Tag
+                        color={
+                          getPriorityConfig(selectedTask.templatePriority || "medium")
+                            .color
                         }
-                        min={new Date().toISOString().split("T")[0]}
-                      />
-                      <small className="text-muted">
-                        Based on {selectedTask.estimatedDays || 1} day(s)
-                      </small>
-                    </div>
-                  </Col>
-                </Row>
+                      >
+                        {selectedTask.templatePriority || "medium"}
+                      </Tag>
+                      {selectedTask.assignments?.length > 0 && (
+                        <Tag color="blue" icon={<TeamOutlined />}>
+                          {selectedTask.assignments.length} assigned
+                        </Tag>
+                      )}
+                    </Space>
+                  </Space>
+                </Col>
+                <Col span={8} style={{ textAlign: "right" }}>
+                  <Space direction="vertical" size={2}>
+                    <Text type="secondary">Due Date</Text>
+                    <Text strong>
+                      <CalendarOutlined />{" "}
+                      {assignForm.dueDate?.format("DD/MM/YYYY")}
+                    </Text>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+
+            {/* Assignment Settings */}
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ marginBottom: 16 }}>
+                Assignment Settings
+              </Title>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Priority" style={{ marginBottom: 0 }}>
+                    <Select
+                      value={assignForm.priority}
+                      onChange={(value) =>
+                        setAssignForm({ ...assignForm, priority: value })
+                      }
+                      style={{ width: "100%" }}
+                    >
+                      <Option value="low">Low Priority</Option>
+                      <Option value="medium">Medium Priority</Option>
+                      <Option value="high">High Priority</Option>
+                      <Option value="urgent">Urgent Priority</Option>
+                    </Select>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Template priority:{" "}
+                      {selectedTask.templatePriority || "medium"}
+                    </Text>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Due Date" style={{ marginBottom: 0 }}>
+                    <DatePicker
+                      value={assignForm.dueDate}
+                      onChange={(date) =>
+                        setAssignForm({ ...assignForm, dueDate: date })
+                      }
+                      disabledDate={(current) =>
+                        current && current < dayjs().startOf("day")
+                      }
+                      style={{ width: "100%" }}
+                    />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Based on {selectedTask.estimatedDays || 1} day(s)
+                    </Text>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider />
+
+            {/* Client & Prospect Selection */}
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Title level={5} style={{ margin: 0 }}>
+                  Client & Prospect Selection
+                </Title>
+                <Badge count={getTotalSelectedClientProspects()} showZero />
               </div>
 
-              {/* ✅ NEW: Client & Prospect Selection Section */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Client & Prospect Selection</h6>
-                  <small className="text-muted">
-                    {getTotalSelectedClientProspects()} selected
-                  </small>
+              <Button
+                block
+                size="large"
+                icon={<UsergroupAddOutlined />}
+                onClick={handleClientProspectSelect}
+                style={{ height: 56 }}
+              >
+                {getTotalSelectedClientProspects() > 0
+                  ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
+                  : "Select Clients & Prospects (Optional)"}
+              </Button>
+
+              {getTotalSelectedClientProspects() > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <Row gutter={16}>
+                    {assignForm.selectedClients?.length > 0 && (
+                      <Col span={12}>
+                        <Alert
+                          message={
+                            <>
+                              <TeamOutlined />{" "}
+                              <strong>{assignForm.selectedClients.length}</strong>{" "}
+                              client(s) selected
+                            </>
+                          }
+                          type="success"
+                          showIcon={false}
+                        />
+                      </Col>
+                    )}
+                    {assignForm.selectedProspects?.length > 0 && (
+                      <Col span={12}>
+                        <Alert
+                          message={
+                            <>
+                              <UsergroupAddOutlined />{" "}
+                              <strong>{assignForm.selectedProspects.length}</strong>{" "}
+                              prospect(s) selected
+                            </>
+                          }
+                          type="info"
+                          showIcon={false}
+                        />
+                      </Col>
+                    )}
+                  </Row>
+
+                  {assignForm.clientRemarks && (
+                    <Alert
+                      message={
+                        <>
+                          <Text strong style={{ color: "#52c41a" }}>
+                            Client Remarks:
+                          </Text>
+                          <br />
+                          {assignForm.clientRemarks}
+                        </>
+                      }
+                      type="success"
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
+
+                  {assignForm.prospectRemarks && (
+                    <Alert
+                      message={
+                        <>
+                          <Text strong style={{ color: "#1890ff" }}>
+                            Prospect Remarks:
+                          </Text>
+                          <br />
+                          {assignForm.prospectRemarks}
+                        </>
+                      }
+                      type="info"
+                      style={{ marginTop: 12 }}
+                    />
+                  )}
                 </div>
+              )}
+              <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+                Optional - You can select clients and/or prospects for whom this
+                task is being assigned
+              </Text>
+            </div>
 
-                <Button
-                  variant="outline-primary"
-                  onClick={handleClientProspectSelect}
-                  className="w-100 py-3 d-flex align-items-center justify-content-center"
-                >
-                  <FaUsers className="me-2" />
-                  {getTotalSelectedClientProspects() > 0
-                    ? `Edit Selection (${getTotalSelectedClientProspects()} selected)`
-                    : "Select Clients & Prospects (Optional)"}
-                </Button>
+            <Divider />
 
-                {/* Show selected counts */}
-                {getTotalSelectedClientProspects() > 0 && (
-                  <div className="mt-3">
-                    <Row>
-                      {assignForm.selectedClients?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="success" className="py-2">
-                            <FaUserFriends className="me-2" />
-                            <strong>
-                              {assignForm.selectedClients.length}
-                            </strong>{" "}
-                            client(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                      {assignForm.selectedProspects?.length > 0 && (
-                        <Col md={6}>
-                          <Alert variant="info" className="py-2">
-                            <FaUsers className="me-2" />
-                            <strong>
-                              {assignForm.selectedProspects.length}
-                            </strong>{" "}
-                            prospect(s) selected
-                          </Alert>
-                        </Col>
-                      )}
-                    </Row>
-
-                    {/* Show remarks if any */}
-                    {assignForm.clientRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-success fw-bold">
-                          Client Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.clientRemarks}</p>
-                      </Alert>
-                    )}
-
-                    {assignForm.prospectRemarks && (
-                      <Alert variant="light" className="mt-2">
-                        <small className="text-info fw-bold">
-                          Prospect Remarks:
-                        </small>
-                        <p className="mb-0">{assignForm.prospectRemarks}</p>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-                <small className="text-muted d-block mt-1">
-                  Optional - You can select clients and/or prospects for whom
-                  this task is being assigned
-                </small>
+            {/* Employee Selection */}
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Title level={5} style={{ margin: 0 }}>
+                  Select Employees by Role
+                </Title>
+                <Badge count={Object.keys(assignForm.selectedEmployees).length}>
+                  role(s) selected
+                </Badge>
               </div>
 
-              {/* Employee Selection */}
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-bold">Select Employees by Role</h6>
-                  <small className="text-muted">
-                    {Object.keys(assignForm.selectedEmployees).length} role(s)
-                    selected
-                  </small>
+              {loadingEmployees ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <Spin />
+                  <p style={{ marginTop: 16 }}>Loading employees...</p>
                 </div>
+              ) : (
+                <Row gutter={[16, 16]}>
+                  {selectedTask.depart?.map((role) => {
+                    const roleEmployees = employeesByRole[role] || [];
+                    const isAllSelected = isAllSelectedForRole(role);
+                    const isIndeterminate = isIndeterminateForRole(role);
 
-                {loadingEmployees ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </Spinner>
-                    <p className="mt-2 text-muted">Loading employees...</p>
-                  </div>
-                ) : (
-                  <div className="row g-3">
-                    {selectedTask.depart?.map((role, index) => {
-                      const roleEmployees = employeesByRole[role] || [];
-                      const isAllSelected = isAllSelectedForRole(role);
-
-                      return (
-                        <Col md={6} key={index}>
-                          <Card className="border h-100">
-                            <Card.Header className="bg-light border-bottom d-flex justify-content-between align-items-center py-2">
-                              <div>
-                                <Badge bg="dark" className="me-2">
-                                  {role}
-                                </Badge>
-                                <small className="text-muted">
-                                  ({roleEmployees.length} employees)
-                                </small>
-                              </div>
-                              <div className="d-flex gap-1">
-                                {!isAllSelected && roleEmployees.length > 0 && (
-                                  <Button
-                                    variant="outline-dark"
-                                    size="sm"
-                                    onClick={() => handleSelectAllForRole(role)}
-                                    className="border"
-                                  >
-                                    <FaCheck className="me-1" /> All
-                                  </Button>
-                                )}
-                                {assignForm.selectedEmployees[role] && (
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleClearSelectionForRole(role)
-                                    }
-                                    className="border"
-                                  >
-                                    Clear
-                                  </Button>
-                                )}
-                              </div>
-                            </Card.Header>
-                            <Card.Body className="p-0">
-                              <div
-                                className="employee-list"
-                                style={{
-                                  maxHeight: "200px",
-                                  overflowY: "auto",
-                                }}
+                    return (
+                      <Col span={12} key={role}>
+                        <Card
+                          size="small"
+                          title={
+                            <Space>
+                              <Tag color="blue">{role}</Tag>
+                              <Text type="secondary">
+                                ({roleEmployees.length} employees)
+                              </Text>
+                            </Space>
+                          }
+                          extra={
+                            <Space>
+                              <Checkbox
+                                checked={isAllSelected}
+                                indeterminate={isIndeterminate}
+                                onChange={(e) =>
+                                  handleSelectAllForRole(role, e.target.checked)
+                                }
                               >
-                                <ListGroup variant="flush">
-                                  {roleEmployees.length === 0 ? (
-                                    <ListGroup.Item className="text-muted text-center py-3">
-                                      No active employees available for this
-                                      role
-                                    </ListGroup.Item>
-                                  ) : (
-                                    roleEmployees.map((employee) => {
-                                      const isSelected = isEmployeeSelected(
-                                        role,
-                                        employee._id
-                                      );
-                                      return (
-                                        <ListGroup.Item
-                                          key={employee._id}
-                                          className="d-flex align-items-center py-2 px-3 border-bottom"
-                                          onClick={() =>
-                                            handleEmployeeSelect(
-                                              role,
-                                              employee._id
-                                            )
-                                          }
-                                          style={{
-                                            cursor: "pointer",
-                                            backgroundColor: isSelected
-                                              ? "#f8f9fa"
-                                              : "white",
-                                          }}
-                                        >
-                                          <div className="me-3">
-                                            <div
-                                              className={`border ${
-                                                isSelected
-                                                  ? "bg-dark border-dark"
-                                                  : "border-secondary"
-                                              } rounded-circle`}
-                                              style={{
-                                                width: "20px",
-                                                height: "20px",
-                                              }}
-                                            >
-                                              {isSelected && (
-                                                <FaCheck
-                                                  className="text-white"
-                                                  style={{
-                                                    fontSize: "12px",
-                                                    margin: "2px",
-                                                  }}
-                                                />
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="flex-grow-1">
-                                            <div className="fw-medium">
-                                              {employee.name}
-                                            </div>
-                                            <small className="text-muted">
-                                              {employee.employeeCode} •{" "}
-                                              {employee.designation ||
-                                                employee.role}
-                                            </small>
-                                          </div>
-                                        </ListGroup.Item>
-                                      );
-                                    })
-                                  )}
-                                </ListGroup>
-                              </div>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                                Select All
+                              </Checkbox>
+                            </Space>
+                          }
+                          bodyStyle={{
+                            padding: 0,
+                            maxHeight: 250,
+                            overflowY: "auto",
+                          }}
+                        >
+                          <List
+                            dataSource={roleEmployees}
+                            renderItem={(employee) => {
+                              const isSelected = isEmployeeSelected(
+                                role,
+                                employee._id
+                              );
+                              return (
+                                <List.Item
+                                  style={{
+                                    padding: "12px 16px",
+                                    cursor: "pointer",
+                                    backgroundColor: isSelected
+                                      ? "#f5f5f5"
+                                      : "white",
+                                    borderBottom: "1px solid #f0f0f0",
+                                  }}
+                                  onClick={() =>
+                                    handleEmployeeSelect(
+                                      role,
+                                      employee._id,
+                                      !isSelected
+                                    )
+                                  }
+                                >
+                                  <Checkbox checked={isSelected} />
+                                  <div style={{ marginLeft: 12, flex: 1 }}>
+                                    <Text strong>{employee.name}</Text>
+                                    <br />
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                      {employee.employeeCode} •{" "}
+                                      {employee.designation || employee.role}
+                                    </Text>
+                                  </div>
+                                </List.Item>
+                              );
+                            }}
+                            locale={{ emptyText: "No active employees available" }}
+                          />
+                        </Card>
+                      </Col>
+                    );
+                  })}
+                </Row>
+              )}
+            </div>
 
-              {/* Remarks */}
-              <div className="mb-4">
-                <label className="form-label fw-semibold">
-                  Additional Instructions
-                </label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
+            <Divider />
+
+            {/* Remarks */}
+            <div style={{ marginBottom: 24 }}>
+              <Form.Item label="Additional Instructions">
+                <TextArea
+                  rows={3}
                   placeholder="Add any notes or instructions for employees..."
                   value={assignForm.remarks}
                   onChange={(e) =>
                     setAssignForm({ ...assignForm, remarks: e.target.value })
                   }
                 />
-                <small className="text-muted">
-                  Optional - These notes will be visible to assigned employees
-                </small>
-              </div>
+              </Form.Item>
+              <Text type="secondary">
+                Optional - These notes will be visible to assigned employees
+              </Text>
+            </div>
 
-              {/* Selected Employees Summary */}
-              {Object.keys(assignForm.selectedEmployees).length > 0 && (
-                <Alert variant="light" className="border">
-                  <div className="d-flex align-items-center mb-2">
-                    <FaCheckCircle className="me-2 text-success" />
-                    <h6 className="mb-0">Selected Employees</h6>
-                  </div>
-
-                  <div className="row g-2">
-                    {Object.entries(assignForm.selectedEmployees).map(
-                      ([role, employeeValue]) => {
-                        const selectedCount =
-                          getEmployeeValueCount(employeeValue);
-
-                        return (
-                          <div key={role} className="col-md-6">
-                            <div className="bg-white p-2 rounded border">
-                              <div className="d-flex justify-content-between align-items-center">
-                                <span className="fw-medium">{role}</span>
-                                <Badge bg="dark">
-                                  {selectedCount} selected
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-
-                  <div className="mt-3 pt-3 border-top">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <span className="fw-bold">
-                          Total New Assignments:{" "}
-                          {Object.values(assignForm.selectedEmployees).reduce(
-                            (total, val) => total + getEmployeeValueCount(val),
-                            0
-                          )}{" "}
-                          employee(s)
-                        </span>
-                      </div>
-                      <div className="text-end">
-                        <small className="text-muted">
-                          Priority: {assignForm.priority} • Due:{" "}
-                          {assignForm.dueDate}
-                        </small>
-                      </div>
+            {/* Selected Employees Summary */}
+            {getTotalSelectedEmployees() > 0 && (
+              <Alert
+                message={
+                  <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space>
+                      <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                      <Text strong>Selected Employees</Text>
+                    </Space>
+                    <Row gutter={[8, 8]}>
+                      {Object.entries(assignForm.selectedEmployees).map(
+                        ([role, employeeIds]) => (
+                          <Col span={12} key={role}>
+                            <Tag color="processing">
+                              {role}: {employeeIds.length} selected
+                            </Tag>
+                          </Col>
+                        )
+                      )}
+                    </Row>
+                    <Divider style={{ margin: "12px 0" }} />
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text strong>
+                        Total New Assignments: {getTotalSelectedEmployees()}{" "}
+                        employee(s)
+                      </Text>
+                      <Text type="secondary">
+                        Priority: {assignForm.priority} • Due:{" "}
+                        {assignForm.dueDate?.format("DD/MM/YYYY")}
+                      </Text>
                     </div>
-                  </div>
-                </Alert>
-              )}
-            </>
-          )}
-        </Modal.Body>
-
-        <Modal.Footer className="bg-light border-top">
-          <Button
-            variant="outline-secondary"
-            onClick={() => setShowAssignModal(false)}
-            className="border"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAssignSubmit}
-            disabled={Object.keys(assignForm.selectedEmployees).length === 0}
-            className="fw-semibold"
-          >
-            <FaPaperPlane className="me-2" />
-            {Object.keys(assignForm.selectedEmployees).length === 0
-              ? "Select Employees First"
-              : `Assign to ${Object.values(assignForm.selectedEmployees).reduce(
-                  (total, val) => total + getEmployeeValueCount(val),
-                  0
-                )} Employee(s)`}
-          </Button>
-        </Modal.Footer>
+                  </Space>
+                }
+                type="info"
+              />
+            )}
+          </>
+        )}
       </Modal>
-
-      <style jsx global>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .employee-list::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .employee-list::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-
-        .employee-list::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 3px;
-        }
-
-        .employee-list::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-      `}</style>
     </div>
   );
 };

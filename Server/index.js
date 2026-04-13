@@ -32,9 +32,12 @@ app.use(morgan("tiny"));
 
 // Database Connection
 const dbUrl = process.env.dbUrl;
-
-mongoose
-  .connect(dbUrl)
+console.log("DB URL:", process.env.dbUrl);
+mongoose.
+  connect(process.env.dbUrl, {
+  tls: true,
+  serverSelectionTimeoutMS: 5000,
+})
   .then(() => {
     console.log(`✅ DB Connected Successfully`);
   })

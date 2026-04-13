@@ -104,6 +104,7 @@ import RMAssignment from "../Components/Masters/RMAssignment";
 import CompositeAssignments from "../Components/Masters/Composite/CompositeAssignment";
 import MarketingAssignments from "../Components/Masters/Marketing/MarketingAssignment";
 import ServiceAssignments from "../Components/Masters/Servicing/ServiceAssignment";
+import DisplaySuspect from "../Components/Customer/Suspect/DisplaySuspect";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -217,11 +218,11 @@ const AppRoutes = () => {
         <Route path="/client/add" element={<ClientFirstFrom />} />
         <Route path="/client/edit/:id" element={<ClientFirstFrom />} />
         <Route path="/client/detail/:id" element={<CustomerDetail />} />
-        <Route path="/suspect" element={<SuspectLeadsTabs />} />
+        <Route path="/suspect" element={<DisplaySuspect />} />
         <Route path="/suspect/add" element={<SuspectFirstForm />} />
         <Route path="/suspect/edit/:id" element={<SuspectFirstForm />} />
         <Route path="/suspect/detail/:id" element={<SuspectDetail />} />
-        <Route path="/prospect" element={<ProspectLeadTabs />} />
+        <Route path="/prospect" element={<ProspectAppointmentList />} />
         <Route path="/prospect/add" element={<ProspectFirstForm />} />
         <Route path="/prospect/edit/:id" element={<ProspectFirstForm />} />
         <Route path="/prospect/detail/:id" element={<ProspectDetail />} />
