@@ -74,6 +74,7 @@ const Navbarfristn = () => {
 
   return (
     <div className="font-sans" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      <div className="h-[10px] w-full bg-orange-500" />
       <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto w-full max-w-[1600px] px-3 lg:px-5">
           <div className="flex h-16 items-center justify-between gap-3">
@@ -89,9 +90,9 @@ const Navbarfristn = () => {
               <Link
                 to="/"
                 onClick={closeAllDropdowns}
-                className="rounded-md bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-2 text-xl font-bold tracking-wide text-white transition-all duration-200 ease-in-out hover:scale-[1.01]"
+                className="rounded-md bg-gradient-to-r  px-3 py-2 text-xl font-bold tracking-wide text-white transition-all duration-200 ease-in-out hover:scale-[1.01]"
               >
-                Vpfinancial <span className="text-red-200">Nest</span>
+               <span className="text-blue-600">  Vpfinancial <br /> Nest</span>
               </Link>
             </div>
 
