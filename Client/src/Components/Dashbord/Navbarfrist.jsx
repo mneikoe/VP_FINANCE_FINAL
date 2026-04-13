@@ -6,7 +6,6 @@ import {
   FiGrid,
   FiLayers,
   FiUsers,
-  FiUser,
   FiBriefcase,
   FiHome,
   FiMessageSquare,
@@ -16,26 +15,52 @@ import {
   FiMenu,
   FiLogOut,
   FiX,
+  FiUser,
+  FiSettings,
+  FiBarChart2,
+  FiDatabase,
+  FiTarget,
 } from "react-icons/fi";
+import {
+  DashboardOutlined,
+  DatabaseOutlined,
+  TeamOutlined,
+  UserOutlined,
+  AppstoreOutlined,
+  HomeOutlined,
+  MessageOutlined,
+  CheckSquareOutlined,
+  FileTextOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  CloseOutlined,
+  DownOutlined,
+  SettingOutlined,
+  BarChartOutlined,
+} from "@ant-design/icons";
 
 const Navbarfristn = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
   const closeDropdownTimerRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/auth/login");
   };
-
-  const navItemClass =
-    "group flex h-16 min-w-[98px] cursor-pointer flex-col items-center justify-center rounded-lg px-3 text-gray-600 transition-all duration-200 ease-in-out hover:bg-gray-100 hover:text-blue-600";
-  const activeNavClass = "bg-blue-50 text-blue-600";
-  const iconClass = "mb-1 text-[18px]";
-  const labelClass = "text-sm font-medium tracking-wide";
 
   const isPathActive = (paths = []) =>
     paths.some((path) =>
@@ -56,7 +81,7 @@ const Navbarfristn = () => {
   const handleDropdownLeave = () => {
     closeDropdownTimerRef.current = setTimeout(() => {
       setOpenDropdown(null);
-    }, 120);
+    }, 150);
   };
 
   const closeAllDropdowns = () => {
@@ -72,906 +97,493 @@ const Navbarfristn = () => {
     };
   }, []);
 
+  // Navigation Item Component
+  const NavItem = ({ to, icon: Icon, label, active, onClick }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={`
+        relative flex h-14 min-w-[90px] cursor-pointer flex-col items-center justify-center 
+        rounded-lg px-3 transition-all duration-200 ease-in-out
+        ${active ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
+        group
+      `}
+    >
+      <Icon className="mb-1 text-lg transition-transform duration-200 group-hover:scale-110" />
+      <span className="text-xs font-medium tracking-wide">{label}</span>
+      {active && (
+        <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-blue-600" />
+      )}
+    </Link>
+  );
+
+  // Dropdown Item Component
+  const DropdownNavItem = ({ icon: Icon, label, isOpen, onClick, children }) => (
+    <div
+      className="relative"
+      onMouseEnter={() => handleDropdownEnter(label.toLowerCase())}
+      onMouseLeave={handleDropdownLeave}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        className={`
+          relative flex h-14 min-w-[90px] cursor-pointer flex-col items-center justify-center 
+          rounded-lg px-3 transition-all duration-200 ease-in-out
+          ${isOpen ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
+          group w-full
+        `}
+      >
+        <Icon className="mb-1 text-lg transition-transform duration-200 group-hover:scale-110" />
+        <div className="flex items-center">
+          <span className="text-xs font-medium tracking-wide">{label}</span>
+          <FiChevronDown
+            className={`ml-1 text-xs transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          />
+        </div>
+        {isOpen && (
+          <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-blue-600" />
+        )}
+      </button>
+      {children}
+    </div>
+  );
+
+  // Dropdown Menu Component
+  const DropdownMenu = ({ isOpen, width = "680px", children }) => (
+    <div
+      className={`
+        absolute left-0 top-full z-50 mt-1 rounded-xl border border-gray-200 
+        bg-white shadow-xl transition-all duration-200 ease-in-out
+        ${isOpen ? "visible opacity-100 translate-y-0" : "invisible opacity-0 -translate-y-2"}
+      `}
+      style={{ width }}
+    >
+      <div className="max-h-[calc(100vh-200px)] overflow-y-auto p-5">{children}</div>
+    </div>
+  );
+
+  // Menu Section Component
+  const MenuSection = ({ title, items }) => (
+    <div>
+      <h6 className="mb-3 text-xs font-bold uppercase tracking-wider text-blue-600">
+        {title}
+      </h6>
+      <div className="space-y-1">
+        {items.map((item, idx) => (
+          <Link
+            key={idx}
+            to={item.to}
+            className="block rounded-md px-3 py-2 text-sm text-gray-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600 hover:translate-x-1"
+            onClick={closeAllDropdowns}
+          >
+            {item.name}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="font-sans" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-      <div className="h-[10px] w-full bg-orange-500" />
-      <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
-        <div className="mx-auto w-full max-w-[1600px] px-3 lg:px-5">
+      {/* Top accent bar with gradient */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-orange-500 to-blue-500" />
+
+      <nav
+        className={`
+          sticky top-0 z-50 border-b border-gray-200 bg-white
+          transition-shadow duration-300
+          ${scrolled ? "shadow-lg" : "shadow-sm"}
+        `}
+      >
+        <div className="mx-auto w-full max-w-[1800px] px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between gap-3">
+            {/* Logo Section */}
             <div className="flex items-center gap-3">
-            {/* Mobile Menu Button */}
-            <button
-              className="lg:hidden text-gray-700 focus:outline-none"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </button>
+              <button
+                className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 lg:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              </button>
 
               <Link
                 to="/"
                 onClick={closeAllDropdowns}
-                className="rounded-md bg-gradient-to-r  px-3 py-2 text-xl font-bold tracking-wide text-white transition-all duration-200 ease-in-out hover:scale-[1.01]"
+                className="group flex items-center gap-2"
               >
-               <span className="text-blue-600">  Vpfinancial <br /> Nest</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md transition-transform group-hover:scale-105">
+                  <span className="text-xl font-bold text-white">VP</span>
+                </div>
+                <div className="hidden lg:block">
+                  <div className="text-lg font-bold leading-tight text-gray-800">
+                    VPFinancial
+                  </div>
+                  <div className="text-xs font-medium text-blue-600">Nest</div>
+                </div>
               </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-1 lg:flex lg:items-center lg:justify-center lg:gap-1 xl:gap-2">
+            <div className="hidden flex-1 lg:flex lg:items-center lg:justify-center lg:gap-1 xl:gap-3">
               {/* Dashboard */}
-              <Link
+              <NavItem
                 to="/"
-                className={`${navItemClass} ${
-                  isPathActive(["/"]) ? activeNavClass : ""
-                }`}
+                icon={FiGrid}
+                label="Dashboard"
+                active={isPathActive(["/"])}
                 onClick={closeAllDropdowns}
-              >
-                <FiGrid className={iconClass} />
-                <span className={labelClass}>Dashboard</span>
-              </Link>
+              />
 
               {/* Masters Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("masters")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiLayers}
+                label="Masters"
+                isOpen={openDropdown === "masters"}
+                onClick={() => handleDropdownClick("masters")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "masters" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("masters")}
-                >
-                  <FiLayers className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Masters</span>
-                    <FiChevronDown className="ml-1 text-xs" />
+                <DropdownMenu isOpen={openDropdown === "masters"} width="720px">
+                  <div className="grid grid-cols-3 gap-6">
+                    <MenuSection
+                      title="Task Master"
+                      items={[
+                        { name: "Composite Task", to: "/composite" },
+                        { name: "Marketing Task", to: "/marketing-task" },
+                        { name: "Servicing Task", to: "/servicing-task" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Location Master"
+                      items={[
+                        { name: "Add Location", to: "/area" },
+                        { name: "Add Sub Location", to: "/sub-area" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Lead Master"
+                      items={[
+                        { name: "Lead Source", to: "/lead-type" },
+                        { name: "Lead Name", to: "/lead-source" },
+                        { name: "Lead Occupation", to: "/lead-occupation" },
+                        { name: "Occupation Type", to: "/occupation-type" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="KYC Document"
+                      items={[{ name: "Document Type", to: "/kycdocument" }]}
+                    />
                   </div>
-                </button>
-
-                {openDropdown === "masters" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-3 gap-5">
-                      {/* Task Master */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          TASK MASTER
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/composite"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Composite Task
-                          </Link>
-                          <Link
-                            to="/marketing-task"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Marketing Task
-                          </Link>
-                          <Link
-                            to="/servicing-task"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Servicing Task
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Location Master */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          LOCATION MASTER
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/area"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Add Location
-                          </Link>
-                          <Link
-                            to="/sub-area"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Add Sub Location
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Lead Master */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          LEAD MASTER
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/lead-type"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Lead Source
-                          </Link>
-                          <Link
-                            to="/lead-source"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Lead Name
-                          </Link>
-                          <Link
-                            to="/lead-occupation"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Lead Occupation
-                          </Link>
-                          <Link
-                            to="/occupation-type"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Occupation Type
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* KYC Document */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          KYC Document
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/kycdocument"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Document Type
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Customers Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("customers")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiUser}
+                label="Customers"
+                isOpen={openDropdown === "customers"}
+                onClick={() => handleDropdownClick("customers")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "customers" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("customers")}
-                >
-                  <FiLayers className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Customers</span>
-                    <FiChevronDown className="ml-1 text-xs" />
+                <DropdownMenu isOpen={openDropdown === "customers"} width="720px">
+                  <div className="grid grid-cols-3 gap-6">
+                    <MenuSection
+                      title="Suspect"
+                      items={[
+                        { name: "Add Suspect", to: "/suspect/add" },
+                        { name: "Suspect List", to: "/suspect" },
+                        { name: "Import Lead", to: "/import-lead" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Prospect"
+                      items={[
+                        { name: "Add Prospect", to: "/prospect/add" },
+                        { name: "Prospect List", to: "/prospect" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Client"
+                      items={[
+                        { name: "Add Client", to: "/client/add" },
+                        { name: "Client List", to: "/client" },
+                      ]}
+                    />
                   </div>
-                </button>
-
-                {openDropdown === "customers" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-3 gap-4">
-                      {/* Suspect */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Suspect
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/suspect/add"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Add Suspect
-                          </Link>
-                          <Link
-                            to="/suspect"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Suspect List
-                          </Link>
-                          <Link
-                            to="/import-lead"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Import Lead
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Prospect */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Prospect
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/prospect/add"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Add Prospect
-                          </Link>
-                          <Link
-                            to="/prospect"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Prospect List
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Client */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Client
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/client/add"
-                            state={{ tab: "add" }}
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Add Client
-                          </Link>
-                          <Link
-                            to="/client"
-                            state={{ tab: "display" }}
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Client List
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Employee Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("employee")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiUsers}
+                label="Employee"
+                isOpen={openDropdown === "employee"}
+                onClick={() => handleDropdownClick("employee")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "employee" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("employee")}
-                >
-                  <FiUsers className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Employee</span>
-                    <FiChevronDown className="ml-1 text-xs" />
-                  </div>
-                </button>
-
-                {openDropdown === "employee" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[980px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-4 gap-4">
-                      {/* Office Admin */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Office Admin
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            {
-                              name: "Job Profile & Target",
-                              to: "/job-profile-target-admin",
-                            },
-                            {
-                              name: "Employee Recruitment",
-                              to: "/employee-recruitment",
-                            },
-                            { name: "Vacancy Notice", to: "/vacancy-notice" },
-                            { name: "Add Candidate", to: "/addcandidate" },
-                            { name: "Career Enquiry", to: "/career-enquiry" },
-                            {
-                              name: "Resume Shortlist",
-                              to: "/resume-shortlist",
-                            },
-                            {
-                              name: "Interview Process",
-                              to: "/interview-process",
-                            },
-                            {
-                              name: "Internship Candidate",
-                              to: "/internship-candidate",
-                            },
-                            { name: "Add Employee", to: "/add-employee" },
-                            { name: "Joining Data", to: "/joining-data" },
-                            {
-                              name: "Show Appointments",
-                              to: "/job-profile-target-admin",
-                            },
-                          ].map((item, idx) => (
-                            <Link
-                              key={idx}
-                              to={item.to}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item.name}
-                            </Link>
-                          ))}
-                        </div>
+                <DropdownMenu isOpen={openDropdown === "employee"} width="900px">
+                  <div className="grid grid-cols-3 gap-6">
+                    <MenuSection
+                      title="Office Admin"
+                      items={[
+                        { name: "Job Profile & Target", to: "/job-profile-target-admin" },
+                        { name: "Employee Recruitment", to: "/employee-recruitment" },
+                        { name: "Vacancy Notice", to: "/vacancy-notice" },
+                        { name: "Add Candidate", to: "/addcandidate" },
+                        { name: "Career Enquiry", to: "/career-enquiry" },
+                        { name: "Resume Shortlist", to: "/resume-shortlist" },
+                        { name: "Interview Process", to: "/interview-process" },
+                        { name: "Internship Candidate", to: "/internship-candidate" },
+                        { name: "Add Employee", to: "/add-employee" },
+                        { name: "Joining Data", to: "/joining-data" },
+                      ]}
+                    />
+                    <div>
+                      <MenuSection
+                        title="Telecaller"
+                        items={[
+                          { name: "Job Profile & Target", to: "/job-profile-target-telecaller" },
+                        ]}
+                      />
+                      <div className="mt-4">
+                        <MenuSection
+                          title="Telemarketer"
+                          items={[
+                            { name: "Job Profile & Target", to: "/job-profile-target-telemarketer" },
+                          ]}
+                        />
                       </div>
-
-                      {/* Telecaller */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Telecaller
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/job-profile-target-telecaller"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Job Profile & Target
-                          </Link>
-                        </div>
-
-                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
-                          Telemarketer
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/job-profile-target-telemarketer"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Job Profile & Target
-                          </Link>
-                        </div>
-
-                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
-                          CRE
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/job-profile-target-cre"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Job Profile & Target
-                          </Link>
-                        </div>
+                      <div className="mt-4">
+                        <MenuSection
+                          title="CRE"
+                          items={[
+                            { name: "Job Profile & Target", to: "/job-profile-target-cre" },
+                          ]}
+                        />
                       </div>
-
-                      {/* Office Executive */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Office Executive
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/job-profile-target-office-executive"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Job Profile & Target
-                          </Link>
-                        </div>
-
-                        <h6 className="text-red-600 text-xs font-semibold mb-2 mt-3">
-                          HR Rules
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/hr-rules"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            HR Rules & Regulations
-                          </Link>
-                          <Link
-                            to="/employee-training"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Employee Training
-                          </Link>
-                        </div>
+                    </div>
+                    <div>
+                      <MenuSection
+                        title="Office Executive"
+                        items={[
+                          { name: "Job Profile & Target", to: "/job-profile-target-office-executive" },
+                        ]}
+                      />
+                      <div className="mt-4">
+                        <MenuSection
+                          title="HR Rules"
+                          items={[
+                            { name: "HR Rules & Regulations", to: "/hr-rules" },
+                            { name: "Employee Training", to: "/employee-training" },
+                          ]}
+                        />
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Departments Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("departments")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiBriefcase}
+                label="Departments"
+                isOpen={openDropdown === "departments"}
+                onClick={() => handleDropdownClick("departments")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "departments" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("departments")}
-                >
-                  <FiBriefcase className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Departments</span>
-                    <FiChevronDown className="ml-1 text-xs" />
+                <DropdownMenu isOpen={openDropdown === "departments"} width="720px">
+                  <div className="grid grid-cols-2 gap-6">
+                    <MenuSection
+                      title="Marketing Department"
+                      items={[
+                        { name: "Composite Data", to: "/marketing-composite" },
+                        { name: "Life Insurance", to: "/marketing-life" },
+                        { name: "Health Insurance", to: "/marketing-health" },
+                        { name: "Mutual Fund", to: "/marketing-mutual" },
+                        { name: "Real Estate", to: "/marketing-realestate" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Servicing Department"
+                      items={[
+                        { name: "Composite Data", to: "/servicing-composite" },
+                        { name: "Life Insurance", to: "/servicing-life" },
+                        { name: "Health Insurance", to: "/servicing-health" },
+                        { name: "Mutual Fund", to: "/servicing-mutual" },
+                        { name: "Real Estate", to: "/servicing-realestate" },
+                      ]}
+                    />
                   </div>
-                </button>
-
-                {openDropdown === "departments" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[920px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-4 gap-4">
-                     
-
-                      {/* Marketing Department */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Marketing Department
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            {
-                              name: "Composite Data",
-                              to: "/marketing-composite",
-                            },
-                            { name: "Life Insurance", to: "/marketing-life" },
-                            {
-                              name: "Health Insurance",
-                              to: "/marketing-health",
-                            },
-                            { name: "Mutual Fund", to: "/marketing-mutual" },
-                            {
-                              name: "Real Estate",
-                              to: "/marketing-realestate",
-                            },
-                          ].map((item, idx) => (
-                            <Link
-                              key={idx}
-                              to={item.to}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item.name}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Servicing Department + CRM */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Servicing Department
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            {
-                              name: "Composite Data",
-                              to: "/servicing-composite",
-                            },
-                            { name: "Life Insurance", to: "/servicing-life" },
-                            {
-                              name: "Health Insurance",
-                              to: "/servicing-health",
-                            },
-                            { name: "Mutual Fund", to: "/servicing-mutual" },
-                            {
-                              name: "Real Estate",
-                              to: "/servicing-realestate",
-                            },
-                          ].map((item, idx) => (
-                            <Link
-                              key={idx}
-                              to={item.to}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded truncate"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item.name}
-                            </Link>
-                          ))}
-                        </div>
-
-                       
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Office Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("office")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiHome}
+                label="Office"
+                isOpen={openDropdown === "office"}
+                onClick={() => handleDropdownClick("office")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "office" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("office")}
-                >
-                  <FiHome className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Office</span>
-                    <FiChevronDown className="ml-1 text-xs" />
-                  </div>
-                </button>
-
-                {openDropdown === "office" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Financial */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          FINANCIAL
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/financial-product-list"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Financial Product List
-                          </Link>
-                          <Link
-                            to="/company-name"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Company Name
-                          </Link>
-
-                          {/* Mutual Fund Submenu */}
-                          <div className="relative">
-                            <div className="ml-4 mt-1 space-y-1">
-                              <Link
-                                to="/mutual-fund/registrar"
-                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                                onClick={closeAllDropdowns}
-                              >
-                                MF Registrar
-                              </Link>
-                              <Link
-                                to="/mutual-fund/amc"
-                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                                onClick={closeAllDropdowns}
-                              >
-                                MF AMC Name
-                              </Link>
-                            </div>
-                          </div>
-
-                          <Link
-                            to="/other-product"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Other Product
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Office Records */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          OFFICE RECORDS
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/office-diary"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Office Diary
-                          </Link>
-                          <Link
-                            to="/office-purchase"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Office Purchase
-                          </Link>
-                          <Link
-                            to="/important-documents"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Important Documents
-                          </Link>
-                        </div>
-                      </div>
+                <DropdownMenu isOpen={openDropdown === "office"} width="600px">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <MenuSection
+                        title="Financial"
+                        items={[
+                          { name: "Financial Product List", to: "/financial-product-list" },
+                          { name: "Company Name", to: "/company-name" },
+                          { name: "MF Registrar", to: "/mutual-fund/registrar" },
+                          { name: "MF AMC Name", to: "/mutual-fund/amc" },
+                          { name: "Other Product", to: "/other-product" },
+                        ]}
+                      />
                     </div>
+                    <MenuSection
+                      title="Office Records"
+                      items={[
+                        { name: "Office Diary", to: "/office-diary" },
+                        { name: "Office Purchase", to: "/office-purchase" },
+                        { name: "Important Documents", to: "/important-documents" },
+                      ]}
+                    />
                   </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
-              {/* CRM Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("crm")}
-                onMouseLeave={handleDropdownLeave}
+              {/* RM Dropdown */}
+              <DropdownNavItem
+                icon={FiMessageSquare}
+                label="RM"
+                isOpen={openDropdown === "crm"}
+                onClick={() => handleDropdownClick("crm")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "crm" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("crm")}
-                >
-                  <FiMessageSquare className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>RM</span>
-                    <FiChevronDown className="ml-1 text-xs" />
-                  </div>
-                </button>
-
-                {openDropdown === "crm" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[440px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* CRM Records */}
-                      {/* <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          CRM RECORDS
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            "Relationship",
-                            "Employee",
-                            "Customer",
-                            "Associates",
-                          ].map((item) => (
-                            <Link
-                              key={item}
-                              to={`/crm-${item.toLowerCase()}`}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item}
-                            </Link>
-                          ))}
-                        </div>
-                      </div> */}
-
-                      {/* CRM Activities */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          CRM ACTIVITIES
-                        </h6>
-                        <div className="space-y-1">
-                          {[
-                            "Creative Activity",
-                            "Advertisement",
-                            "Composite Data",
-                          ].map((item) => (
-                            <Link
-                              key={item}
-                              to={`/crm-${item
-                                .toLowerCase()
-                                .replace(/\s+/g, "-")}`}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* CRM Insurance & Funds */}
-                      {/* <div className="col-span-2">
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          CRM INSURANCE & FUNDS
-                        </h6>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            "Life Insurance",
-                            "Health Insurance",
-                            "Mutual Fund",
-                            "Real Estate",
-                          ].map((item) => (
-                            <Link
-                              key={item}
-                              to={`/crm-${item
-                                .toLowerCase()
-                                .replace(/\s+/g, "-")}`}
-                              className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                              onClick={closeAllDropdowns}
-                            >
-                              {item}
-                            </Link>
-                          ))}
-                        </div>
-                      </div> */}
-                    </div>
-                  </div>
-                )}
-              </div>
+                <DropdownMenu isOpen={openDropdown === "crm"} width="400px">
+                  <MenuSection
+                    title="CRM Activities"
+                    items={[
+                      { name: "Creative Activity", to: "/crm-creative-activity" },
+                      { name: "Advertisement", to: "/crm-advertisement" },
+                      { name: "Composite Data", to: "/crm-composite-data" },
+                    ]}
+                  />
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Task Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("task")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiCheckSquare}
+                label="Task"
+                isOpen={openDropdown === "task"}
+                onClick={() => handleDropdownClick("task")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "task" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("task")}
-                >
-                  <FiCheckSquare className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Task</span>
-                    <FiChevronDown className="ml-1 text-xs" />
+                <DropdownMenu isOpen={openDropdown === "task"} width="450px">
+                  <div className="grid grid-cols-2 gap-6">
+                    <MenuSection
+                      title="Task Categories"
+                      items={[
+                        { name: "Composite", to: "/task-composite" },
+                        { name: "Marketing", to: "/task-marketing" },
+                        { name: "Servicing", to: "/task-servicing" },
+                      ]}
+                    />
+                    <MenuSection
+                      title="Task Assign"
+                      items={[
+                        { name: "Assign Task", to: "/task-assign" },
+                        { name: "Assign Appointments", to: "/appointment-assign" },
+                      ]}
+                    />
                   </div>
-                </button>
-
-                {openDropdown === "task" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[440px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Task Categories */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          TASK CATEGORIES
-                        </h6>
-                        <div className="space-y-1">
-                          {["Composite", "Marketing", "Servicing"].map(
-                            (item) => (
-                              <Link
-                                key={item}
-                                to={`/task-${item.toLowerCase()}`}
-                                className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                                onClick={closeAllDropdowns}
-                              >
-                                {item}
-                              </Link>
-                            )
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Task Assign */}
-                      <div>
-                        <h6 className="text-red-600 text-xs font-semibold mb-2">
-                          Task Assign
-                        </h6>
-                        <div className="space-y-1">
-                          <Link
-                            to="/task-assign"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Assign Task
-                          </Link>
-                          <Link
-                            to="/appointment-assign"
-                            className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                            onClick={closeAllDropdowns}
-                          >
-                            Assign Appointments
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </DropdownMenu>
+              </DropdownNavItem>
 
               {/* Reports Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => handleDropdownEnter("reports")}
-                onMouseLeave={handleDropdownLeave}
+              <DropdownNavItem
+                icon={FiFileText}
+                label="Reports"
+                isOpen={openDropdown === "reports"}
+                onClick={() => handleDropdownClick("reports")}
               >
-                <button
-                  type="button"
-                  className={`${navItemClass} ${
-                    openDropdown === "reports" ? activeNavClass : ""
-                  }`}
-                  onClick={() => handleDropdownClick("reports")}
-                >
-                  <FiFileText className={iconClass} />
-                  <div className="flex items-center">
-                    <span className={labelClass}>Reports</span>
-                    <FiChevronDown className="ml-1 text-xs" />
-                  </div>
-                </button>
-
-                {openDropdown === "reports" && (
-                  <div className="absolute left-0 top-full z-50 mt-0 w-[340px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
-                    <div>
-                      <h6 className="text-red-600 text-xs font-semibold mb-2">
-                        REPORTS
-                      </h6>
-                      <div className="space-y-1">
-                        <Link
-                          to="/reports/employee-report"
-                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                          onClick={closeAllDropdowns}
-                        >
-                          Employee Report
-                        </Link>
-                        <Link
-                          to="/reports/telecaller-report"
-                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                          onClick={closeAllDropdowns}
-                        >
-                          Telecaller Calling Report
-                        </Link>
-                        <Link
-                          to="/financial-product-list"
-                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                          onClick={closeAllDropdowns}
-                        >
-                          Financial Reports
-                        </Link>
-                        <Link
-                          to="/report-2"
-                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                          onClick={closeAllDropdowns}
-                        >
-                          Sales Reports
-                        </Link>
-                        <Link
-                          to="/report-3"
-                          className="block text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded"
-                          onClick={closeAllDropdowns}
-                        >
-                          Customer Reports
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <DropdownMenu isOpen={openDropdown === "reports"} width="350px">
+                  <MenuSection
+                    title="Reports"
+                    items={[
+                      { name: "Employee Report", to: "/reports/employee-report" },
+                      { name: "Telecaller Calling Report", to: "/reports/telecaller-report" },
+                      { name: "Financial Reports", to: "/financial-product-list" },
+                      { name: "Sales Reports", to: "/report-2" },
+                      { name: "Customer Reports", to: "/report-3" },
+                    ]}
+                  />
+                </DropdownMenu>
+              </DropdownNavItem>
             </div>
 
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex h-9 items-center rounded-md border border-red-500 px-3 text-xs font-medium text-red-600 transition-all duration-200 ease-in-out hover:bg-red-50"
-            >
-              <FiLogOut className="mr-2" />
-              Logout
-            </button>
+            {/* Right Section - Logout & Profile */}
+            <div className="flex items-center gap-3">
+              {/* Quick Actions */}
+              
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="group flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-100 hover:shadow-md"
+              >
+                <FiLogOut className="transition-transform group-hover:-translate-x-0.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
 
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="lg:hidden py-4 border-t">
-              <div className="space-y-2">
-                {/* Mobile menu items will be added similarly */}
-                <div className="text-center text-gray-600 py-2">
-                  Mobile menu - Add items as needed
-                </div>
-              </div>
+          {/* Mobile Navigation Menu */}
+          <div
+            className={`
+              overflow-hidden transition-all duration-300 lg:hidden
+              ${isMobileMenuOpen ? "max-h-[600px] border-t border-gray-200 py-4" : "max-h-0"}
+            `}
+          >
+            <div className="space-y-2">
+              {/* Mobile menu items - quick links */}
+              <Link
+                to="/"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                onClick={closeAllDropdowns}
+              >
+                <FiGrid size={20} />
+                <span className="font-medium">Dashboard</span>
+              </Link>
+              <Link
+                to="/suspect"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                onClick={closeAllDropdowns}
+              >
+                <FiUser size={20} />
+                <span className="font-medium">Suspects</span>
+              </Link>
+              <Link
+                to="/prospect"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                onClick={closeAllDropdowns}
+              >
+                <FiTarget size={20} />
+                <span className="font-medium">Prospects</span>
+              </Link>
+              <Link
+                to="/client"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                onClick={closeAllDropdowns}
+              >
+                <FiBriefcase size={20} />
+                <span className="font-medium">Clients</span>
+              </Link>
+              <Link
+                to="/reports/telecaller-report"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                onClick={closeAllDropdowns}
+              >
+                <FiBarChart2 size={20} />
+                <span className="font-medium">Reports</span>
+              </Link>
             </div>
-          )}
+          </div>
         </div>
       </nav>
     </div>
