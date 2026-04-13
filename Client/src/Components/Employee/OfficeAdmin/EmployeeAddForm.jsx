@@ -313,21 +313,22 @@ const EmployeeAddForm = () => {
 
   const renderFields = (fields) =>
     fields.map((field, i) => (
-      <Col md={4} key={i}>
-        <Form.Group className="mb-3">
-          <Form.Label>
+      <Col xl={3} lg={4} md={6} key={i}>
+        <Form.Group className="mb-2 compact-form-group">
+          <Form.Label className="compact-form-label">
             {field.label}
             {field.required && <span className="text-danger">*</span>}
           </Form.Label>
           {field.type === "select" ? (
             <Form.Select
+              className="compact-form-control"
               name={field.name}
               value={formData[field.name]}
               onChange={field.onChange || handleChange}
               disabled={loading || field.disabled}
               required={field.required}
             >
-              <option value="">Select {field.label}</option>
+              <option value="">--</option>
               {field.options?.map((option) => (
                 <option
                   key={option.value || option._id}
@@ -339,6 +340,7 @@ const EmployeeAddForm = () => {
             </Form.Select>
           ) : (
             <Form.Control
+              className="compact-form-control"
               type={field.type || "text"}
               as={field.as}
               rows={field.rows}
@@ -347,7 +349,6 @@ const EmployeeAddForm = () => {
               onChange={field.onChange || handleChange}
               disabled={loading || field.disabled}
               required={field.required}
-              placeholder={field.placeholder}
               maxLength={field.maxLength}
               readOnly={field.readOnly}
             />
@@ -360,9 +361,8 @@ const EmployeeAddForm = () => {
     ));
 
   return (
-    <Container fluid className="p-4">
-      <div className="border rounded bg-light p-4">
-        <h4 className="mb-4 text-center">Employee Management</h4>
+    <Container fluid className="p-0">
+      <div className="employee-form-shell border rounded-3 bg-white p-2 shadow-sm">
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -370,15 +370,15 @@ const EmployeeAddForm = () => {
         <Tabs
           activeKey={activeTab}
           onSelect={(k) => setActiveTab(k)}
-          className="mb-4"
+          className="mb-1 compact-main-tabs"
           fill
         >
           <Tab eventKey="addEmployee" title="➕ Add Employee">
             <Form onSubmit={handleSaveEmployee}>
-              <Tabs defaultActiveKey="personal" className="mb-3">
+              <Tabs defaultActiveKey="personal" className="mb-1 compact-inner-tabs">
                 {/* PERSONAL DETAILS */}
                 <Tab eventKey="personal" title="Personal Details">
-                  <Row>
+                  <Row className="g-1">
                     {renderFields([
                       {
                         label: "Role",
@@ -404,20 +404,17 @@ const EmployeeAddForm = () => {
                         label: "Full Name",
                         name: "name",
                         required: true,
-                        placeholder: "Enter full name",
                       },
                       {
                         label: "Email ID",
                         name: "emailId",
                         type: "email",
                         required: true,
-                        placeholder: "Enter email address",
                       },
                       {
                         label: "Mobile No",
                         name: "mobileNo",
                         required: true,
-                        placeholder: "Enter mobile number",
                       },
                       {
                         label: "Gender",
@@ -471,7 +468,6 @@ const EmployeeAddForm = () => {
                       {
                         label: "Work Pincode",
                         name: "workPincode",
-                        placeholder: "Enter 6-digit pincode",
                         onChange: handlePincodeChange,
                         maxLength: 6,
                         helpText: "Enter pincode to auto-fetch area",
@@ -485,7 +481,6 @@ const EmployeeAddForm = () => {
                           label: `${area.name} (${area.pincode})`,
                         })),
                         onChange: handleAreaChange,
-                        placeholder: "Select work area",
                         helpText: "Area will auto-fill from pincode",
                       },
                       {
@@ -496,14 +491,12 @@ const EmployeeAddForm = () => {
                           value: sub.subAreaName,
                           label: sub.subAreaName,
                         })),
-                        placeholder: "Select sub area",
                         helpText: "Select sub-area based on chosen area",
                       },
                       {
                         label: "Work City",
                         name: "workCity",
                         readOnly: true,
-                        placeholder: "Auto-filled from pincode",
                         helpText: "City auto-filled from pincode",
                       },
                     ])}
@@ -512,7 +505,7 @@ const EmployeeAddForm = () => {
 
                 {/* OFFICIAL DETAILS */}
                 <Tab eventKey="official" title="Official Details">
-                  <Alert variant="info" className="mb-3">
+                  <Alert variant="info" className="mb-2 py-2">
                     <strong>Default Login Credentials:</strong>
                     <br />
                     Employee Code: <strong>{formData.employeeCode}</strong>
@@ -520,7 +513,7 @@ const EmployeeAddForm = () => {
                     Password: <strong>123456</strong>
                   </Alert>
 
-                  <Row>
+                  <Row className="g-1">
                     {renderFields([
                       {
                         label: "Allotted Login ID",
@@ -582,7 +575,7 @@ const EmployeeAddForm = () => {
 
                 {/* BANK DETAILS */}
                 <Tab eventKey="bank" title="Bank Details">
-                  <Row>
+                  <Row className="g-1">
                     {renderFields([
                       { label: "Bank Name", name: "bankName" },
                       { label: "Account Number", name: "accountNo" },
@@ -594,7 +587,7 @@ const EmployeeAddForm = () => {
 
                 {/* ALERTS */}
                 <Tab eventKey="alerts" title="Alerts / Messages">
-                  <Row>
+                  <Row className="g-1">
                     {renderFields([
                       {
                         label: "On First Joining",
@@ -619,16 +612,12 @@ const EmployeeAddForm = () => {
                 </Tab>
               </Tabs>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-1">
                 <Button
                   type="submit"
-                  style={{
-                    backgroundColor: "#2B3A4A",
-                    border: "none",
-                    padding: "10px 30px",
-                  }}
+                  className="px-3 py-1 fw-medium rounded-2"
+                  style={{ backgroundColor: "#2B3A4A", border: "none" }}
                   disabled={loading || !formData.employeeCode}
-                  size="lg"
                 >
                   {loading ? "🔄 Adding Employee..." : "✅ Add Employee"}
                 </Button>
@@ -642,6 +631,56 @@ const EmployeeAddForm = () => {
           </Tab>
         </Tabs>
       </div>
+      <style>{`
+        .employee-form-shell {
+          border-color: #e5e7eb !important;
+        }
+        .compact-main-tabs .nav-link,
+        .compact-inner-tabs .nav-link {
+          font-size: 0.82rem;
+          font-weight: 500;
+          padding: 0.35rem 0.6rem;
+        }
+        .compact-main-tabs .nav-link.active,
+        .compact-inner-tabs .nav-link.active {
+          font-weight: 600;
+        }
+        .compact-form-group {
+          margin-bottom: 0.35rem !important;
+        }
+        .compact-form-label {
+          font-size: 0.76rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.12rem;
+        }
+        .compact-form-control {
+          min-height: 30px;
+          font-size: 0.8rem;
+          padding: 0.2rem 0.5rem;
+          border-color: #d1d5db;
+        }
+        textarea.compact-form-control {
+          min-height: 48px;
+        }
+        .compact-form-group .form-text {
+          font-size: 0.68rem;
+          margin-top: 0.08rem;
+          line-height: 1.2;
+          margin-bottom: 0;
+        }
+        .compact-main-tabs,
+        .compact-inner-tabs {
+          margin-bottom: 0.35rem !important;
+        }
+        .tab-content > .tab-pane {
+          padding-top: 0.1rem;
+        }
+        .compact-form-control:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.12);
+        }
+      `}</style>
     </Container>
   );
 };

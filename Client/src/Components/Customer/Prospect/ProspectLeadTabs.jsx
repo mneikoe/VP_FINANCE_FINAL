@@ -12,11 +12,11 @@ const ProspectLeadTabs = () => {
 
   return (
     <div
-      className="p-4 mt-4"
-      style={{ backgroundColor: "#ffffff", minHeight: "100vh" }}
+      className="p-2 mt-2"
+      style={{ backgroundColor: "#ffffff", minHeight: "auto" }}
     >
       {/* Main Tabs */}
-      <div className="d-flex mb-3 border-bottom pb-3">
+      <div className="d-flex mb-2 border-bottom pb-2">
         <button
           className={`btn ${
             activeTab === "add" ? "btn-dark text-white" : "btn-outline-dark"

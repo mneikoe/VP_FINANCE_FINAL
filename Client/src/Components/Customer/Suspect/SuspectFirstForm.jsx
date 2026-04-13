@@ -185,13 +185,14 @@ const SuspectFirstForm = () => {
   ];
 
   return (
-    <div className="container py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="text-primary">
+    <div className="container-fluid p-0">
+      <div className="suspect-form-shell border rounded-3 bg-white p-2 shadow-sm">
+      <div className="d-flex justify-content-between align-items-center mb-1">
+        <h6 className="text-primary mb-0 fw-semibold">
           {isEdit ? "Edit Suspect" : "Create New Suspect"}
-        </h1>
+        </h6>
         {isEdit && suspectId && (
-          <div className="badge bg-info text-dark p-2">
+          <div className="badge bg-info text-dark px-2 py-1">
             <small>Suspect ID: {suspectId.substring(0, 8)}...</small>
           </div>
         )}
@@ -199,7 +200,7 @@ const SuspectFirstForm = () => {
 
       {/* Tabs Navigation */}
       <div
-        className="nav nav-pills mb-4 bg-white shadow-sm rounded"
+        className="nav nav-pills mb-1 bg-white shadow-sm rounded"
         role="tablist"
       >
         {tabs.map((tab) => (
@@ -212,10 +213,11 @@ const SuspectFirstForm = () => {
               }`}
               onClick={() => handleTabChange(tab.id)}
               style={{
-                minWidth: "180px",
+                minWidth: "160px",
                 borderRadius: "0",
-                padding: "12px 20px",
-                borderRight: "1px solid #dee2e6",
+                padding: "5px 10px",
+                borderRight: "1px solid #e5e7eb",
+                fontSize: "0.8rem",
               }}
             >
               {tab.icon}
@@ -226,14 +228,14 @@ const SuspectFirstForm = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="tab-content p-4 border rounded bg-light shadow-sm">
+      <div className="tab-content p-2 border rounded bg-light shadow-sm compact-suspect-content">
         {/* Personal Details Tab */}
         {activeTab === "personal" && (
           <div className="tab-pane fade show active">
-            <h3 className="mb-4 text-primary">
+            <h6 className="mb-1 text-primary fw-semibold section-title">
               <FaUser className="me-2" />
               Personal Details
-            </h3>
+            </h6>
             <PersonalDetailFormSuspect
               isEdit={isEdit}
               suspectData={suspectData}
@@ -245,10 +247,10 @@ const SuspectFirstForm = () => {
         {/* Family Members Tab */}
         {activeTab === "family" && (
           <div className="tab-pane fade show active">
-            <h3 className="mb-4 text-primary">
+            <h6 className="mb-1 text-primary fw-semibold section-title">
               <FaUsers className="me-2" />
               Family Details
-            </h3>
+            </h6>
             <FamilyMembersFormSuspect
               suspectId={suspectId}
               suspectData={isEdit ? suspectData : null}
@@ -261,10 +263,10 @@ const SuspectFirstForm = () => {
         {/* Financial Information Tab */}
         {activeTab === "financial" && (
           <div className="tab-pane fade show active">
-            <h3 className="mb-4 text-primary">
+            <h6 className="mb-1 text-primary fw-semibold section-title">
               <FaRupeeSign className="me-2" />
               Financial Information
-            </h3>
+            </h6>
             <FinancialInformationFormSuspect
               suspectId={suspectId}
               suspectData={isEdit ? suspectData : null}
@@ -277,10 +279,10 @@ const SuspectFirstForm = () => {
         {/* Future Priorities Tab */}
         {activeTab === "priorities" && (
           <div className="tab-pane fade show active">
-            <h3 className="mb-4 text-primary">
+            <h6 className="mb-1 text-primary fw-semibold section-title">
               <FaBullseye className="me-2" />
               Future Priorities
-            </h3>
+            </h6>
             <FuturePrioritiesFromSuspect
               suspectId={suspectId}
               suspectData={isEdit ? suspectData : null}
@@ -293,10 +295,10 @@ const SuspectFirstForm = () => {
         {/* Proposed Plan Tab */}
         {activeTab === "proposed" && (
           <div className="tab-pane fade show active">
-            <h3 className="mb-4 text-primary">
+            <h6 className="mb-1 text-primary fw-semibold section-title">
               <FaFileAlt className="me-2" />
               Proposed Financial Plan
-            </h3>
+            </h6>
             <ProposedPanFormSuspect
               suspectId={suspectId}
               suspectData={isEdit ? suspectData : null}
@@ -308,7 +310,7 @@ const SuspectFirstForm = () => {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="d-flex justify-content-between mt-4">
+      <div className="d-flex justify-content-between mt-1">
         <Button
           variant="secondary"
           onClick={() => {
@@ -319,6 +321,7 @@ const SuspectFirstForm = () => {
             else navigate(-1);
           }}
           disabled={activeTab === "personal"}
+          size="sm"
         >
           ← Back
         </Button>
@@ -330,6 +333,7 @@ const SuspectFirstForm = () => {
             onClick={handleCreateClick}
             disabled={isCreating || !personalData}
             className="me-2"
+            size="sm"
           >
             <FaSave className="me-2" />
             {isCreating ? "Creating..." : "Create Suspect"}
@@ -337,12 +341,59 @@ const SuspectFirstForm = () => {
 
           {/* Next Button - For all tabs except proposed */}
           {activeTab !== "proposed" && (
-            <Button variant="primary" onClick={handleNextClick}>
+            <Button variant="primary" onClick={handleNextClick} size="sm">
               Next →
             </Button>
           )}
         </div>
       </div>
+      </div>
+      <style>{`
+        .suspect-form-shell {
+          border-color: #e5e7eb !important;
+        }
+        .custom-tab {
+          font-size: 0.8rem;
+          font-weight: 500;
+          line-height: 1.1;
+        }
+        .compact-suspect-content .row {
+          --bs-gutter-x: 0.5rem;
+          --bs-gutter-y: 0.35rem;
+        }
+        .compact-suspect-content .form-label {
+          font-size: 0.76rem;
+          font-weight: 600;
+          margin-bottom: 0.15rem;
+          color: #374151;
+        }
+        .compact-suspect-content .form-control,
+        .compact-suspect-content .form-select {
+          min-height: 30px;
+          font-size: 0.8rem;
+          padding: 0.2rem 0.5rem;
+          border-color: #d1d5db;
+        }
+        .compact-suspect-content .form-control::placeholder,
+        .compact-suspect-content .form-select::placeholder {
+          color: transparent !important;
+        }
+        .compact-suspect-content textarea.form-control {
+          min-height: 52px;
+        }
+        .compact-suspect-content .form-text {
+          font-size: 0.68rem;
+          margin-top: 0.08rem;
+          margin-bottom: 0;
+        }
+        .compact-suspect-content .mb-3,
+        .compact-suspect-content .mb-4 {
+          margin-bottom: 0.45rem !important;
+        }
+        .section-title {
+          font-size: 0.9rem;
+        }
+      `}</style>
     </div>
   );
 };

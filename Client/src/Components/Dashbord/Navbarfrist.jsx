@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../../redux/feature/auth/authThunx";
 import {
@@ -21,45 +21,63 @@ import {
 const Navbarfristn = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [openMutualFund, setOpenMutualFund] = useState(false);
+  const closeDropdownTimerRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/auth/login");
   };
 
-  const toggleDropdown = (name) => {
-    setOpenDropdown(openDropdown === name ? null : name);
+  const navItemClass =
+    "group flex h-16 min-w-[98px] cursor-pointer flex-col items-center justify-center rounded-lg px-3 text-gray-600 transition-all duration-200 ease-in-out hover:bg-gray-100 hover:text-blue-600";
+  const activeNavClass = "bg-blue-50 text-blue-600";
+  const iconClass = "mb-1 text-[18px]";
+  const labelClass = "text-sm font-medium tracking-wide";
+
+  const isPathActive = (paths = []) =>
+    paths.some((path) =>
+      path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
+    );
+
+  const handleDropdownEnter = (name) => {
+    if (closeDropdownTimerRef.current) {
+      clearTimeout(closeDropdownTimerRef.current);
+    }
+    setOpenDropdown(name);
   };
 
-  const toggleMutualFund = () => {
-    setOpenMutualFund(!openMutualFund);
+  const handleDropdownClick = (name) => {
+    setOpenDropdown((prev) => (prev === name ? null : name));
+  };
+
+  const handleDropdownLeave = () => {
+    closeDropdownTimerRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+    }, 120);
   };
 
   const closeAllDropdowns = () => {
     setOpenDropdown(null);
-    setOpenMutualFund(false);
     setIsMobileMenuOpen(false);
   };
 
-  return (
-    <div className="font-sans">
-      {/* Blue Header - Original color */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 py-3 px-4">
-        <div className="container mx-auto">
-          <h1 className="text-white text-2xl font-medium">
-            Vpfinancial{" "}
-            <span className="text-red-600 bg-white px-1 rounded">Nest</span>
-          </h1>
-        </div>
-      </div>
+  useEffect(() => {
+    return () => {
+      if (closeDropdownTimerRef.current) {
+        clearTimeout(closeDropdownTimerRef.current);
+      }
+    };
+  }, []);
 
-      {/* Main Navigation */}
-      <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-2">
+  return (
+    <div className="font-sans" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
+        <div className="mx-auto w-full max-w-[1600px] px-3 lg:px-5">
+          <div className="flex h-16 items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
             {/* Mobile Menu Button */}
             <button
               className="lg:hidden text-gray-700 focus:outline-none"
@@ -68,34 +86,52 @@ const Navbarfristn = () => {
               {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
             </button>
 
+              <Link
+                to="/"
+                onClick={closeAllDropdowns}
+                className="rounded-md bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-2 text-xl font-bold tracking-wide text-white transition-all duration-200 ease-in-out hover:scale-[1.01]"
+              >
+                Vpfinancial <span className="text-red-200">Nest</span>
+              </Link>
+            </div>
+
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex space-x-0 items-center">
+            <div className="hidden flex-1 lg:flex lg:items-center lg:justify-center lg:gap-1 xl:gap-2">
               {/* Dashboard */}
               <Link
                 to="/"
-                className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
+                className={`${navItemClass} ${
+                  isPathActive(["/"]) ? activeNavClass : ""
+                }`}
                 onClick={closeAllDropdowns}
               >
-                <FiGrid className="text-lg mb-1" />
-                <span className="text-xs font-medium">Dashboard</span>
+                <FiGrid className={iconClass} />
+                <span className={labelClass}>Dashboard</span>
               </Link>
 
               {/* Masters Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("masters")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("masters")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "masters" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("masters")}
                 >
-                  <FiLayers className="text-lg mb-1" />
+                  <FiLayers className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Masters</span>
+                    <span className={labelClass}>Masters</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "masters" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
-                    <div className="grid grid-cols-3 gap-4">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
+                    <div className="grid grid-cols-3 gap-5">
                       {/* Task Master */}
                       <div>
                         <h6 className="text-red-600 text-xs font-semibold mb-2">
@@ -207,20 +243,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Customers Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("customers")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("customers")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "customers" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("customers")}
                 >
-                  <FiLayers className="text-lg mb-1" />
+                  <FiLayers className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Customers</span>
+                    <span className={labelClass}>Customers</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "customers" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-3 gap-4">
                       {/* Suspect */}
                       <div>
@@ -305,20 +348,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Employee Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("employee")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("employee")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "employee" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("employee")}
                 >
-                  <FiUsers className="text-lg mb-1" />
+                  <FiUsers className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Employee</span>
+                    <span className={labelClass}>Employee</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "employee" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[900px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[980px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-4 gap-4">
                       {/* Office Admin */}
                       <div>
@@ -452,20 +502,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Departments Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("departments")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[120px]"
-                  onClick={() => toggleDropdown("departments")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "departments" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("departments")}
                 >
-                  <FiBriefcase className="text-lg mb-1" />
+                  <FiBriefcase className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Departments</span>
+                    <span className={labelClass}>Departments</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "departments" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[800px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[920px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-4 gap-4">
                       {/* HR Department */}
                       <div>
@@ -608,20 +665,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Office Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("office")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("office")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "office" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("office")}
                 >
-                  <FiHome className="text-lg mb-1" />
+                  <FiHome className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Office</span>
+                    <span className={labelClass}>Office</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "office" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[600px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[680px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-2 gap-4">
                       {/* Financial */}
                       <div>
@@ -709,20 +773,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* CRM Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("crm")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("crm")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "crm" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("crm")}
                 >
-                  <FiMessageSquare className="text-lg mb-1" />
+                  <FiMessageSquare className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">RM</span>
+                    <span className={labelClass}>RM</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "crm" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[400px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[440px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-2 gap-4">
                       {/* CRM Records */}
                       <div>
@@ -804,20 +875,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Task Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("task")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={() => toggleDropdown("task")}
+                  type="button"
+                  className={`${navItemClass} ${
+                    openDropdown === "task" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("task")}
                 >
-                  <FiCheckSquare className="text-lg mb-1" />
+                  <FiCheckSquare className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Task</span>
+                    <span className={labelClass}>Task</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "task" && (
-                  <div className="absolute top-full left-0 mt-0 p-4 w-[400px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[440px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div className="grid grid-cols-2 gap-4">
                       {/* Task Categories */}
                       <div>
@@ -868,27 +946,27 @@ const Navbarfristn = () => {
               </div>
 
               {/* Reports Dropdown */}
-              <div className="relative group">
+              <div
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter("reports")}
+                onMouseLeave={handleDropdownLeave}
+              >
                 <button
                   type="button"
-                  className="flex flex-col items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-b-2 border-transparent hover:border-blue-600 transition-all min-w-[100px]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleDropdown("reports");
-                  }}
+                  className={`${navItemClass} ${
+                    openDropdown === "reports" ? activeNavClass : ""
+                  }`}
+                  onClick={() => handleDropdownClick("reports")}
                 >
-                  <FiFileText className="text-lg mb-1" />
+                  <FiFileText className={iconClass} />
                   <div className="flex items-center">
-                    <span className="text-xs font-medium">Reports</span>
+                    <span className={labelClass}>Reports</span>
                     <FiChevronDown className="ml-1 text-xs" />
                   </div>
                 </button>
 
                 {openDropdown === "reports" && (
-                  <div
-                    className="absolute top-full left-0 mt-0 p-4 w-[300px] bg-white shadow-xl rounded-b-lg border border-gray-200 z-50"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="absolute left-0 top-full z-50 mt-0 w-[340px] rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out">
                     <div>
                       <h6 className="text-red-600 text-xs font-semibold mb-2">
                         REPORTS
@@ -939,7 +1017,7 @@ const Navbarfristn = () => {
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="flex items-center px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex h-9 items-center rounded-md border border-red-500 px-3 text-xs font-medium text-red-600 transition-all duration-200 ease-in-out hover:bg-red-50"
             >
               <FiLogOut className="mr-2" />
               Logout

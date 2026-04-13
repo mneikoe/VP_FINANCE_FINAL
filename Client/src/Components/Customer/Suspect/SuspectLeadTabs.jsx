@@ -7,9 +7,9 @@ const SuspectLeadTabs = () => {
   const [editId, setEditId] = useState(""); // 👈 Track which lead is being edited
   console.log(editId, "id suspect tab");
   return (
-    <div className=" p-4 mt-4">
+    <div className="p-2 mt-2">
       {/* Tab Buttons */}
-      <div className="d-flex mb-3">
+      <div className="d-flex mb-2">
         <button
           className={`btn btn-${
             activeTab === "add" ? "primary" : "outline-primary"

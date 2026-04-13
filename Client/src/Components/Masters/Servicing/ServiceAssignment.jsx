@@ -261,33 +261,29 @@ const ServiceAssignments = () => {
 
   if (loading) {
     return (
-      <div className="container mt-4">
-        <div className="text-center p-5">
+      <div className="container-fluid px-2 pt-2 pb-1">
+        <div className="text-center py-4">
           <div className="spinner-border text-dark" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
-          <h4 className="mt-3 text-dark">Loading Service Tasks...</h4>
+          <h5 className="mt-2 mb-0 text-dark">Loading Service Tasks...</h5>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid px-2 pt-2 pb-2 compact-assignment-page">
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-2">
         <div>
-          <h3 className="text-dark mb-1">
+          <h3 className="text-dark mb-0 fs-5 fw-bold">
             <FaTools className="me-2" />
             Service Task Assignments
           </h3>
-          <p className="text-muted mb-0">
-            Assign service task templates to employees (Single employee per
-            task)
-          </p>
         </div>
         <div className="d-flex align-items-center">
-          <Badge bg="dark" className="px-3 py-2 me-3">
+          <Badge bg="dark" className="px-2 py-1 me-2">
             {serviceTasks.length} Templates
           </Badge>
           <Button variant="dark" onClick={fetchServiceTasks}>
@@ -297,8 +293,8 @@ const ServiceAssignments = () => {
       </div>
 
       {/* Search & Filter */}
-      <Card className="mb-3 border">
-        <Card.Body className="p-3">
+      <Card className="mb-2 border">
+        <Card.Body className="p-2">
           <Row>
             <Col md={6}>
               <InputGroup>
@@ -814,6 +810,16 @@ const ServiceAssignments = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+      <style>{`
+        .compact-assignment-page .table-responsive {
+          margin-top: 0;
+        }
+        .compact-assignment-page th,
+        .compact-assignment-page td {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+      `}</style>
     </div>
   );
 };

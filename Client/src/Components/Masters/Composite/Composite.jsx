@@ -89,26 +89,25 @@ const Composite = () => {
   console.log(activeTab);
 
   return (
-    <div className="mt-2 mb-4">
-      <h4>Composite Task</h4>
+    <div className="mt-2 mb-2">
       <div className="row">
         <div className="col-md-12">
-          <div className="card card-outline">
-            <div style={{ backgroundColor: "#ECECEC" }} className="card-header">
+          <div className="card card-outline shadow-sm rounded-lg border-0">
+            <div style={{ backgroundColor: "#F3F4F6" }} className="card-header py-2 px-3">
               <Tabs
                 id="task-tabs"
                 activeKey={activeTab}
                 onSelect={(k) => setActiveTab(k)}
-                className="mb-3"
+                className="mb-0 compact-tabs"
                 mountOnEnter={false}
                 unmountOnExit={false}
               >
-                <Tab eventKey="view" title={<b>View Data</b>} />
-                <Tab eventKey="add" title={<b>Add Task Template</b>} />
+                <Tab eventKey="view" title="View Data" />
+                <Tab eventKey="add" title="Add Task Template" />
               </Tabs>
             </div>
 
-            <div className="card-body">
+            <div className="card-body p-3">
               {activeTab === "view" && (
                 <>
                   {loading ? (
@@ -116,43 +115,39 @@ const Composite = () => {
                   ) : error ? (
                     <p>Error: {error} </p>
                   ) : (
-                    <div className="table-responsive">
-                      <div className="row mb-3">
-                        <div className="col-sm-6">
-                          <div className="dataTables_length flex ">
-                            <label>
-                              Show{" "}
-                              <select
-                                className="form-control form-control-sm"
-                                value={entriesPerPage}
-                                onChange={(e) =>
-                                  setEntriesPerPage(Number(e.target.value))
-                                }
-                              >
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                              </select>{" "}
-                              entries
-                            </label>
-                          </div>
+                    <div className="border rounded-md overflow-x-auto">
+                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mx-0 px-2 py-1 border-bottom">
+                        <div className="dataTables_length d-flex align-items-center">
+                          <label>
+                            Show
+                            <select
+                              className="form-control form-control-sm h-8 text-sm"
+                              value={entriesPerPage}
+                              onChange={(e) =>
+                                setEntriesPerPage(Number(e.target.value))
+                              }
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                              <option value={100}>100</option>
+                            </select>
+                            entries
+                          </label>
                         </div>
-                        <div className="col-sm-6">
-                          <div className="dataTables_filter float-right">
-                            <label>
-                              Search:
-                              <input
-                                type="search"
-                                className="form-control form-control-sm"
-                                placeholder=""
-                              />
-                            </label>
-                          </div>
+                        <div className="dataTables_filter">
+                          <label>
+                            Search:
+                            <input
+                              type="search"
+                              className="form-control form-control-sm h-8 px-2 text-sm"
+                              placeholder=""
+                            />
+                          </label>
                         </div>
                       </div>
 
-                      <Table striped bordered hover responsive>
+                      <Table striped bordered hover responsive className="mb-0 compact-table">
                         <thead>
                           <tr>
                             <th>No.</th>
@@ -171,15 +166,16 @@ const Composite = () => {
                         <tbody>
                           {currentEntries.map((task, index) => (
                             <tr key={task._id || index}>
-                              <td>{indexOfFirstEntry + index + 1}</td>
-                              <td>{task.cat.name}</td>
-                              <td>{task.sub}</td>
-                              <td>{task.depart}</td>
-                              <td>{task.name}</td>
+                              <td className="whitespace-nowrap">{indexOfFirstEntry + index + 1}</td>
+                              <td className="whitespace-nowrap">{task.cat.name}</td>
+                              <td className="whitespace-nowrap">{task.sub}</td>
+                              <td className="whitespace-nowrap">{task.depart}</td>
+                              <td className="whitespace-nowrap">{task.name}</td>
                               <td>
                                 <Button
                                   variant="primary"
                                   size="sm"
+                                  className="px-2 py-1 text-xs rounded-md compact-btn"
                                   onClick={() => openModal("detail", task)}
                                 >
                                   View
@@ -189,6 +185,7 @@ const Composite = () => {
                                 <Button
                                   variant="danger"
                                   size="sm"
+                                  className="px-2 py-1 text-xs rounded-md compact-btn"
                                   onClick={() => openModal("checklist", task)}
                                 >
                                   View
@@ -198,6 +195,7 @@ const Composite = () => {
                                 <Button
                                   variant="warning"
                                   size="sm"
+                                  className="px-2 py-1 text-xs rounded-md compact-btn"
                                   onClick={() => openModal("sms", task)}
                                 >
                                   View
@@ -207,6 +205,7 @@ const Composite = () => {
                                 <Button
                                   variant="success"
                                   size="sm"
+                                  className="px-2 py-1 text-xs rounded-md compact-btn"
                                   onClick={() => openModal("email", task)}
                                 >
                                   View
@@ -222,26 +221,26 @@ const Composite = () => {
                                 >
                                   <img
                                     src="https://static.cdnlogo.com/logos/w/35/whatsapp-icon.svg"
-                                    width="25"
+                                    width="18"
                                     alt="WhatsApp"
                                   />
                                 </a>
                               </td>
                               <td>
-                                <div className="btn-group" role="group">
+                                <div className="btn-group d-flex gap-2" role="group">
                                   <Button
                                     variant="link"
-                                    className="text-primary"
+                                    className="text-primary p-0 compact-icon-btn"
                                     onClick={() => handleEdit(task._id)}
                                   >
-                                    <MdEdit color="blue" size={25} />
+                                    <MdEdit color="blue" size={16} />
                                   </Button>
                                   <Button
                                     variant="link"
-                                    className="text-danger"
+                                    className="text-danger p-0 compact-icon-btn"
                                     onClick={() => handleDelete(task._id)}
                                   >
-                                    <MdDelete color="red" size={25} />
+                                    <MdDelete color="red" size={16} />
                                   </Button>
                                 </div>
                               </td>
@@ -250,9 +249,9 @@ const Composite = () => {
                         </tbody>
                       </Table>
 
-                      <div className="row">
-                        <div className="col-sm-5">
-                          <div className="dataTables_info">
+                      <div className="row mx-0 px-3 py-2 border-top align-items-center">
+                        <div className="col-sm-5 px-0">
+                          <div className="dataTables_info text-sm">
                             Showing {indexOfFirstEntry + 1} to{" "}
                             {Math.min(
                               indexOfLastEntry,
@@ -261,8 +260,8 @@ const Composite = () => {
                             of {displayedTasks?.tasks?.length} entries
                           </div>
                         </div>
-                        <div className="col-sm-7">
-                          <Pagination className="float-right">
+                        <div className="col-sm-7 px-0">
+                          <Pagination className="float-sm-right mb-0 pagination-sm">
                             <Pagination.Prev
                               disabled={currentPage === 1}
                               onClick={() => setCurrentPage(currentPage - 1)}
@@ -408,6 +407,60 @@ const Composite = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+      <style>{`
+        .compact-tabs .nav-link {
+          background: #f3f4f6;
+          color: #374151;
+          font-size: 0.875rem;
+          font-weight: 500;
+          padding: 0.375rem 0.75rem;
+          border-radius: 0.5rem;
+          border: 1px solid transparent;
+          margin-right: 0.375rem;
+        }
+        .compact-tabs .nav-link.active {
+          background: #2563eb;
+          color: #fff;
+        }
+        .compact-table thead th {
+          background: #f3f4f6;
+          color: #374151;
+          font-weight: 500;
+          font-size: 0.875rem;
+          white-space: nowrap;
+          padding: 0.5rem 0.75rem;
+        }
+        .compact-table tbody td {
+          font-size: 0.875rem;
+          white-space: nowrap;
+          padding: 0.5rem 0.75rem;
+          vertical-align: middle;
+        }
+        .compact-btn {
+          transition: all 150ms ease-in-out;
+        }
+        .compact-btn:hover {
+          opacity: 0.9;
+        }
+        .compact-icon-btn {
+          transition: transform 150ms ease-in-out;
+        }
+        .compact-icon-btn:hover {
+          transform: scale(1.1);
+        }
+        .dataTables_length label,
+        .dataTables_filter label {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          margin-bottom: 0;
+          font-size: 0.875rem;
+          line-height: 1.2;
+        }
+        .dataTables_filter input {
+          width: 170px;
+        }
+      `}</style>
     </div>
   );
 };

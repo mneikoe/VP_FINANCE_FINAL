@@ -25,11 +25,11 @@ const ClientLeadTabs = () => {
   }, [location.state]);
 
   return (
-    <div className="p-4 mt-4">
+    <div className="p-2 mt-2">
       
 {/* <h1>Clients</h1> */}
 
-      <div className="d-flex mb-3">
+      <div className="d-flex mb-2">
         <button
           className={`btn btn-${activeTab === "add" ? "primary" : "outline-primary"} me-2`}
           onClick={() => {

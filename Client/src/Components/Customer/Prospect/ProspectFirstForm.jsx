@@ -47,11 +47,12 @@ const ProspectFirstForm = () => {
   };
 
   return (
-    <div className="container py-5">
-      <h1>Prospect</h1>
+    <div className="container-fluid p-0">
+      <div className="prospect-form-shell border rounded-3 bg-white p-2 shadow-sm">
+      <h6 className="mb-1 fw-semibold">Prospect</h6>
 
       <ul
-        className="nav nav-pills mb-3 bg-white shadow-lg"
+        className="nav nav-pills mb-1 bg-white shadow-sm rounded"
         id="pills-tab"
         role="tablist"
       >
@@ -106,7 +107,7 @@ const ProspectFirstForm = () => {
           </button>
         </li>
       </ul>
-      <div className="tab-content p-4 border rounded bg-light">
+      <div className="tab-content p-2 border rounded bg-light">
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
@@ -143,13 +144,17 @@ const ProspectFirstForm = () => {
         )}
       </div>
       <style>{`
+  .prospect-form-shell {
+    border-color: #e5e7eb !important;
+  }
   .custom-tab {
-    padding: 10px 20px;
+    padding: 5px 10px;
     border-radius: 0;
     border: none;
     background: transparent;
     color: #6c757d;
     font-weight: 500;
+    font-size: 0.8rem;
     transition: all 0.3s ease;
   }
   
@@ -161,8 +166,8 @@ const ProspectFirstForm = () => {
   .active-custom {
     color: #ffffff !important;
     background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;
-    border-bottom: 3px solid #0a58ca !important;
-    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2) !important;
+    border-bottom: 2px solid #0a58ca !important;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15) !important;
   }
   
   /* Alternative color options */
@@ -182,6 +187,7 @@ const ProspectFirstForm = () => {
     background: linear-gradient(135deg, #fd7e14, #e96a00) !important;
   }
 `}</style>
+      </div>
     </div>
   );
 };

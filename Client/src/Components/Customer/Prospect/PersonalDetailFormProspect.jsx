@@ -31,6 +31,7 @@ const PersonalDetailsFormForProspect = ({
   setFamilyDetail,
 }) => {
   const dispatch = useDispatch();
+  const normalizeContactNo = (value = "") => String(value).replace(/^0755/, "");
 
   // ✅ UPDATED INITIAL STATE WITH NEW FIELDS
   const initialFormState = {
@@ -230,7 +231,10 @@ const PersonalDetailsFormForProspect = ({
 
   useEffect(() => {
     if (isEdit && prospectData) {
-      setFormData(prospectData.personalDetails);
+      setFormData({
+        ...prospectData.personalDetails,
+        contactNo: normalizeContactNo(prospectData.personalDetails?.contactNo),
+      });
     } else {
       setFormData(initialFormState);
     }
@@ -323,14 +327,16 @@ const PersonalDetailsFormForProspect = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const normalizedValue =
+      name === "contactNo" ? normalizeContactNo(value) : value;
+    setFormData((prev) => ({ ...prev, [name]: normalizedValue }));
 
     // ✅ When pincode changes, fetch area and update preferred meeting area
     if (
       (name === "resiPincode" || name === "officePincode") &&
       value.length === 6
     ) {
-      fetchAreaData(value).then((areaData) => {
+      fetchAreaData(normalizedValue).then((areaData) => {
         if (
           name === "resiPincode" &&
           formData.preferredAddressType === "resi"
@@ -434,7 +440,7 @@ const PersonalDetailsFormForProspect = ({
 
   return (
     <Form onSubmit={handleSubmit}>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={2}>
           <Form.Group controlId="salutation">
             <Form.Label>Salutation</Form.Label>
@@ -463,7 +469,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="groupName"
               type="text"
-              placeholder="Group Head"
               value={formData.groupName ?? ""}
               onChange={handleChange}
               size="sm"
@@ -486,14 +491,13 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={4}>
           <Form.Group controlId="organisation">
             <Form.Label>Organisation</Form.Label>
             <Form.Control
               name="organisation"
               type="text"
-              placeholder="Organisation"
               value={formData.organisation ?? ""}
               onChange={handleChange}
               size="sm"
@@ -506,7 +510,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="designation"
               type="text"
-              placeholder="Designation"
               value={formData.designation ?? ""}
               onChange={handleChange}
               size="sm"
@@ -548,14 +551,13 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={3}>
           <Form.Group controlId="mobileNo">
             <Form.Label>Mobile No</Form.Label>
             <Form.Control
               name="mobileNo"
               type="text"
-              placeholder="Mobile No"
               value={formData.mobileNo ?? ""}
               onChange={handleMobileWhatsappChange}
               maxLength={10}
@@ -570,7 +572,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="whatsappNo"
               type="text"
-              placeholder="WhatsApp No"
               value={formData.whatsappNo ?? ""}
               maxLength={10}
               onChange={handleMobileWhatsappChange}
@@ -585,15 +586,9 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="contactNo"
               type="text"
-              placeholder="Phone No"
               maxLength={14}
-              value={`0755${formData.contactNo ?? ""}`} // 👈 prefix + stored number
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  contactNo: e.target.value.replace(/^0755/, ""), // 👈 store without prefix
-                })
-              }
+              value={formData.contactNo ?? ""}
+              onChange={handleChange}
               size="sm"
             />
           </Form.Group>
@@ -605,7 +600,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="emailId"
               type="email"
-              placeholder="Email Id"
               value={formData.emailId ?? ""}
               onChange={handleChange}
               size="sm"
@@ -613,14 +607,13 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={3}>
           <Form.Group controlId="paName">
             <Form.Label>PA Name</Form.Label>
             <Form.Control
               name="paName"
               type="text"
-              placeholder="PA Name"
               value={formData.paName ?? ""}
               onChange={handleChange}
               size="sm"
@@ -634,7 +627,6 @@ const PersonalDetailsFormForProspect = ({
               name="paMobileNo"
               type="tel"
               maxLength={10}
-              placeholder="PA Mobile No"
               value={formData.paMobileNo ?? ""}
               onChange={handleChange}
               size="sm"
@@ -647,7 +639,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="adharNumber"
               type="text"
-              placeholder="Aadhar Number"
               maxLength={12}
               value={formData.adharNumber ?? ""}
               onChange={handleChange}
@@ -661,7 +652,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="panCardNumber"
               type="text"
-              placeholder="PAN  Number"
               value={formData.panCardNumber ?? ""}
               onChange={handleChange}
               maxLength={10}
@@ -671,7 +661,7 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={1} className="mt-2">
           <Form.Check
             type="radio"
@@ -687,7 +677,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="resiAddr"
               type="text"
-              placeholder="Residential Address"
               value={formData.resiAddr ?? ""}
               onChange={handleChange}
               size="sm"
@@ -700,7 +689,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="resiLandmark"
               type="text"
-              placeholder="Residential Landmark"
               value={formData.resiLandmark ?? ""}
               onChange={handleChange}
               size="sm"
@@ -713,7 +701,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="resiPincode"
               type="text"
-              placeholder="Residential Pincode"
               value={formData.resiPincode ?? ""}
               onChange={handleChange}
               size="sm"
@@ -721,7 +708,7 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={1} className="mt-2">
           <Form.Check
             type="radio"
@@ -737,7 +724,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="officeAddr"
               type="text"
-              placeholder="Office Address"
               value={formData.officeAddr ?? ""}
               onChange={handleChange}
               size="sm"
@@ -750,7 +736,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="officeLandmark"
               type="text"
-              placeholder="Office Landmark"
               value={formData.officeLandmark ?? ""}
               onChange={handleChange}
               size="sm"
@@ -763,7 +748,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="officePincode"
               type="text"
-              placeholder="Office Pincode"
               value={formData.officePincode ?? ""}
               onChange={handleChange}
               size="sm"
@@ -773,14 +757,13 @@ const PersonalDetailsFormForProspect = ({
       </Row>
 
       {/* ✅ UPDATED SECTION WITH SUBAREA AND TIME */}
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={5}>
           <Form.Group controlId="preferredMeetingAddr">
             <Form.Label>Preferred Meeting Address</Form.Label>
             <Form.Control
               name="preferredMeetingAddr"
               type="text"
-              placeholder="Preferred Meeting Address"
               value={formData.preferredMeetingAddr ?? ""}
               onChange={handleChange}
               size="sm"
@@ -794,7 +777,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="preferredMeetingArea"
               type="text"
-              placeholder="Area"
               value={formData.preferredMeetingArea ?? ""}
               onChange={handleChange}
               size="sm"
@@ -829,7 +811,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="city"
               type="text"
-              placeholder="City"
               value={formData.city ?? ""}
               onChange={handleChange}
               size="sm"
@@ -840,7 +821,7 @@ const PersonalDetailsFormForProspect = ({
       </Row>
 
       {/* ✅ UPDATED TIME SECTION */}
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={2}>
           <Form.Group controlId="bestTime">
             <Form.Label>Best Time Slot</Form.Label>
@@ -864,7 +845,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="time"
               type="text"
-              placeholder="e.g., 10:30 AM"
               value={formData.time ?? ""}
               onChange={handleChange}
               size="sm"
@@ -876,14 +856,13 @@ const PersonalDetailsFormForProspect = ({
         <Col md={8}>{/* Empty for spacing */}</Col>
       </Row>
 
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={3}>
           <Form.Group controlId="hobbies">
             <Form.Label>Hobbies</Form.Label>
             <Form.Control
               name="hobbies"
               type="text"
-              placeholder="Hobbies"
               value={formData.hobbies ?? ""}
               onChange={handleChange}
               size="sm"
@@ -896,7 +875,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="nativePlace"
               type="text"
-              placeholder="Native Place"
               value={formData.nativePlace ?? ""}
               onChange={handleChange}
               size="sm"
@@ -909,7 +887,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="socialLink"
               type="text"
-              placeholder="Social Link"
               value={formData.socialLink ?? ""}
               onChange={handleChange}
               size="sm"
@@ -922,7 +899,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="habits"
               type="text"
-              placeholder="Habits"
               value={formData.habits ?? ""}
               onChange={handleChange}
               size="sm"
@@ -930,7 +906,7 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={3}>
           <Form.Group controlId="leadSource">
             <Form.Label>Lead Source</Form.Label>
@@ -1012,7 +988,7 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={4}>
           <Form.Group controlId="callingPurpose">
             <Form.Label>Calling or Meeting Purpose</Form.Label>
@@ -1037,7 +1013,6 @@ const PersonalDetailsFormForProspect = ({
             <Form.Control
               name="name"
               type="text"
-              placeholder="Name"
               value={formData.name ?? ""}
               onChange={handleChange}
               size="sm"
@@ -1065,7 +1040,7 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={9}>
           <Form.Group controlId="remark">
             <Form.Label>Remark</Form.Label>
@@ -1073,7 +1048,6 @@ const PersonalDetailsFormForProspect = ({
               name="remark"
               as="textarea"
               rows={2}
-              placeholder="Remark"
               value={formData.remark ?? ""}
               onChange={handleChange}
               size="sm"

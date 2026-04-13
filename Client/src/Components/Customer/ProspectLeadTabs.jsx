@@ -66,8 +66,8 @@ const ProspectLeadTabs = () => {
   const [editClientFormData, setEditClientFormData] = useState(null); // 👈 hold mapped data
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex mb-3">
+    <div className="container mt-2 px-2">
+      <div className="d-flex mb-2">
         <button
           className={`btn btn-${
             activeTab === "add" ? "primary" : "outline-primary"

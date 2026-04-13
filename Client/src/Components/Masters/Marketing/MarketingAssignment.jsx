@@ -464,33 +464,29 @@ const MarketingAssignments = () => {
 
   if (loading) {
     return (
-      <div className="container-fluid p-4">
-        <div className="text-center p-5">
+      <div className="container-fluid px-2 pt-2 pb-1">
+        <div className="text-center py-4">
           <Spinner animation="border" role="status" className="text-primary">
             <span className="visually-hidden">Loading...</span>
           </Spinner>
-          <h4 className="mt-3 text-dark">Loading Marketing Tasks...</h4>
+          <h5 className="mt-2 mb-0 text-dark">Loading Marketing Tasks...</h5>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid p-4">
+    <div className="container-fluid px-2 pt-2 pb-2 compact-assignment-page">
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-2">
         <div>
-          <h3 className="text-dark mb-1 fw-bold">
+          <h3 className="text-dark mb-0 fw-bold fs-5">
             <FaBullhorn className="me-2 text-primary" />
             Marketing Task Assignments
           </h3>
-          <p className="text-muted mb-0">
-            Assign marketing task templates to employees (Single employee per
-            task)
-          </p>
         </div>
         <div className="d-flex align-items-center gap-2">
-          <Badge bg="light" text="dark" className="px-3 py-2 border">
+          <Badge bg="light" text="dark" className="px-2 py-1 border">
             {marketingTasks.length} Templates
           </Badge>
           <Button
@@ -506,8 +502,8 @@ const MarketingAssignments = () => {
       </div>
 
       {/* Search & Filter */}
-      <Card className="mb-4 border-light shadow-sm">
-        <Card.Body className="p-3">
+      <Card className="mb-2 border-light shadow-sm">
+        <Card.Body className="p-2">
           <Row>
             <Col md={6}>
               <InputGroup>
@@ -1362,6 +1358,16 @@ const MarketingAssignments = () => {
 
         .employee-list::-webkit-scrollbar-thumb:hover {
           background: #555;
+        }
+
+        .compact-assignment-page .table-responsive {
+          margin-top: 0;
+        }
+
+        .compact-assignment-page th,
+        .compact-assignment-page td {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
         }
       `}</style>
     </div>

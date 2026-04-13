@@ -289,7 +289,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             style={{
               backgroundColor: "white",
               color: "black",
-              border: "1px solid #dc3545",
+              border: "1px solidrgb(131, 11, 23)",
               fontSize: "14px",
               cursor: "pointer",
               borderRadius: "4px",

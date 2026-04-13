@@ -76,10 +76,10 @@ const ClientFirstFrom = () => {
   };
 
   return (
-    <div className="container py-5">
-      <h1>Client</h1>
+    <div className="container py-2 px-2">
+      <h4 className="mb-2">Client</h4>
       <ul
-        className="nav nav-pills mb-3 bg-white shadow-lg"
+        className="nav nav-pills mb-2 bg-white shadow-sm"
         id="pills-tab"
         role="tablist"
       >
@@ -135,7 +135,7 @@ const ClientFirstFrom = () => {
         </li>
       </ul>
 
-      <div className="tab-content p-4 border rounded bg-light">
+      <div className="tab-content p-3 border rounded bg-light">
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
