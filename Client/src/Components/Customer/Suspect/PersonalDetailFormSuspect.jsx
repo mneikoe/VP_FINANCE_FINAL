@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col } from "react-bootstrap";
 import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
@@ -27,7 +27,6 @@ const PersonalDetailsFormForSuspect = ({
   const dispatch = useDispatch();
 
   const initialFormState = {
-    salutation: "",
     groupName: "",
     gender: "",
     organisation: "",
@@ -53,8 +52,6 @@ const PersonalDetailsFormForSuspect = ({
     city: "",
     bestTime: "",
     time: "10:00 AM",
-    adharNumber: "",
-    panCardNumber: "",
     hobbies: "",
     nativePlace: "",
     socialLink: "",
@@ -78,6 +75,7 @@ const PersonalDetailsFormForSuspect = ({
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [occupations, setOccupations] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
+  const groupNameRef = useRef(null);
 
   const [areas, setAreas] = useState([]);
   const [subAreas, setSubAreas] = useState([]);
@@ -110,6 +108,12 @@ const PersonalDetailsFormForSuspect = ({
       onFormDataUpdate(formData);
     }
   }, [formData, onFormDataUpdate]);
+
+  useEffect(() => {
+    if (groupNameRef.current) {
+      groupNameRef.current.focus();
+    }
+  }, []);
 
   const fetchAreas = async () => {
     try {
@@ -323,38 +327,39 @@ const PersonalDetailsFormForSuspect = ({
   };
 
   return (
-    <Form>
-      {/* Salutation, Group Head, Gender */}
-      <Row className="mb-4">
-        <Col md={2}>
-          <Form.Group controlId="salutation">
-            <Form.Label>Salutation</Form.Label>
-            <Form.Select
-              name="salutation"
-              value={formData.salutation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            >
-              <option value="">Select</option>
-              <option>Mr.</option>
-              <option>Mrs.</option>
-              <option>Ms.</option>
-              <option>Mast.</option>
-              <option>Shri.</option>
-              <option>Smt.</option>
-              <option>Kum.</option>
-              <option>Kr.</option>
-              <option>Dr.</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={5}>
+    <Form className="small compact-suspect-form">
+      <style>
+        {`
+          .compact-suspect-form .row {
+            --bs-gutter-x: 0.5rem;
+            --bs-gutter-y: 0.25rem;
+            margin-bottom: 0.35rem !important;
+          }
+          .compact-suspect-form .form-group {
+            margin-bottom: 0.2rem;
+          }
+          .compact-suspect-form .form-label {
+            margin-bottom: 0.2rem;
+            font-size: 0.74rem;
+            font-weight: 500;
+            line-height: 1.1;
+          }
+          .compact-suspect-form .form-control,
+          .compact-suspect-form .form-select {
+            min-height: 30px;
+            padding: 0.18rem 0.45rem;
+            font-size: 0.78rem;
+          }
+        `}
+      </style>
+      <Row className="mb-2 align-items-end">
+        <Col md={3}>
           <Form.Group controlId="groupName">
-            <Form.Label>Group Name*</Form.Label>
+            <Form.Label>Name</Form.Label>
             <Form.Control
+              ref={groupNameRef}
               name="groupName"
               type="text"
-              placeholder="Group Head"
               value={formData.groupName ?? ""}
               onChange={handleChange}
               size="sm"
@@ -362,7 +367,47 @@ const PersonalDetailsFormForSuspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No*</Form.Label>
+            <Form.Control
+              name="mobileNo"
+              type="text"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="contactNo">
+            <Form.Label>Phone No</Form.Label>
+            <Form.Control
+              name="contactNo"
+              type="text"
+              maxLength={14}
+              value={formData.contactNo ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={1}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
             <Form.Select
@@ -377,37 +422,7 @@ const PersonalDetailsFormForSuspect = ({
             </Form.Select>
           </Form.Group>
         </Col>
-      </Row>
-
-      {/* Organisation, Designation, Annual Income, Grade */}
-      <Row className="mb-4">
-        <Col md={4}>
-          <Form.Group controlId="organisation">
-            <Form.Label>Organisation</Form.Label>
-            <Form.Control
-              name="organisation"
-              type="text"
-              placeholder="Organisation"
-              value={formData.organisation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group controlId="designation">
-            <Form.Label>Designation</Form.Label>
-            <Form.Control
-              name="designation"
-              type="text"
-              placeholder="Designation"
-              value={formData.designation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={3}>
+        <Col md={1}>
           <Form.Group controlId="annualIncome">
             <Form.Label style={{ color: "#00008B" }} className="fw-medium">
               Annual Income
@@ -443,129 +458,65 @@ const PersonalDetailsFormForSuspect = ({
         </Col>
       </Row>
 
-      {/* Contact Information */}
-      <Row className="mb-4">
+      <Row className="mb-2">
         <Col md={3}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No*</Form.Label>
+          <Form.Group controlId="organisation">
+            <Form.Label>Organisation</Form.Label>
             <Form.Control
-              name="mobileNo"
+              name="organisation"
               type="text"
-              placeholder="Mobile No"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
-              size="sm"
-              required
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={3}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
-            <Form.Control
-              name="whatsappNo"
-              type="text"
-              placeholder="WhatsApp No"
-              value={formData.whatsappNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={3}>
-          <Form.Group controlId="contactNo">
-            <Form.Label>Phone No</Form.Label>
-            <Form.Control
-              name="contactNo"
-              type="text"
-              placeholder="Phone No"
-              maxLength={14}
-              value={`0755${formData.contactNo ?? ""}`}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  contactNo: e.target.value.replace(/^0755/, ""),
-                })
-              }
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={3}>
-          <Form.Group controlId="emailId">
-            <Form.Label>Email Id</Form.Label>
-            <Form.Control
-              name="emailId"
-              type="email"
-              placeholder="Email Id"
-              value={formData.emailId ?? ""}
+              value={formData.organisation ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-      </Row>
-
-      {/* PA Details and Identification */}
-      <Row className="mb-4">
         <Col md={3}>
+          <Form.Group controlId="designation">
+            <Form.Label>Designation</Form.Label>
+            <Form.Control
+              name="designation"
+              type="text"
+              value={formData.designation ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
           <Form.Group controlId="paName">
             <Form.Label>PA Name</Form.Label>
             <Form.Control
               name="paName"
               type="text"
-              placeholder="PA Name"
               value={formData.paName ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="paMobileNo">
             <Form.Label>PA Mobile No</Form.Label>
             <Form.Control
               name="paMobileNo"
               type="tel"
               maxLength={10}
-              placeholder="PA Mobile No"
               value={formData.paMobileNo ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group controlId="adharNumber">
-            <Form.Label>Aadhar No</Form.Label>
+        <Col md={2}>
+          <Form.Group controlId="emailId">
+            <Form.Label>Email Id</Form.Label>
             <Form.Control
-              name="adharNumber"
-              type="text"
-              placeholder="Aadhar Number"
-              maxLength={12}
-              value={formData.adharNumber ?? ""}
+              name="emailId"
+              type="email"
+              value={formData.emailId ?? ""}
               onChange={handleChange}
               size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={3}>
-          <Form.Group controlId="panCardNumber">
-            <Form.Label>PAN No.</Form.Label>
-            <Form.Control
-              name="panCardNumber"
-              type="text"
-              placeholder="PAN Number"
-              value={formData.panCardNumber ?? ""}
-              onChange={handleChange}
-              maxLength={10}
-              size="sm"
-              style={{ textTransform: "uppercase" }}
             />
           </Form.Group>
         </Col>

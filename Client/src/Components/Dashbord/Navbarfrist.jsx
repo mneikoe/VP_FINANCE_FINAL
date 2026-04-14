@@ -16,6 +16,7 @@ import {
   FiLogOut,
   FiX,
   FiUser,
+  FiBell,
 } from "react-icons/fi";
 
 const Navbarfristn = () => {
@@ -26,6 +27,18 @@ const Navbarfristn = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showNotification, setShowNotification] = useState(false);
+
+
+
+    // 🔔 Notification State
+    const [notifications, setNotifications] = useState([
+      { id: 1, text: "New client added", read: false },
+      { id: 2, text: "Task assigned to you", read: false },
+      { id: 3, text: "Meeting scheduled", read: true },
+    ]);
+
+    const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -137,13 +150,13 @@ const Navbarfristn = () => {
         {/* Dropdown Menu */}
         <div
           className={`
-            absolute left-0 top-full z-50 mt-0.5 rounded-lg border border-gray-100 
+            absolute left-0 top-full z-50 mt-1 rounded-lg border border-gray-100 
             bg-white shadow-lg transition-all duration-150
             ${isOpen ? "visible opacity-100 translate-y-0" : "invisible opacity-0 -translate-y-1"}
           `}
           style={{ width }}
         >
-          <div className="max-h-[calc(100vh-180px)] overflow-y-auto p-4">
+          <div className="p-5">
             {children}
           </div>
         </div>
@@ -294,21 +307,9 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Telemarketer",
-          items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-telemarketer" },
-          ],
-        },
-        {
           title: "CRE",
           items: [
             { name: "Job Profile & Target", to: "/job-profile-target-cre" },
-          ],
-        },
-        {
-          title: "Office Executive",
-          items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-office-executive" },
           ],
         },
         {
@@ -316,6 +317,18 @@ const Navbarfristn = () => {
           items: [
             { name: "HR Rules & Regulations", to: "/hr-rules" },
             { name: "Employee Training", to: "/employee-training" },
+          ],
+        },
+        {
+          title: "Telemarketer",
+          items: [
+            { name: "Job Profile & Target", to: "/job-profile-target-telemarketer" },
+          ],
+        },
+        {
+          title: "Office Executive",
+          items: [
+            { name: "Job Profile & Target", to: "/job-profile-target-office-executive" },
           ],
         },
       ],
@@ -482,13 +495,57 @@ const Navbarfristn = () => {
                   label={menu.label}
                   width={menu.width}
                 >
-                  <div className={`grid grid-cols-${Math.min(menu.sections.length, 3)} gap-5`}>
+                  <div
+                    className="grid gap-6"
+                    style={{
+                      gridTemplateColumns: `repeat(${menu.sections.length <= 2 ? 2 : 3}, minmax(0, 1fr))`,
+                    }}
+                  >
                     {menu.sections.map((section, idx) => (
                       <MenuSection key={idx} title={section.title} items={section.items} />
                     ))}
                   </div>
                 </DropdownContainer>
               ))}
+            </div>
+
+            {/* Notification Icon */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowNotification((prev) => !prev)}
+                className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
+                aria-label="Notifications"
+              >
+                <FiBell className="text-lg" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotification && (
+                <div className="absolute right-0 top-11 z-50 w-72 rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
+                  <div className="mb-2 text-sm font-semibold text-gray-700">Notifications</div>
+                  <div className="space-y-2">
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-gray-500">No new notifications</p>
+                    ) : (
+                      notifications.map((item) => (
+                        <div
+                          key={item.id}
+                          className={`rounded-md px-2 py-1.5 text-xs ${
+                            item.read ? "bg-gray-50 text-gray-500" : "bg-blue-50 text-blue-700"
+                          }`}
+                        >
+                          {item.text}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Logout Button */}

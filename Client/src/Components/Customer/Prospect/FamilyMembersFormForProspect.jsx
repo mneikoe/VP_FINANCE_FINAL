@@ -1,33 +1,33 @@
-        
-
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
-import { Form, Row, Col, Button } from "react-bootstrap";
-import { addFamilyMember, updateFamilyMember } from "../../../redux/feature/ClientRedux/ClientThunx";
+import { Form, Row, Col, Button, Modal } from "react-bootstrap";
+import { addFamilyMember } from "../../../redux/feature/ProspectRedux/ProspectThunx";
 import { toast } from "react-toastify";
-import { useParams } from "react-router-dom";
 
-const  FamilyMembersFormForProspect          
- = ({ clientId, clientData, onClientCreated, familyDetail, setFamilyDetail }) => {
+const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }) => {
   const dispatch = useDispatch();
   const [familyMembers, setFamilyMembers] = useState([]);
-  const { id } = useParams();
-  const isEdit = !!id || !!clientData?._id;
+  const [healthModal, setHealthModal] = useState({ show: false, memberIndex: null });
+  const selfDobRef = useRef(null);
 
-  // Default member template
+  const personalDetails = prospectData?.personalDetails || {};
+
   const defaultMember = (isSelf = false, data = {}) => ({
     _id: data._id || undefined,
-    title: isSelf ? (familyDetail?.salutation || data.title || "") : (data.title || ""),
-    name: isSelf ? (familyDetail?.groupName || data.name || "") : (data.name || ""),
-    relation: isSelf ? "Self" : (data.relation || ""),
+    title: data.title || "",
+    name: isSelf
+      ? personalDetails.groupName || personalDetails.name || data.name || ""
+      : data.name || "",
+    relation: isSelf ? "Self" : data.relation || "",
     dobActual: data.dobActual || "",
     dobRecord: data.dobRecord || "",
     marriageDate: data.marriageDate || "",
     occupation: data.occupation || "",
     annualIncome: data.annualIncome || "",
-    contact: isSelf ? (familyDetail?.mobileNo || data.contact || "") : (data.contact || ""),
-    includeHealth: isSelf ? (familyDetail?.includeHealth || data.includeHealth || false) : (data.includeHealth || false),
+    contact: isSelf ? personalDetails.mobileNo || data.contact || "" : data.contact || "",
+    adharNumber: data.adharNumber || "",
+    panCardNumber: data.panCardNumber || "",
+    includeHealth: data.includeHealth || false,
     healthHistory: {
       submissionDate: data.healthHistory?.submissionDate || "",
       diseaseName: data.healthHistory?.diseaseName || "",
@@ -38,29 +38,27 @@ const  FamilyMembersFormForProspect
     },
   });
 
-  // Initialize state
   useEffect(() => {
-    if (clientData) {
-      if (clientData.familyMembers && clientData.familyMembers.length > 0) {
-        // Load existing family members
-        setFamilyMembers(
-          clientData.familyMembers.map((m) =>
-            m.relation === "Self" ? defaultMember(true, m) : defaultMember(false, m)
-          )
-        );
-      } else {
-        // Initialize with "Self" member
-        setFamilyMembers([defaultMember(true, clientData)]);
-      }
+    if (prospectData?.familyMembers?.length > 0) {
+      setFamilyMembers(
+        prospectData.familyMembers.map((m) =>
+          m.relation === "Self" ? defaultMember(true, m) : defaultMember(false, m)
+        )
+      );
     } else {
-      // Fallback: Initialize with empty "Self" member
       setFamilyMembers([defaultMember(true)]);
     }
-  }, [clientData, familyDetail]);
+  }, [prospectData]);
 
-  const handleAddMember = () => {
-    setFamilyMembers((prev) => [...prev, defaultMember(false)]);
-  };
+  useEffect(() => {
+    if (selfDobRef.current) selfDobRef.current.focus();
+  }, [familyMembers.length]);
+
+  useEffect(() => {
+    if (onDataUpdate) onDataUpdate(familyMembers);
+  }, [familyMembers, onDataUpdate]);
+
+  const handleAddMember = () => setFamilyMembers((prev) => [...prev, defaultMember(false)]);
 
   const handleRemoveMember = (index) => {
     if (familyMembers[index].relation === "Self") {
@@ -73,23 +71,23 @@ const  FamilyMembersFormForProspect
   const handleMemberChange = (e, index) => {
     const { name, value, type, checked } = e.target;
     const keys = name.split(".");
+    const normalizedValue =
+      name === "adharNumber" || name === "contact"
+        ? String(value).replace(/\D/g, "")
+        : name === "panCardNumber"
+        ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "")
+        : value;
 
     setFamilyMembers((prev) =>
       prev.map((member, i) => {
         if (i !== index) return member;
-
         if (keys.length === 1) {
+          return { ...member, [keys[0]]: type === "checkbox" ? checked : normalizedValue };
+        }
+        if (keys.length === 2) {
           return {
             ...member,
-            [keys[0]]: type === "checkbox" ? checked : value,
-          };
-        } else if (keys.length === 2) {
-          return {
-            ...member,
-            [keys[0]]: {
-              ...member[keys[0]],
-              [keys[1]]: value,
-            },
+            [keys[0]]: { ...member[keys[0]], [keys[1]]: normalizedValue },
           };
         }
         return member;
@@ -97,15 +95,48 @@ const  FamilyMembersFormForProspect
     );
   };
 
+  const openHealthModal = (index) => setHealthModal({ show: true, memberIndex: index });
+  const closeHealthModal = () => setHealthModal({ show: false, memberIndex: null });
+
+  const handleHealthToggle = (index, checked) => {
+    setFamilyMembers((prev) =>
+      prev.map((member, i) =>
+        i === index
+          ? {
+              ...member,
+              includeHealth: checked,
+              healthHistory: checked
+                ? member.healthHistory
+                : {
+                    submissionDate: "",
+                    diseaseName: "",
+                    since: "",
+                    height: "",
+                    weight: "",
+                    remark: "",
+                  },
+            }
+          : member
+      )
+    );
+
+    if (checked) openHealthModal(index);
+    else if (healthModal.memberIndex === index) closeHealthModal();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
+    const isValidPan = (pan = "") => !pan || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+    const isValidAadhar = (aadhar = "") => !aadhar || /^\d{12}$/.test(aadhar);
+
     const isValid = familyMembers.every((member) => {
       if (member.relation === "Self") {
         return (
-          (member.name || familyDetail?.groupName || clientData?.name) &&
+          (member.name || personalDetails.groupName || personalDetails.name) &&
           member.dobActual &&
+          isValidAadhar(member.adharNumber) &&
+          isValidPan(member.panCardNumber) &&
           (!member.includeHealth ||
             (member.healthHistory?.diseaseName && member.healthHistory?.submissionDate))
         );
@@ -114,154 +145,120 @@ const  FamilyMembersFormForProspect
         member.name &&
         member.relation &&
         member.dobActual &&
+        isValidAadhar(member.adharNumber) &&
+        isValidPan(member.panCardNumber) &&
         (!member.includeHealth ||
           (member.healthHistory?.diseaseName && member.healthHistory?.submissionDate))
       );
     });
 
     if (!isValid) {
-      toast.error("Please fill all required fields for each member!");
+      toast.error("Please fill required fields and valid Aadhaar/PAN for each member.");
       return;
     }
 
-    const idToUse = clientData?._id || clientId || id;
+    const idToUse = prospectData?._id || prospectId;
     if (!idToUse) {
-      toast.error("No client ID found!");
+      toast.error("No prospect ID found!");
       return;
     }
 
-    // Prepare payload
     const membersPayload = familyMembers.map((member) => ({
       _id: member._id,
-      title: member.relation === "Self" ? (familyDetail?.salutation || clientData?.title || member.title) : member.title,
-      name: member.relation === "Self" ? (familyDetail?.groupName || clientData?.name || member.name) : member.name,
+      title: member.title,
+      name:
+        member.relation === "Self"
+          ? personalDetails.groupName || personalDetails.name || member.name
+          : member.name,
       relation: member.relation || "Self",
       dobActual: member.dobActual,
       dobRecord: member.dobRecord,
       marriageDate: member.marriageDate,
       occupation: member.occupation,
       annualIncome: member.annualIncome,
-      contact: member.relation === "Self" ? (familyDetail?.mobileNo || clientData?.contact || member.contact) : member.contact,
+      contact:
+        member.relation === "Self"
+          ? personalDetails.mobileNo || member.contact
+          : member.contact,
+      adharNumber: member.adharNumber,
+      panCardNumber: member.panCardNumber,
       includeHealth: member.includeHealth,
       healthHistory: member.includeHealth ? member.healthHistory : undefined,
     }));
 
-    try {
-      let result;
-      if (isEdit) {
-        result = await dispatch(
-          updateFamilyMember({ clientId: idToUse, membersArray: membersPayload })
-        );
-        if (updateFamilyMember.fulfilled.match(result)) {
-          const updatedMembers = result.payload.familyMembers.map((m) => ({
-            _id: m._id,
-            title: m.title || "",
-            name: m.name || "",
-            relation: m.relation || "",
-            dobActual: m.dobActual || "",
-            dobRecord: m.dobRecord || "",
-            marriageDate: m.marriageDate || "",
-            occupation: m.occupation || "",
-            annualIncome: m.annualIncome || "",
-            contact: m.contact || "",
-            includeHealth: m.includeHealth || false,
-            healthHistory: {
-              submissionDate: m.healthHistory?.submissionDate || "",
-              diseaseName: m.healthHistory?.diseaseName || "",
-              since: m.healthHistory?.since || "",
-              height: m.healthHistory?.height || "",
-              weight: m.healthHistory?.weight || "",
-              remark: m.healthHistory?.remark || "",
-            },
-          }));
-          setFamilyMembers(updatedMembers);
-          toast.success("Family Members Updated Successfully ✅");
-        } else {
-          toast.error(result.payload || "Failed to update family members!");
-        }
-      } else {
-        result = await dispatch(
-          addFamilyMember({ clientId: idToUse, membersArray: membersPayload })
-        );
-        if (addFamilyMember.fulfilled.match(result)) {
-          const updatedMembers = result.payload.familyMembers.map((m) => ({
-            _id: m._id,
-            title: m.title || "",
-            name: m.name || "",
-            relation: m.relation || "",
-            dobActual: m.dobActual || "",
-            dobRecord: m.dobRecord || "",
-            marriageDate: m.marriageDate || "",
-            occupation: m.occupation || "",
-            annualIncome: m.annualIncome || "",
-            contact: m.contact || "",
-            includeHealth: m.includeHealth || false,
-            healthHistory: {
-              submissionDate: m.healthHistory?.submissionDate || "",
-              diseaseName: m.healthHistory?.diseaseName || "",
-              since: m.healthHistory?.since || "",
-              height: m.healthHistory?.height || "",
-              weight: m.healthHistory?.weight || "",
-              remark: m.healthHistory?.remark || "",
-            },
-          }));
-          setFamilyMembers(updatedMembers);
-          toast.success("Family Members Saved Successfully ✅");
-          if (onClientCreated && result.payload.clientId) {
-            onClientCreated(result.payload.clientId);
-          }
-          if (result?.payload?.success) {
-            setFamilyDetail(null);
-          }
-        } else {
-          toast.error(result.payload || "Failed to save family members!");
-        }
-      }
-    } catch (error) {
-      toast.error("An error occurred while saving family members!");
-      console.error(error);
+    const result = await dispatch(
+      addFamilyMember({ prospectId: idToUse, membersArray: membersPayload })
+    );
+
+    if (result?.meta?.requestStatus === "fulfilled") {
+      toast.success("Family Members Saved Successfully");
+    } else {
+      toast.error(result?.payload || "Failed to save family members");
     }
   };
 
-  // Find the "Self" member
   const selfMember = familyMembers.find((member) => member.relation === "Self");
   const otherMembers = familyMembers.filter((member) => member.relation !== "Self");
+  const activeHealthMember =
+    healthModal.memberIndex !== null ? familyMembers[healthModal.memberIndex] : null;
 
   return (
-    <Form onSubmit={handleSubmit}>
-      {/* Self Member Section */}
+    <Form onSubmit={handleSubmit} className="compact-family-form">
+      <style>
+        {`
+          .compact-family-form .row {
+            --bs-gutter-x: 0.55rem;
+            --bs-gutter-y: 0.25rem;
+            margin-bottom: 0.35rem !important;
+          }
+          .compact-family-form .form-group { margin-bottom: 0.2rem; }
+          .compact-family-form .form-label {
+            margin-bottom: 0.18rem;
+            font-size: 0.76rem;
+            font-weight: 500;
+            line-height: 1.1;
+          }
+          .compact-family-form .form-control,
+          .compact-family-form .form-select {
+            min-height: 30px;
+            padding: 0.18rem 0.45rem;
+            font-size: 0.79rem;
+          }
+          .compact-family-form .btn {
+            font-size: 0.78rem;
+            padding: 0.28rem 0.6rem;
+          }
+        `}
+      </style>
+
       {selfMember && (
         <div className="border rounded p-3 mb-3 bg-light">
           <h5>Primary Client (Self)</h5>
           <Row className="mb-2">
             <Col md={2}>
-              <Form.Group controlId={`title-self`}>
+              <Form.Group controlId="title-self">
                 <Form.Label>Mr/Mrs</Form.Label>
-                <Form.Control
-                  plaintext
-                  readOnly
-                  value={familyDetail?.salutation || clientData?.title || selfMember.title || "N/A"}
-                />
+                <Form.Control plaintext readOnly value={selfMember.title || "N/A"} />
               </Form.Group>
             </Col>
             <Col md={4}>
-              <Form.Group controlId={`name-self`}>
+              <Form.Group controlId="name-self">
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
                 <Form.Control
                   plaintext
                   readOnly
-                  value={familyDetail?.groupName || clientData?.name || selfMember.name || "N/A"}
+                  value={personalDetails.groupName || personalDetails.name || selfMember.name || "N/A"}
                 />
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`relation-self`}>
+              <Form.Group controlId="relation-self">
                 <Form.Label>Relation</Form.Label>
                 <Form.Control plaintext readOnly value="Self" />
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`annualIncome-self`}>
+              <Form.Group controlId="annualIncome-self">
                 <Form.Label>Annual Income</Form.Label>
                 <Form.Control
                   name="annualIncome"
@@ -273,9 +270,10 @@ const  FamilyMembersFormForProspect
           </Row>
           <Row className="mb-2">
             <Col md={3}>
-              <Form.Group controlId={`dobActual-self`}>
+              <Form.Group controlId="dobActual-self">
                 <Form.Label>DOB (Actual) <span className="text-danger">*</span></Form.Label>
                 <Form.Control
+                  ref={selfDobRef}
                   type="date"
                   name="dobActual"
                   value={selfMember.dobActual ? selfMember.dobActual.split("T")[0] : ""}
@@ -285,7 +283,7 @@ const  FamilyMembersFormForProspect
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`dobRecord-self`}>
+              <Form.Group controlId="dobRecord-self">
                 <Form.Label>DOB (Record)</Form.Label>
                 <Form.Control
                   type="date"
@@ -296,7 +294,7 @@ const  FamilyMembersFormForProspect
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`marriageDate-self`}>
+              <Form.Group controlId="marriageDate-self">
                 <Form.Label>Marriage Date</Form.Label>
                 <Form.Control
                   type="date"
@@ -307,7 +305,7 @@ const  FamilyMembersFormForProspect
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`occupation-self`}>
+              <Form.Group controlId="occupation-self">
                 <Form.Label>Occupation</Form.Label>
                 <Form.Control
                   name="occupation"
@@ -319,101 +317,52 @@ const  FamilyMembersFormForProspect
           </Row>
           <Row className="mb-2">
             <Col md={3}>
-              <Form.Group controlId={`contact-self`}>
+              <Form.Group controlId="contact-self">
                 <Form.Label>Contact</Form.Label>
-                <Form.Control
-                  plaintext
-                  readOnly
-                  value={familyDetail?.mobileNo || clientData?.contact || selfMember.contact || "N/A"}
-                />
+                <Form.Control plaintext readOnly value={personalDetails.mobileNo || selfMember.contact || "N/A"} />
               </Form.Group>
             </Col>
             <Col md={2}>
-              <Form.Group controlId={`includeHealth-self`}>
+              <Form.Group controlId="adhar-self">
+                <Form.Label>Aadhaar No</Form.Label>
+                <Form.Control
+                  name="adharNumber"
+                  value={selfMember.adharNumber || ""}
+                  maxLength={12}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                  isInvalid={Boolean(selfMember.adharNumber) && !/^\d{12}$/.test(selfMember.adharNumber)}
+                />
+                <Form.Control.Feedback type="invalid">Aadhaar must be 12 digits.</Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId="pan-self">
+                <Form.Label>PAN No</Form.Label>
+                <Form.Control
+                  name="panCardNumber"
+                  value={selfMember.panCardNumber || ""}
+                  maxLength={10}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                  isInvalid={Boolean(selfMember.panCardNumber) && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(selfMember.panCardNumber)}
+                />
+                <Form.Control.Feedback type="invalid">PAN format should be like ABCDE1234F.</Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId="includeHealth-self">
                 <Form.Check
                   type="checkbox"
                   label="Include Health History"
                   name="includeHealth"
                   checked={selfMember.includeHealth}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                  onChange={(e) => handleHealthToggle(familyMembers.indexOf(selfMember), e.target.checked)}
                 />
               </Form.Group>
             </Col>
-            {selfMember.includeHealth && (
-              <Col md={7}>
-                <Row>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.submissionDate-self`}>
-                      <Form.Label>Submission Date <span className="text-danger">*</span></Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="healthHistory.submissionDate"
-                        value={selfMember.healthHistory.submissionDate || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.diseaseName-self`}>
-                      <Form.Label>Disease Name <span className="text-danger">*</span></Form.Label>
-                      <Form.Control
-                        name="healthHistory.diseaseName"
-                        value={selfMember.healthHistory.diseaseName || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.since-self`}>
-                      <Form.Label>Since</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="healthHistory.since"
-                        value={selfMember.healthHistory.since || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.height-self`}>
-                      <Form.Label>Height</Form.Label>
-                      <Form.Control
-                        name="healthHistory.height"
-                        value={selfMember.healthHistory.height || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.weight-self`}>
-                      <Form.Label>Weight</Form.Label>
-                      <Form.Control
-                        name="healthHistory.weight"
-                        value={selfMember.healthHistory.weight || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.remark-self`}>
-                      <Form.Label>Remark</Form.Label>
-                      <Form.Control
-                        name="healthHistory.remark"
-                        value={selfMember.healthHistory.remark || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Col>
-            )}
           </Row>
         </div>
       )}
 
-      {/* Other Family Members Section */}
       {otherMembers.map((member, index) => (
         <div key={member._id || index} className="border rounded p-3 mb-3">
           <h5>Family Member {index + 1}</h5>
@@ -421,11 +370,7 @@ const  FamilyMembersFormForProspect
             <Col md={2}>
               <Form.Group controlId={`title-${member._id || index}`}>
                 <Form.Label>Mr/Mrs</Form.Label>
-                <Form.Select
-                  name="title"
-                  value={member.title}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                >
+                <Form.Select name="title" value={member.title} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}>
                   <option value="">Select</option>
                   <option>Mr.</option>
                   <option>Mrs.</option>
@@ -435,23 +380,13 @@ const  FamilyMembersFormForProspect
             <Col md={4}>
               <Form.Group controlId={`name-${member._id || index}`}>
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
-                <Form.Control
-                  name="name"
-                  value={member.name}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                  required
-                />
+                <Form.Control name="name" value={member.name} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} required />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`relation-${member._id || index}`}>
                 <Form.Label>Relation <span className="text-danger">*</span></Form.Label>
-                <Form.Select
-                  name="relation"
-                  value={member.relation}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                  required
-                >
+                <Form.Select name="relation" value={member.relation} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} required>
                   <option value="">Select Relation</option>
                   <option>Wife</option>
                   <option>Husband</option>
@@ -470,11 +405,7 @@ const  FamilyMembersFormForProspect
             <Col md={3}>
               <Form.Group controlId={`annualIncome-${member._id || index}`}>
                 <Form.Label>Annual Income</Form.Label>
-                <Form.Control
-                  name="annualIncome"
-                  value={member.annualIncome}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                />
+                <Form.Control name="annualIncome" value={member.annualIncome} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} />
               </Form.Group>
             </Col>
           </Row>
@@ -482,45 +413,25 @@ const  FamilyMembersFormForProspect
             <Col md={3}>
               <Form.Group controlId={`dobActual-${member._id || index}`}>
                 <Form.Label>DOB (Actual) <span className="text-danger">*</span></Form.Label>
-                <Form.Control
-                  type="date"
-                  name="dobActual"
-                  value={member.dobActual ? member.dobActual.split("T")[0] : ""}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                  required
-                />
+                <Form.Control type="date" name="dobActual" value={member.dobActual ? member.dobActual.split("T")[0] : ""} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} required />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`dobRecord-${member._id || index}`}>
                 <Form.Label>DOB (Record)</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="dobRecord"
-                  value={member.dobRecord ? member.dobRecord.split("T")[0] : ""}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                />
+                <Form.Control type="date" name="dobRecord" value={member.dobRecord ? member.dobRecord.split("T")[0] : ""} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`marriageDate-${member._id || index}`}>
                 <Form.Label>Marriage Date</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="marriageDate"
-                  value={member.marriageDate ? member.marriageDate.split("T")[0] : ""}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                />
+                <Form.Control type="date" name="marriageDate" value={member.marriageDate ? member.marriageDate.split("T")[0] : ""} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`occupation-${member._id || index}`}>
                 <Form.Label>Occupation</Form.Label>
-                <Form.Control
-                  name="occupation"
-                  value={member.occupation}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                />
+                <Form.Control name="occupation" value={member.occupation} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} />
               </Form.Group>
             </Col>
           </Row>
@@ -528,11 +439,33 @@ const  FamilyMembersFormForProspect
             <Col md={3}>
               <Form.Group controlId={`contact-${member._id || index}`}>
                 <Form.Label>Contact</Form.Label>
+                <Form.Control name="contact" value={member.contact} maxLength={10} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} />
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId={`adhar-${member._id || index}`}>
+                <Form.Label>Aadhaar No</Form.Label>
                 <Form.Control
-                  name="contact"
-                  value={member.contact}
+                  name="adharNumber"
+                  value={member.adharNumber || ""}
+                  maxLength={12}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  isInvalid={Boolean(member.adharNumber) && !/^\d{12}$/.test(member.adharNumber)}
                 />
+                <Form.Control.Feedback type="invalid">Aadhaar must be 12 digits.</Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId={`pan-${member._id || index}`}>
+                <Form.Label>PAN No</Form.Label>
+                <Form.Control
+                  name="panCardNumber"
+                  value={member.panCardNumber || ""}
+                  maxLength={10}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  isInvalid={Boolean(member.panCardNumber) && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(member.panCardNumber)}
+                />
+                <Form.Control.Feedback type="invalid">PAN format should be like ABCDE1234F.</Form.Control.Feedback>
               </Form.Group>
             </Col>
             <Col md={2}>
@@ -542,103 +475,76 @@ const  FamilyMembersFormForProspect
                   label="Include Health History"
                   name="includeHealth"
                   checked={member.includeHealth}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  onChange={(e) => handleHealthToggle(familyMembers.indexOf(member), e.target.checked)}
                 />
               </Form.Group>
             </Col>
-            {member.includeHealth && (
-              <Col md={7}>
-                <Row>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.submissionDate-${member._id || index}`}>
-                      <Form.Label>Submission Date <span className="text-danger">*</span></Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="healthHistory.submissionDate"
-                        value={member.healthHistory.submissionDate || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.diseaseName-${member._id || index}`}>
-                      <Form.Label>Disease Name <span className="text-danger">*</span></Form.Label>
-                      <Form.Control
-                        name="healthHistory.diseaseName"
-                        value={member.healthHistory.diseaseName || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.since-${member._id || index}`}>
-                      <Form.Label>Since</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="healthHistory.since"
-                        value={member.healthHistory.since || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.height-${member._id || index}`}>
-                      <Form.Label>Height</Form.Label>
-                      <Form.Control
-                        name="healthHistory.height"
-                        value={member.healthHistory.height || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.weight-${member._id || index}`}>
-                      <Form.Label>Weight</Form.Label>
-                      <Form.Control
-                        name="healthHistory.weight"
-                        value={member.healthHistory.weight || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group controlId={`healthHistory.remark-${member._id || index}`}>
-                      <Form.Label>Remark</Form.Label>
-                      <Form.Control
-                        name="healthHistory.remark"
-                        value={member.healthHistory.remark || ""}
-                        onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Col>
-            )}
           </Row>
-          <Button
-            variant="danger"
-            className="mt-2"
-            onClick={() => handleRemoveMember(familyMembers.indexOf(member))}
-          >
+          <Button variant="danger" className="mt-2" onClick={() => handleRemoveMember(familyMembers.indexOf(member))}>
             Remove Member
           </Button>
         </div>
       ))}
-      <Button
-        variant="success"
-        onClick={handleAddMember}
-        type="button"
-        className="me-2"
-      >
+
+      <Button variant="success" onClick={handleAddMember} type="button" className="me-2 btn-sm">
         Add New Member
       </Button>
-      <Button type="submit" className="btn btn-primary">
-        {isEdit && clientData?._id ? "Update Members" : "Save Members"}
+      <Button type="submit" className="btn btn-primary btn-sm">
+        Save Members
       </Button>
+
+      <Modal show={healthModal.show} onHide={closeHealthModal} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Health History Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {activeHealthMember && (
+            <Row className="g-2">
+              <Col md={6}>
+                <Form.Group controlId="healthHistory.submissionDate-modal">
+                  <Form.Label>Submission Date <span className="text-danger">*</span></Form.Label>
+                  <Form.Control type="date" name="healthHistory.submissionDate" value={activeHealthMember.healthHistory?.submissionDate || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="healthHistory.diseaseName-modal">
+                  <Form.Label>Disease Name <span className="text-danger">*</span></Form.Label>
+                  <Form.Control name="healthHistory.diseaseName" value={activeHealthMember.healthHistory?.diseaseName || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="healthHistory.since-modal">
+                  <Form.Label>Since</Form.Label>
+                  <Form.Control type="date" name="healthHistory.since" value={activeHealthMember.healthHistory?.since || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group controlId="healthHistory.height-modal">
+                  <Form.Label>Height</Form.Label>
+                  <Form.Control name="healthHistory.height" value={activeHealthMember.healthHistory?.height || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group controlId="healthHistory.weight-modal">
+                  <Form.Label>Weight</Form.Label>
+                  <Form.Control name="healthHistory.weight" value={activeHealthMember.healthHistory?.weight || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group controlId="healthHistory.remark-modal">
+                  <Form.Label>Remark</Form.Label>
+                  <Form.Control name="healthHistory.remark" value={activeHealthMember.healthHistory?.remark || ""} onChange={(e) => handleMemberChange(e, healthModal.memberIndex)} />
+                </Form.Group>
+              </Col>
+            </Row>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeHealthModal}>Close</Button>
+        </Modal.Footer>
+      </Modal>
     </Form>
   );
 };
 
-export default  FamilyMembersFormForProspect          
+export default FamilyMembersFormForProspect;

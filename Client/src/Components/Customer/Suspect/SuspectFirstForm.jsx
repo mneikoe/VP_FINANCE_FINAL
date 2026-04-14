@@ -182,6 +182,30 @@ const SuspectFirstForm = () => {
       icon: <FaUser className="me-2" />,
       enabled: true,
     },
+    {
+      id: "family",
+      name: "Add Family Details",
+      icon: <FaUsers className="me-2" />,
+      enabled: true,
+    },
+    {
+      id: "financial",
+      name: "Financial Details",
+      icon: <FaRupeeSign className="me-2" />,
+      enabled: true,
+    },
+    {
+      id: "priorities",
+      name: "Future's Priorities",
+      icon: <FaBullseye className="me-2" />,
+      enabled: true,
+    },
+    {
+      id: "proposed",
+      name: "Proposed Financial Plan",
+      icon: <FaFileAlt className="me-2" />,
+      enabled: true,
+    },
   ];
 
   return (

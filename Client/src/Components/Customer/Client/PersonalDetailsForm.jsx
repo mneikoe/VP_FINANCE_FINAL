@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col, Button } from "react-bootstrap";
 import {
@@ -37,7 +37,6 @@ const PersonalDetailsForm = ({
 
   // ✅ UPDATED INITIAL STATE WITH NEW FIELDS (SAME AS PROSPECT)
   const initialFormState = {
-    salutation: "",
     groupName: "",
     gender: "",
     organisation: "",
@@ -63,8 +62,6 @@ const PersonalDetailsForm = ({
     city: "",
     bestTime: "",
     time: "10:00 AM", // ✅ NEW TIME FIELD
-    adharNumber: "",
-    panCardNumber: "",
     hobbies: "",
     nativePlace: "",
     socialLink: "",
@@ -84,6 +81,9 @@ const PersonalDetailsForm = ({
   const [occupations, setOccupations] = useState([]);
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
+  const [resiPincodeError, setResiPincodeError] = useState("");
+  const [officePincodeError, setOfficePincodeError] = useState("");
+  const groupNameRef = useRef(null);
 
   // ✅ NEW STATES FOR AREAS, SUBAREAS, RMS
   const [areas, setAreas] = useState([]);
@@ -231,6 +231,12 @@ const PersonalDetailsForm = ({
   }, [isEdit, clientData]);
 
   useEffect(() => {
+    if (groupNameRef.current) {
+      groupNameRef.current.focus();
+    }
+  }, []);
+
+  useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       grade: gradeMap[prev.annualIncome] || "",
@@ -317,8 +323,39 @@ const PersonalDetailsForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const digitOnlyFields = [
+      "mobileNo",
+      "whatsappNo",
+      "paMobileNo",
+      "resiPincode",
+      "officePincode",
+    ];
+    const cleanedValue = digitOnlyFields.includes(name)
+      ? String(value).replace(/\D/g, "")
+      : value;
     const normalizedValue =
-      name === "contactNo" ? normalizeContactNo(value) : value;
+      name === "contactNo" ? normalizeContactNo(cleanedValue) : cleanedValue;
+
+    if (name === "resiPincode") {
+      if (!normalizedValue) {
+        setResiPincodeError("");
+      } else if (!/^\d{6}$/.test(normalizedValue)) {
+        setResiPincodeError("Residential pincode must be exactly 6 digits.");
+      } else {
+        setResiPincodeError("");
+      }
+    }
+
+    if (name === "officePincode") {
+      if (!normalizedValue) {
+        setOfficePincodeError("");
+      } else if (!/^\d{6}$/.test(normalizedValue)) {
+        setOfficePincodeError("Office pincode must be exactly 6 digits.");
+      } else {
+        setOfficePincodeError("");
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: normalizedValue }));
 
     // ✅ When pincode changes, fetch area and update preferred meeting area
@@ -399,6 +436,19 @@ const PersonalDetailsForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.resiPincode && !/^\d{6}$/.test(formData.resiPincode)) {
+      setResiPincodeError("Residential pincode must be exactly 6 digits.");
+      toast.error("Please enter a valid 6-digit residential pincode.");
+      return;
+    }
+
+    if (formData.officePincode && !/^\d{6}$/.test(formData.officePincode)) {
+      setOfficePincodeError("Office pincode must be exactly 6 digits.");
+      toast.error("Please enter a valid 6-digit office pincode.");
+      return;
+    }
+
     if (isEdit && clientData?._id) {
       console.log(formData);
       const result = await dispatch(
@@ -427,34 +477,43 @@ const PersonalDetailsForm = ({
   };
 
   return (
-    <Form onSubmit={handleSubmit}>
-      <Row className="mb-2">
-        <Col md={2}>
-          <Form.Group controlId="salutation">
-            <Form.Label>Salutation</Form.Label>
-            <Form.Select
-              name="salutation"
-              value={formData.salutation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            >
-              <option value="">Select</option>
-              <option>Mr.</option>
-              <option>Mrs.</option>
-              <option>Ms.</option>
-              <option>Mast.</option>
-              <option>Shri.</option>
-              <option>Smt.</option>
-              <option>Kum.</option>
-              <option>Kr.</option>
-              <option>Dr.</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={5}>
+    <Form onSubmit={handleSubmit} className="small compact-client-form">
+      <style>
+        {`
+          .compact-client-form .row {
+            --bs-gutter-x: 0.5rem;
+            --bs-gutter-y: 0.25rem;
+            margin-bottom: 0.35rem !important;
+          }
+          .compact-client-form .form-group {
+            margin-bottom: 0.2rem;
+          }
+          .compact-client-form .form-label {
+            margin-bottom: 0.2rem;
+            font-size: 0.74rem;
+            font-weight: 500;
+            line-height: 1.1;
+          }
+          .compact-client-form .form-control,
+          .compact-client-form .form-select {
+            min-height: 30px;
+            padding: 0.18rem 0.45rem;
+            font-size: 0.78rem;
+          }
+          .compact-client-form textarea.form-control {
+            min-height: 56px;
+          }
+          .compact-client-form .btn {
+            margin-top: 0.25rem;
+          }
+        `}
+      </style>
+      <Row className="mb-2 align-items-end">
+        <Col md={3}>
           <Form.Group controlId="groupName">
-            <Form.Label>Group Name</Form.Label>
+            <Form.Label>Name</Form.Label>
             <Form.Control
+              ref={groupNameRef}
               name="groupName"
               type="text"
               value={formData.groupName ?? ""}
@@ -463,7 +522,46 @@ const PersonalDetailsForm = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No</Form.Label>
+            <Form.Control
+              name="mobileNo"
+              type="text"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="contactNo">
+            <Form.Label>Phone No</Form.Label>
+            <Form.Control
+              name="contactNo"
+              type="text"
+              maxLength={14}
+              value={formData.contactNo ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={1}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
             <Form.Select
@@ -478,33 +576,7 @@ const PersonalDetailsForm = ({
             </Form.Select>
           </Form.Group>
         </Col>
-      </Row>
-      <Row className="mb-2">
-        <Col md={4}>
-          <Form.Group controlId="organisation">
-            <Form.Label>Organisation</Form.Label>
-            <Form.Control
-              name="organisation"
-              type="text"
-              value={formData.organisation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group controlId="designation">
-            <Form.Label>Designation</Form.Label>
-            <Form.Control
-              name="designation"
-              type="text"
-              value={formData.designation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={3}>
+        <Col md={1}>
           <Form.Group controlId="annualIncome">
             <Form.Label style={{ color: "#00008B" }} className="fw-medium">
               Annual Income
@@ -541,62 +613,30 @@ const PersonalDetailsForm = ({
       </Row>
       <Row className="mb-2">
         <Col md={3}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No</Form.Label>
+          <Form.Group controlId="organisation">
+            <Form.Label>Organisation</Form.Label>
             <Form.Control
-              name="mobileNo"
+              name="organisation"
               type="text"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={3}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
-            <Form.Control
-              name="whatsappNo"
-              type="text"
-              value={formData.whatsappNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-
-        <Col md={3}>
-          <Form.Group controlId="contactNo">
-            <Form.Label>Phone No</Form.Label>
-            <Form.Control
-              name="contactNo"
-              type="text"
-              maxLength={14}
-              value={formData.contactNo ?? ""}
+              value={formData.organisation ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-
         <Col md={3}>
-          <Form.Group controlId="emailId">
-            <Form.Label>Email Id</Form.Label>
+          <Form.Group controlId="designation">
+            <Form.Label>Designation</Form.Label>
             <Form.Control
-              name="emailId"
-              type="email"
-              value={formData.emailId ?? ""}
+              name="designation"
+              type="text"
+              value={formData.designation ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-      </Row>
-      <Row className="mb-2">
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="paName">
             <Form.Label>PA Name</Form.Label>
             <Form.Control
@@ -608,7 +648,7 @@ const PersonalDetailsForm = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="paMobileNo">
             <Form.Label>PA Mobile No</Form.Label>
             <Form.Control
@@ -621,30 +661,15 @@ const PersonalDetailsForm = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group controlId="adharNumber">
-            <Form.Label>Aadhar No</Form.Label>
+        <Col md={2}>
+          <Form.Group controlId="emailId">
+            <Form.Label>Email Id</Form.Label>
             <Form.Control
-              name="adharNumber"
-              type="text"
-              maxLength={12}
-              value={formData.adharNumber ?? ""}
+              name="emailId"
+              type="email"
+              value={formData.emailId ?? ""}
               onChange={handleChange}
               size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={3}>
-          <Form.Group controlId="panCardNumber">
-            <Form.Label>PAN No.</Form.Label>
-            <Form.Control
-              name="panCardNumber"
-              type="text"
-              value={formData.panCardNumber ?? ""}
-              onChange={handleChange}
-              maxLength={10}
-              size="sm"
-              style={{ textTransform: "uppercase" }}
             />
           </Form.Group>
         </Col>
@@ -689,10 +714,15 @@ const PersonalDetailsForm = ({
             <Form.Control
               name="resiPincode"
               type="text"
+              maxLength={6}
               value={formData.resiPincode ?? ""}
               onChange={handleChange}
               size="sm"
+              isInvalid={Boolean(resiPincodeError)}
             />
+            <Form.Control.Feedback type="invalid">
+              {resiPincodeError}
+            </Form.Control.Feedback>
           </Form.Group>
         </Col>
       </Row>
@@ -736,17 +766,22 @@ const PersonalDetailsForm = ({
             <Form.Control
               name="officePincode"
               type="text"
+              maxLength={6}
               value={formData.officePincode ?? ""}
               onChange={handleChange}
               size="sm"
+              isInvalid={Boolean(officePincodeError)}
             />
+            <Form.Control.Feedback type="invalid">
+              {officePincodeError}
+            </Form.Control.Feedback>
           </Form.Group>
         </Col>
       </Row>
 
-      {/* ✅ UPDATED SECTION WITH SUBAREA AND TIME (SAME AS PROSPECT) */}
+      {/* ✅ UPDATED SECTION WITH SUBAREA AND TIME (SAME LINE FOR BETTER UX) */}
       <Row className="mb-2">
-        <Col md={5}>
+        <Col md={4}>
           <Form.Group controlId="preferredMeetingAddr">
             <Form.Label>Preferred Meeting Address</Form.Label>
             <Form.Control
@@ -783,7 +818,7 @@ const PersonalDetailsForm = ({
               onChange={handleChange}
               size="sm"
             >
-              <option value="">-- Select Sub Area --</option>
+              <option value="">-Select Sub Area-</option>
               {filteredSubAreas.map((subArea) => (
                 <option key={subArea._id} value={subArea.subAreaName}>
                   {subArea.subAreaName}
@@ -793,7 +828,7 @@ const PersonalDetailsForm = ({
           </Form.Group>
         </Col>
 
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="city">
             <Form.Label>City</Form.Label>
             <Form.Control
@@ -806,13 +841,9 @@ const PersonalDetailsForm = ({
             />
           </Form.Group>
         </Col>
-      </Row>
-
-      {/* ✅ UPDATED TIME SECTION (SAME AS PROSPECT) */}
-      <Row className="mb-2">
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="bestTime">
-            <Form.Label>Best Time Slot</Form.Label>
+            <Form.Label>Best Time</Form.Label>
             <Form.Select
               name="bestTime"
               value={formData.bestTime ?? ""}
@@ -826,7 +857,6 @@ const PersonalDetailsForm = ({
           </Form.Group>
         </Col>
 
-        {/* ✅ NEW SPECIFIC TIME FIELD */}
         <Col md={2}>
           <Form.Group controlId="time">
             <Form.Label>Specific Time</Form.Label>
@@ -839,8 +869,6 @@ const PersonalDetailsForm = ({
             />
           </Form.Group>
         </Col>
-
-        {/* <Col md={8}>Empty for spacing</Col> */}
       </Row>
 
       <Row className="mb-2">
@@ -1055,7 +1083,7 @@ const PersonalDetailsForm = ({
           </Form.Group>
         </Col>
       </Row>
-      <Button type="submit" className="btn btn-primary">
+      <Button type="submit" className="btn btn-primary btn-sm">
         {isEdit && clientData?._id ? "Update" : "Create"}
       </Button>
     </Form>

@@ -144,6 +144,14 @@ const ProspectDetail = () => {
     return <h1>Loading...</h1>;
   }
 
+  const personal = userData?.personalDetails || {};
+  const renderDetailField = (label, value) => (
+    <div className="compact-detail-field">
+      <small className="text-muted d-block">{label}</small>
+      <div className="fw-semibold text-dark">{value || "N/A"}</div>
+    </div>
+  );
+
   return (
     <div className="container customer-profile-container">
       {/* Header Section */}
@@ -305,57 +313,64 @@ const ProspectDetail = () => {
               {/* Personal Details Tab */}
               <TabPanel>
                 <div className="profile-details-container p-4">
-                  <div className="row g-4">
+                  <div className="row g-3">
                     <div className="col-md-12">
                       <div className="card shadow-sm h-100">
                         <div className="card-body">
-                          <h5 className="card-title text-[#3498db] mb-4 border-bottom pb-2">
+                          <h5 className="card-title text-[#3498db] mb-3 border-bottom pb-2">
                             <FiUser className="me-2" />
                             Basic Information
                           </h5>
-                          <div className="row">
-                            <div className="col-md-6">
-                              <div className="detail-item d-flex align-items-center mb-3">
-                                <span className="text-muted me-2">
-                                  Group Code:
-                                </span>
-                                <span className="fw-semibold">
-                                  {userData?.personalDetails?.groupCode ||
-                                    "N/A"}
-                                </span>
-                              </div>
+                          <div className="row g-2">
+                            <div className="col-md-4 col-lg-3">
+                              {renderDetailField("Name", personal.groupName || personal.name)}
                             </div>
-                            <div className="col-md-6">
-                              <div className="detail-item d-flex align-items-center mb-3">
-                                <span className="text-muted me-2">
-                                  Group Head:
-                                </span>
-                                <span className="fw-semibold">
-                                  {userData?.personalDetails?.familyHead ||
-                                    "N/A"}
-                                </span>
-                              </div>
+                            <div className="col-md-4 col-lg-2">
+                              {renderDetailField("Phone No", personal.contactNo)}
                             </div>
-                            <div className="col-md-6">
-                              <div className="detail-item d-flex align-items-center mb-3">
-                                <span className="text-muted me-2">
-                                  WhatsApp:
-                                </span>
-                                <span className="fw-semibold">
-                                  {userData?.personalDetails?.whatsappNo ||
-                                    "N/A"}
-                                </span>
-                              </div>
+                            <div className="col-md-4 col-lg-2">
+                              {renderDetailField("Gender", personal.gender)}
                             </div>
-                            <div className="col-md-6">
-                              <div className="detail-item d-flex align-items-center mb-3">
-                                <span className="text-muted me-2">
-                                  PA Name:
-                                </span>
-                                <span className="fw-semibold">
-                                  {userData?.personalDetails?.paName || "N/A"}
-                                </span>
-                              </div>
+                            <div className="col-md-6 col-lg-3">
+                              {renderDetailField("Annual Income", personal.annualIncome)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("Grade", personal.grade)}
+                            </div>
+
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("Organisation", personal.organisation)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("Designation", personal.designation)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("Mobile No", personal.mobileNo)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("WhatsApp No", personal.whatsappNo)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("PA Name", personal.paName)}
+                            </div>
+                            <div className="col-md-6 col-lg-2">
+                              {renderDetailField("PA Mobile No", personal.paMobileNo)}
+                            </div>
+
+                            <div className="col-md-6 col-lg-3">
+                              {renderDetailField("Email Id", personal.emailId)}
+                            </div>
+                            <div className="col-md-6 col-lg-3">
+                              {renderDetailField("Preferred Meeting Address", personal.preferredMeetingAddr)}
+                            </div>
+                            <div className="col-md-4 col-lg-2">
+                              {renderDetailField("Area", personal.preferredMeetingArea)}
+                            </div>
+                            <div className="col-md-4 col-lg-2">
+                              {renderDetailField("Sub Area", personal.subArea)}
+                            </div>
+                            <div className="col-md-4 col-lg-2">
+                              {renderDetailField("City", personal.city)}
                             </div>
                           </div>
                         </div>
@@ -1096,6 +1111,22 @@ const ProspectDetail = () => {
         }
         .tab-content {
           padding: 20px;
+        }
+        .compact-detail-field {
+          background: #f8fafc;
+          border: 1px solid #e9eef5;
+          border-radius: 8px;
+          padding: 8px 10px;
+          min-height: 58px;
+        }
+        .compact-detail-field small {
+          font-size: 11px;
+          margin-bottom: 2px;
+        }
+        .compact-detail-field .fw-semibold {
+          font-size: 13px;
+          line-height: 1.25;
+          word-break: break-word;
         }
         .family-grid {
           display: grid;
