@@ -628,9 +628,9 @@ const PersonalDetailsFormForSuspect = ({
         </Col>
       </Row>
 
-      {/* Section with Subarea and Time */}
+      {/* Section with Subarea and Time (same line like Client) */}
       <Row className="mb-4">
-        <Col md={5}>
+        <Col md={4}>
           <Form.Group controlId="preferredMeetingAddr">
             <Form.Label>Preferred Meeting Address</Form.Label>
             <Form.Control
@@ -679,7 +679,7 @@ const PersonalDetailsFormForSuspect = ({
           </Form.Group>
         </Col>
 
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="city">
             <Form.Label>City</Form.Label>
             <Form.Control
@@ -693,13 +693,9 @@ const PersonalDetailsFormForSuspect = ({
             />
           </Form.Group>
         </Col>
-      </Row>
-
-      {/* Time Section with Specific Time Field */}
-      <Row className="mb-4">
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="bestTime">
-            <Form.Label>Best Time Slot</Form.Label>
+            <Form.Label>Best Time</Form.Label>
             <Form.Select
               name="bestTime"
               value={formData.bestTime ?? ""}
@@ -713,7 +709,6 @@ const PersonalDetailsFormForSuspect = ({
           </Form.Group>
         </Col>
 
-        {/* Specific Time Field */}
         <Col md={2}>
           <Form.Group controlId="time">
             <Form.Label>Specific Time</Form.Label>
@@ -725,11 +720,8 @@ const PersonalDetailsFormForSuspect = ({
               onChange={handleChange}
               size="sm"
             />
-            <Form.Text className="text-muted">Demo time field</Form.Text>
           </Form.Group>
         </Col>
-
-        <Col md={8}>{/* Empty for spacing */}</Col>
       </Row>
 
       {/* Personal Interests */}
