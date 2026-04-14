@@ -29,6 +29,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
     dobRecord: data.dobRecord || "",
     marriageDate: data.marriageDate || "",
     occupation: data.occupation || "",
+    occupationType: data.occupationType || "",
     annualIncome: data.annualIncome || "",
     contact: isSelf
       ? personalDetails.mobileNo || data.contact || ""
@@ -57,6 +58,30 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       setFamilyMembers([defaultMember(true)]);
     }
   }, [suspectData]);
+
+  useEffect(() => {
+    setFamilyMembers((prev) =>
+      prev.map((member) =>
+        member.relation === "Self"
+          ? {
+              ...member,
+              title: personalDetails?.salutation || personalDetails?.title || member.title,
+              name: personalDetails?.groupName || personalDetails?.name || member.name,
+              occupation:
+                personalDetails?.leadOccupation ||
+                personalDetails?.occupation ||
+                member.occupation,
+              occupationType:
+                personalDetails?.leadOccupationType ||
+                personalDetails?.occupationType ||
+                member.occupationType,
+              annualIncome: personalDetails?.annualIncome || member.annualIncome,
+              contact: personalDetails?.mobileNo || member.contact,
+            }
+          : member
+      )
+    );
+  }, [personalDetails]);
 
   useEffect(() => {
     if (selfDobRef.current) {
@@ -207,6 +232,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       dobRecord: member.dobRecord,
       marriageDate: member.marriageDate,
       occupation: member.occupation,
+      occupationType: member.occupationType,
       annualIncome: member.annualIncome,
       contact:
         member.relation === "Self"
@@ -301,18 +327,18 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId="annualIncome-self">
-                <Form.Label>Annual Income</Form.Label>
+              <Form.Group controlId="mobile-self">
+                <Form.Label>Mobile No</Form.Label>
                 <Form.Control
-                  name="annualIncome"
-                  value={selfMember.annualIncome}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                  plaintext
+                  readOnly
+                  value={personalDetails.mobileNo || selfMember.contact || "N/A"}
                 />
               </Form.Group>
             </Col>
           </Row>
           <Row className="mb-2">
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId="dobActual-self">
                 <Form.Label>
                   DOB (Actual) <span className="text-danger">*</span>
@@ -327,7 +353,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId="dobRecord-self">
                 <Form.Label>DOB (Record)</Form.Label>
                 <Form.Control
@@ -338,7 +364,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId="marriageDate-self">
                 <Form.Label>Marriage Date</Form.Label>
                 <Form.Control
@@ -355,6 +381,16 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 <Form.Control
                   name="occupation"
                   value={selfMember.occupation}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group controlId="occupationType-self">
+                <Form.Label>Type of Occupation</Form.Label>
+                <Form.Control
+                  name="occupationType"
+                  value={selfMember.occupationType || ""}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
                 />
               </Form.Group>
@@ -482,18 +518,19 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
               </Form.Group>
             </Col>
             <Col md={3}>
-              <Form.Group controlId={`annualIncome-${member._id || index}`}>
-                <Form.Label>Annual Income</Form.Label>
+              <Form.Group controlId={`mobile-${member._id || index}`}>
+                <Form.Label>Mobile No</Form.Label>
                 <Form.Control
-                  name="annualIncome"
-                  value={member.annualIncome}
+                  name="contact"
+                  value={member.contact}
+                  maxLength={10}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
                 />
               </Form.Group>
             </Col>
           </Row>
           <Row className="mb-2">
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId={`dobActual-${member._id || index}`}>
                 <Form.Label>
                   DOB (Actual) <span className="text-danger">*</span>
@@ -507,7 +544,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId={`dobRecord-${member._id || index}`}>
                 <Form.Label>DOB (Record)</Form.Label>
                 <Form.Control
@@ -518,7 +555,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId={`marriageDate-${member._id || index}`}>
                 <Form.Label>Marriage Date</Form.Label>
                 <Form.Control
@@ -535,6 +572,16 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 <Form.Control
                   name="occupation"
                   value={member.occupation}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group controlId={`occupationType-${member._id || index}`}>
+                <Form.Label>Type of Occupation</Form.Label>
+                <Form.Control
+                  name="occupationType"
+                  value={member.occupationType || ""}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
                 />
               </Form.Group>

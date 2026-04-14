@@ -27,7 +27,9 @@ const PersonalDetailsFormForSuspect = ({
   const dispatch = useDispatch();
 
   const initialFormState = {
+    salutation: "",
     groupName: "",
+    groupHeadName: "",
     gender: "",
     organisation: "",
     designation: "",
@@ -62,6 +64,8 @@ const PersonalDetailsFormForSuspect = ({
     leadOccupationType: "",
     callingPurpose: "",
     name: "",
+    allocatedCRE: "",
+    allocatedRM: "",
     remark: "",
   };
 
@@ -80,6 +84,8 @@ const PersonalDetailsFormForSuspect = ({
   const [areas, setAreas] = useState([]);
   const [subAreas, setSubAreas] = useState([]);
   const [filteredSubAreas, setFilteredSubAreas] = useState([]);
+  const [rms, setRms] = useState([]);
+  const [cres, setCres] = useState([]);
 
   useEffect(() => {
     dispatch(fetchLeadType());
@@ -89,6 +95,7 @@ const PersonalDetailsFormForSuspect = ({
 
     fetchAreas();
     fetchSubAreas();
+    fetchEmployees();
     fetchOccupations();
     fetchOccupationTypes();
   }, [dispatch]);
@@ -134,6 +141,67 @@ const PersonalDetailsFormForSuspect = ({
       }
     } catch (error) {
       console.error("Error fetching subareas:", error);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await axiosInstance.get("/api/employee/getAllEmployees");
+      let allEmployees = [];
+
+      if (response.data) {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          allEmployees = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          allEmployees = response.data;
+        } else if (
+          response.data.employees &&
+          Array.isArray(response.data.employees)
+        ) {
+          allEmployees = response.data.employees;
+        }
+      }
+
+      const activeEmployees = allEmployees.filter((emp) => {
+        return (
+          !emp.dateOfTermination &&
+          !emp.terminationDate &&
+          !emp.endDate &&
+          (emp.status === undefined ||
+            emp.status === null ||
+            emp.status === "active" ||
+            emp.status === "Active")
+        );
+      });
+
+      const rmEmployees = activeEmployees.filter((emp) => {
+        const empRole = (
+          emp.role ||
+          emp.designation ||
+          emp.position ||
+          ""
+        ).toLowerCase();
+        return (
+          empRole.includes("rm") ||
+          empRole.includes("relationship") ||
+          empRole.includes("manager")
+        );
+      });
+
+      const creEmployees = activeEmployees.filter((emp) => {
+        const empRole = (
+          emp.role ||
+          emp.designation ||
+          emp.position ||
+          ""
+        ).toLowerCase();
+        return empRole.includes("cre") || empRole.includes("customer");
+      });
+
+      setRms(rmEmployees);
+      setCres(creEmployees);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
     }
   };
 
@@ -353,9 +421,31 @@ const PersonalDetailsFormForSuspect = ({
         `}
       </style>
       <Row className="mb-2 align-items-end">
-        <Col md={3}>
+        <Col md={2}>
+          <Form.Group controlId="salutation">
+            <Form.Label>Salutation</Form.Label>
+            <Form.Select
+              name="salutation"
+              value={formData.salutation ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Select</option>
+              <option>Mr.</option>
+              <option>Mrs.</option>
+              <option>Ms.</option>
+              <option>Mast.</option>
+              <option>Shri.</option>
+              <option>Smt.</option>
+              <option>Kum.</option>
+              <option>Kr.</option>
+              <option>Dr.</option>
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col md={2}>
           <Form.Group controlId="groupName">
-            <Form.Label>Name</Form.Label>
+            <Form.Label>Group Name</Form.Label>
             <Form.Control
               ref={groupNameRef}
               name="groupName"
@@ -368,46 +458,30 @@ const PersonalDetailsFormForSuspect = ({
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No*</Form.Label>
+          <Form.Group controlId="groupHeadName">
+            <Form.Label>Group Head Name</Form.Label>
             <Form.Control
-              name="mobileNo"
+              name="groupHeadName"
               type="text"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
-              size="sm"
-              required
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
-            <Form.Control
-              name="whatsappNo"
-              type="text"
-              value={formData.whatsappNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="contactNo">
-            <Form.Label>Phone No</Form.Label>
-            <Form.Control
-              name="contactNo"
-              type="text"
-              maxLength={14}
-              value={formData.contactNo ?? ""}
+              value={formData.groupHeadName ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={1}>
+        <Col md={2}>
+          <Form.Group controlId="emailId">
+            <Form.Label>Email Id</Form.Label>
+            <Form.Control
+              name="emailId"
+              type="email"
+              value={formData.emailId ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
             <Form.Select
@@ -459,7 +533,7 @@ const PersonalDetailsFormForSuspect = ({
       </Row>
 
       <Row className="mb-2">
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="organisation">
             <Form.Label>Organisation</Form.Label>
             <Form.Control
@@ -471,7 +545,7 @@ const PersonalDetailsFormForSuspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="designation">
             <Form.Label>Designation</Form.Label>
             <Form.Control
@@ -479,6 +553,33 @@ const PersonalDetailsFormForSuspect = ({
               type="text"
               value={formData.designation ?? ""}
               onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No*</Form.Label>
+            <Form.Control
+              name="mobileNo"
+              type="text"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
               size="sm"
             />
           </Form.Group>
@@ -503,18 +604,6 @@ const PersonalDetailsFormForSuspect = ({
               type="tel"
               maxLength={10}
               value={formData.paMobileNo ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="emailId">
-            <Form.Label>Email Id</Form.Label>
-            <Form.Control
-              name="emailId"
-              type="email"
-              value={formData.emailId ?? ""}
               onChange={handleChange}
               size="sm"
             />
@@ -895,6 +984,42 @@ const PersonalDetailsFormForSuspect = ({
               onChange={handleChange}
               size="sm"
             />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="allocatedCRE">
+            <Form.Label>Allocated CRE</Form.Label>
+            <Form.Select
+              name="allocatedCRE"
+              value={formData.allocatedCRE ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">-- Select CRE --</option>
+              {cres.map((cre) => (
+                <option key={cre._id} value={cre._id}>
+                  {cre.name} - {cre.employeeCode || cre.designation}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="allocatedRM">
+            <Form.Label>Allocated R Manager</Form.Label>
+            <Form.Select
+              name="allocatedRM"
+              value={formData.allocatedRM ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">-- Select RM --</option>
+              {rms.map((rm) => (
+                <option key={rm._id} value={rm._id}>
+                  {rm.name} - {rm.employeeCode || rm.designation}
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
         </Col>
       </Row>

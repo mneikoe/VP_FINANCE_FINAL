@@ -1919,7 +1919,7 @@ const CustomerDetail = () => {
                             <th>Policy Number</th>
                             <th>Plan Name</th>
                             <th>Company</th>
-                            <th>Member Name</th>
+                            <th>Policy Holder Name</th>
                             <th>Premium</th>
                             <th>Sum Assured</th>
                             <th>Start Date</th>
@@ -1934,7 +1934,7 @@ const CustomerDetail = () => {
                             <th>Company Name</th>
                             <th>Product Type</th>
                             <th>Plan Name</th>
-                            <th>Member Name</th>
+                            <th>Policy Holder Name</th>
                             <th>Amount</th>
                             <th>Start Date</th>
                             <th>Maturity Date</th>
@@ -1947,7 +1947,7 @@ const CustomerDetail = () => {
                             <th>Account Number</th>
                             <th>Loan Type</th>
                             <th>Company Name</th>
-                            <th>Member Name</th>
+                            <th>Policy Holder Name</th>
                             <th>Outstanding Amount</th>
                             <th>Interest Rate</th>
                             <th>Term</th>

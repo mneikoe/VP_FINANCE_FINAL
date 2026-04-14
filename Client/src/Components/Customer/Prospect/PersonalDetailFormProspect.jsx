@@ -35,7 +35,9 @@ const PersonalDetailsFormForProspect = ({
 
   // ✅ UPDATED INITIAL STATE WITH NEW FIELDS
   const initialFormState = {
+    salutation: "",
     groupName: "",
+    groupHeadName: "",
     gender: "",
     organisation: "",
     designation: "",
@@ -70,7 +72,7 @@ const PersonalDetailsFormForProspect = ({
     leadOccupationType: "",
     callingPurpose: "",
     name: "",
-
+    allocatedCRE: "",
     allocatedRM: "", // ✅ NEW FIELD FOR RM
     remark: "",
   };
@@ -87,6 +89,7 @@ const PersonalDetailsFormForProspect = ({
   const [subAreas, setSubAreas] = useState([]);
   const [filteredSubAreas, setFilteredSubAreas] = useState([]);
   const [rms, setRms] = useState([]);
+  const [cres, setCres] = useState([]);
 
   const { alldetails } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
@@ -189,8 +192,30 @@ const PersonalDetailsFormForProspect = ({
         return isActive && isRM;
       });
 
+      const creEmployees = allEmployees.filter((emp) => {
+        const isActive =
+          !emp.dateOfTermination &&
+          !emp.terminationDate &&
+          !emp.endDate &&
+          (emp.status === undefined ||
+            emp.status === null ||
+            emp.status === "active" ||
+            emp.status === "Active");
+
+        const empRole = (
+          emp.role ||
+          emp.designation ||
+          emp.position ||
+          ""
+        ).toLowerCase();
+        const isCRE = empRole.includes("cre") || empRole.includes("customer");
+
+        return isActive && isCRE;
+      });
+
       console.log(`Active RMs found: ${rmEmployees.length}`);
       setRms(rmEmployees);
+      setCres(creEmployees);
     } catch (error) {
       console.error("Error fetching RMs:", error);
     }
@@ -475,9 +500,31 @@ const PersonalDetailsFormForProspect = ({
         `}
       </style>
       <Row className="mb-2 align-items-end">
-        <Col md={3}>
+        <Col md={2}>
+          <Form.Group controlId="salutation">
+            <Form.Label>Salutation</Form.Label>
+            <Form.Select
+              name="salutation"
+              value={formData.salutation ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Select</option>
+              <option>Mr.</option>
+              <option>Mrs.</option>
+              <option>Ms.</option>
+              <option>Mast.</option>
+              <option>Shri.</option>
+              <option>Smt.</option>
+              <option>Kum.</option>
+              <option>Kr.</option>
+              <option>Dr.</option>
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col md={2}>
           <Form.Group controlId="groupName">
-            <Form.Label>Name</Form.Label>
+            <Form.Label>Group Name</Form.Label>
             <Form.Control
               ref={groupNameRef}
               name="groupName"
@@ -489,45 +536,30 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No</Form.Label>
+          <Form.Group controlId="groupHeadName">
+            <Form.Label>Group Head Name</Form.Label>
             <Form.Control
-              name="mobileNo"
+              name="groupHeadName"
               type="text"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
-            <Form.Control
-              name="whatsappNo"
-              type="text"
-              value={formData.whatsappNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="contactNo">
-            <Form.Label>Phone No</Form.Label>
-            <Form.Control
-              name="contactNo"
-              type="text"
-              maxLength={14}
-              value={formData.contactNo ?? ""}
+              value={formData.groupHeadName ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={1}>
+        <Col md={2}>
+          <Form.Group controlId="emailId">
+            <Form.Label>Email Id</Form.Label>
+            <Form.Control
+              name="emailId"
+              type="email"
+              value={formData.emailId ?? ""}
+              onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
             <Form.Select
@@ -578,7 +610,7 @@ const PersonalDetailsFormForProspect = ({
         </Col>
       </Row>
       <Row className="mb-2">
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="organisation">
             <Form.Label>Organisation</Form.Label>
             <Form.Control
@@ -590,7 +622,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col md={2}>
           <Form.Group controlId="designation">
             <Form.Label>Designation</Form.Label>
             <Form.Control
@@ -598,6 +630,33 @@ const PersonalDetailsFormForProspect = ({
               type="text"
               value={formData.designation ?? ""}
               onChange={handleChange}
+              size="sm"
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No*</Form.Label>
+            <Form.Control
+              name="mobileNo"
+              type="text"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
               size="sm"
             />
           </Form.Group>
@@ -622,18 +681,6 @@ const PersonalDetailsFormForProspect = ({
               type="tel"
               maxLength={10}
               value={formData.paMobileNo ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="emailId">
-            <Form.Label>Email Id</Form.Label>
-            <Form.Control
-              name="emailId"
-              type="email"
-              value={formData.emailId ?? ""}
               onChange={handleChange}
               size="sm"
             />
@@ -988,6 +1035,24 @@ const PersonalDetailsFormForProspect = ({
               onChange={handleChange}
               size="sm"
             />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="allocatedCRE">
+            <Form.Label>Allocated CRE</Form.Label>
+            <Form.Select
+              name="allocatedCRE"
+              value={formData.allocatedCRE ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">-- Select CRE --</option>
+              {cres.map((cre) => (
+                <option key={cre._id} value={cre._id}>
+                  {cre.name} - {cre.employeeCode || cre.designation}
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
         </Col>
 

@@ -476,7 +476,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Member Name</Form.Label>
+                <Form.Label>Policy Holder Name</Form.Label>
                 <Form.Select
                   name="memberName"
                   value={insuranceFormData[option]?.memberName || ""}

@@ -187,7 +187,7 @@
                 </Col>
                 <Col xs={12} md={6} lg={2}>
                   <Form.Group controlId={`memberName-${index}`}>
-                    <Form.Label>Member Name</Form.Label>
+                    <Form.Label>Policy Holder Name</Form.Label>
                     <Form.Select
                       name="memberName"
                       value={formData.customerDoc[index]?.memberName || ""}
