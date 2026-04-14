@@ -136,6 +136,7 @@ const Addtask = ({ on, data, onSuccess }) => {
         depart: flat?.depart?.[0] || "",
         name: flat?.name || "",
         estimatedDays: flat?.estimatedDays || 1,
+        reward: flat?.reward || "",
         templatePriority: flat?.templatePriority || "medium",
         email_descp: flat?.email_descp || "",
         sms_descp: flat?.sms_descp || "",
@@ -347,14 +348,6 @@ const Addtask = ({ on, data, onSuccess }) => {
       ),
     },
     {
-      key: "sms",
-      label: (
-        <span>
-          <MessageOutlined /> SMS
-        </span>
-      ),
-    },
-    {
       key: "whatsapp",
       label: (
         <span>
@@ -395,6 +388,7 @@ const Addtask = ({ on, data, onSuccess }) => {
             initialValues={{
               type: "composite",
               estimatedDays: 1,
+              reward: "",
               templatePriority: "medium",
             }}
           >
@@ -405,8 +399,8 @@ const Addtask = ({ on, data, onSuccess }) => {
               style={{ marginBottom: 24, borderRadius: 12 }}
               styles={{ header: { borderBottom: "none", paddingBottom: 0 } }}
             >
-              <Row gutter={[16, 0]}>
-                <Col xs={24} md={12}>
+              <Row gutter={[12, 0]}>
+                <Col xs={24} md={6}>
                   <Form.Item
                     name="cat"
                     label="Financial Product"
@@ -414,7 +408,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                   >
                     <Select
                       placeholder="Select Financial Product"
-                      size="large"
+                      size="middle"
                       allowClear
                     >
                       {products.map((product) => (
@@ -426,7 +420,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={12}>
+                <Col xs={24} md={6}>
                   <Form.Item
                     name="sub"
                     label="Company Name"
@@ -434,7 +428,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                   >
                     <Select
                       placeholder="Select Company Name"
-                      size="large"
+                      size="middle"
                       allowClear
                     >
                       {filteredCompanies.map((comp) => (
@@ -446,7 +440,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={12}>
+                <Col xs={24} md={6}>
                   <Form.Item
                     name="depart"
                     label="Employee Type"
@@ -454,7 +448,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                   >
                     <Select
                       placeholder="Select Employee Type"
-                      size="large"
+                      size="middle"
                       loading={loadingEmployeeTypes}
                       allowClear
                     >
@@ -467,37 +461,52 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={12}>
+                <Col xs={24} md={6}>
                   <Form.Item
                     name="name"
                     label="Task Name"
                     rules={[{ required: true, message: "Required" }]}
                   >
-                    <Input placeholder="Enter task name" size="large" />
+                    <Input placeholder="Enter task name" size="middle" />
                   </Form.Item>
                 </Col>
+              </Row>
 
-                <Col xs={24} md={12}>
-                  <Form.Item name="estimatedDays" label="Estimated Days">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      size="large"
-                      prefix={<CalendarOutlined />}
-                    />
-                  </Form.Item>
-                </Col>
-
-                <Col xs={24} md={12}>
+              <Row gutter={[12, 0]}>
+                <Col xs={24} md={8}>
                   <Form.Item name="templatePriority" label="Priority">
-                    <Select size="large">
+                    <Select size="middle">
                       {priorityOptions.map((opt) => (
                         <Option key={opt.value} value={opt.value}>
                           <Tag color={opt.color}>{opt.label}</Tag>
                         </Option>
                       ))}
                     </Select>
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} md={8}>
+                  <Form.Item name="estimatedDays" label="Estimated Days">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      size="middle"
+                      prefix={<CalendarOutlined />}
+                    />
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name="reward"
+                    label="Reward"
+                    tooltip="Reward for completing before estimated days"
+                  >
+                    <Input
+                      placeholder="Enter reward (e.g. 500 / Gift Voucher)"
+                      size="middle"
+                    />
                   </Form.Item>
                 </Col>
               </Row>
@@ -520,65 +529,77 @@ const Addtask = ({ on, data, onSuccess }) => {
               <div style={{ padding: "24px" }}>
                 {/* Work Description Tab */}
                 {activeTab === "work" && (
-                  <div>
-                    <Text strong style={{ display: "block", marginBottom: 16 }}>
-                      Detailed Description
-                    </Text>
-                    <div
-                      style={{
-                        border: "1px solid #d9d9d9",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <CKEditor
-                        editor={ClassicEditor}
-                        data={editorData.descp}
-                        onChange={(event, editor) =>
-                          setEditorData((prev) => ({
-                            ...prev,
-                            descp: editor.getData(),
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <Divider />
-
-                    <Text strong style={{ display: "block", marginBottom: 16 }}>
-                      Attach Image
-                    </Text>
-                    <Upload
-                      beforeUpload={handleImageUpload}
-                      showUploadList={false}
-                      accept="image/*"
-                    >
-                      <Button icon={<UploadOutlined />} size="large">
-                        Upload Image
-                      </Button>
-                    </Upload>
-                    {previewImage && (
-                      <div style={{ marginTop: 16 }}>
-                        <Image
-                          src={previewImage}
-                          alt="Preview"
-                          width={120}
-                          height={120}
-                          style={{ objectFit: "cover", borderRadius: 8 }}
+                  <Row gutter={[20, 0]} align="top">
+                    <Col xs={24} md={16}>
+                      <Text strong style={{ display: "block", marginBottom: 16 }}>
+                        Detailed Description
+                      </Text>
+                      <div
+                        style={{
+                          border: "1px solid #d9d9d9",
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          minHeight: 220,
+                        }}
+                      >
+                        <CKEditor
+                          editor={ClassicEditor}
+                          data={editorData.descp}
+                          onChange={(event, editor) =>
+                            setEditorData((prev) => ({
+                              ...prev,
+                              descp: editor.getData(),
+                            }))
+                          }
                         />
-                        <Button
-                          type="link"
-                          danger
-                          onClick={() => {
-                            setDescImage(null);
-                            setPreviewImage(null);
-                          }}
-                        >
-                          Remove
-                        </Button>
                       </div>
-                    )}
-                  </div>
+                    </Col>
+
+                    <Col xs={24} md={8}>
+                      <div
+                        style={{
+                          border: "1px solid #f0f0f0",
+                          borderRadius: 10,
+                          padding: 16,
+                          background: "#fafafa",
+                        }}
+                      >
+                        <Text strong style={{ display: "block", marginBottom: 12 }}>
+                          Attach Image
+                        </Text>
+                        <Upload
+                          beforeUpload={handleImageUpload}
+                          showUploadList={false}
+                          accept="image/*"
+                        >
+                          <Button icon={<UploadOutlined />} block>
+                            Upload Image
+                          </Button>
+                        </Upload>
+                        {previewImage && (
+                          <div style={{ marginTop: 14, textAlign: "center" }}>
+                            <Image
+                              src={previewImage}
+                              alt="Preview"
+                              width={140}
+                              height={140}
+                              style={{ objectFit: "cover", borderRadius: 8 }}
+                            />
+                            <Button
+                              type="link"
+                              danger
+                              onClick={() => {
+                                setDescImage(null);
+                                setPreviewImage(null);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Col>
+                  </Row>
                 )}
 
                 {/* Checklist Tab */}
@@ -791,33 +812,6 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </div>
                 )}
 
-                {/* SMS Tab */}
-                {activeTab === "sms" && (
-                  <div>
-                    <Text strong style={{ display: "block", marginBottom: 16 }}>
-                      SMS Template
-                    </Text>
-                    <div
-                      style={{
-                        border: "1px solid #d9d9d9",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <CKEditor
-                        editor={ClassicEditor}
-                        data={editorData.sms}
-                        onChange={(event, editor) =>
-                          setEditorData((prev) => ({
-                            ...prev,
-                            sms: editor.getData(),
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* WhatsApp Tab */}
                 {activeTab === "whatsapp" && (
                   <div>
@@ -854,10 +848,10 @@ const Addtask = ({ on, data, onSuccess }) => {
                 paddingTop: 24,
                 borderTop: "1px solid #f0f0f0",
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: "center",
               }}
             >
-              <Space>
+              <Space size={16}>
                 <Button size="large" onClick={() => window.history.back()}>
                   Cancel
                 </Button>
