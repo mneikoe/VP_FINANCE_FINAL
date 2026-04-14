@@ -289,15 +289,8 @@ const Navbarfristn = () => {
           title: "Office Admin",
           items: [
             { name: "Job Profile & Target", to: "/job-profile-target-admin" },
-            { name: "Employee Recruitment", to: "/employee-recruitment" },
-            { name: "Vacancy Notice", to: "/vacancy-notice" },
-            { name: "Add Candidate", to: "/addcandidate" },
-            { name: "Career Enquiry", to: "/career-enquiry" },
-            { name: "Resume Shortlist", to: "/resume-shortlist" },
-            { name: "Interview Process", to: "/interview-process" },
-            { name: "Internship Candidate", to: "/internship-candidate" },
-            { name: "Add Employee", to: "/add-employee" },
-            { name: "Joining Data", to: "/joining-data" },
+            { name: "All Employee", to: "/all-employee" },
+           
           ],
         },
         {

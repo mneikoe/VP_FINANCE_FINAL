@@ -105,6 +105,7 @@ import CompositeAssignments from "../Components/Masters/Composite/CompositeAssig
 import MarketingAssignments from "../Components/Masters/Marketing/MarketingAssignment";
 import ServiceAssignments from "../Components/Masters/Servicing/ServiceAssignment";
 import DisplaySuspect from "../Components/Customer/Suspect/DisplaySuspect";
+import EmployeeList from "../Components/Employee/OfficeAdmin/EmployeeList";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -248,6 +249,7 @@ const AppRoutes = () => {
         <Route path="/kyc" element={<KYCtabs />} />
         {/* Employee - Only OA */}
         <Route path="/add-employee" element={<EmployeeAddForm />} />
+        <Route path="all-employee" element={<EmployeeList/>}/>
         <Route path="/employee/:id" element={<EmployeeDetails />} />
         {/* HR Module Routes for OA */}
         <Route path="/career-enquiry" element={<CareerEnquiry />} />

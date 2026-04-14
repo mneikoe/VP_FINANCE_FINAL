@@ -328,7 +328,7 @@ const EmployeeDetails = () => {
           <Alert.Heading>Error</Alert.Heading>
           {error || "Employee not found"}
         </Alert>
-        <Button onClick={() => navigate("/add-employee")}>
+        <Button onClick={() => navigate("/all-employee")}>
           ← Back to Employee List
         </Button>
       </div>
@@ -357,7 +357,7 @@ const EmployeeDetails = () => {
         </h1>
         <Button
           variant="outline-secondary"
-          onClick={() => navigate("/add-employee")}
+          onClick={() => navigate("/all-employee")}
         >
           ← Back to List
         </Button>
