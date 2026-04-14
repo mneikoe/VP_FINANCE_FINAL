@@ -253,9 +253,9 @@ function ProspectAppointmentList() {
       title: "Group Code",
       dataIndex: "groupCode",
       key: "groupCode",
-      width: 120,
+      width: 50,
       fixed: "left",
-      sorter: (a, b) => a.groupCode.localeCompare(b.groupCode),
+      
       render: (text) => (
         <Tag color="cyan" style={{ fontWeight: 500 }}>
           {text}
@@ -267,10 +267,11 @@ function ProspectAppointmentList() {
       dataIndex: "groupName",
       key: "groupName",
       width: 150,
-      sorter: (a, b) => a.groupName.localeCompare(b.groupName),
+      className:"whitespace-nowrap",
+      
       render: (text) => (
         <Space>
-          <UserOutlined />
+          
           {text}
         </Space>
       ),
@@ -279,14 +280,11 @@ function ProspectAppointmentList() {
       title: "Prospect Info",
       key: "prospectInfo",
       width: 180,
-      sorter: (a, b) => a.name.localeCompare(b.name),
+    
       render: (_, record) => (
         <Space direction="vertical" size={2}>
           <Text strong>{record.name}</Text>
-          <Space size={4}>
-            <Tag color={getGenderColor(record.gender)}>{record.gender}</Tag>
-            <Tag color={getGradeColor(record.grade)}>Grade: {record.grade}</Tag>
-          </Space>
+          
         </Space>
       ),
     },
@@ -300,12 +298,7 @@ function ProspectAppointmentList() {
             <PhoneOutlined />
             <Text>{record.mobile}</Text>
           </Space>
-          {record.whatsapp !== "-" && (
-            <Space size={4}>
-              <WhatsAppOutlined style={{ color: "#25D366" }} />
-              <Text type="secondary">{record.whatsapp}</Text>
-            </Space>
-          )}
+        
           {record.contact !== "-" && record.contact !== record.mobile && (
             <Space size={4}>
               <PhoneOutlined />
@@ -321,61 +314,26 @@ function ProspectAppointmentList() {
       key: "email",
       width: 200,
       ellipsis: true,
-      sorter: (a, b) => a.email.localeCompare(b.email),
+      
       render: (text) => (
         <Tooltip title={text}>
           <Space>
-            <MailOutlined />
+            
             <Text>{text}</Text>
           </Space>
         </Tooltip>
       ),
     },
-    {
-      title: "Organisation",
-      key: "organisation",
-      width: 160,
-      sorter: (a, b) => a.organisation.localeCompare(b.organisation),
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Space>
-            <BankOutlined />
-            <Text>{record.organisation}</Text>
-          </Space>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.designation}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: "Income",
-      key: "income",
-      width: 130,
-      align: "right",
-      sorter: (a, b) => {
-        const aIncome = parseFloat(a.annualIncome) || 0;
-        const bIncome = parseFloat(b.annualIncome) || 0;
-        return aIncome - bIncome;
-      },
-      render: (_, record) => (
-        <Space direction="vertical" size={2} style={{ alignItems: "flex-end" }}>
-          <Space>
-            <DollarOutlined />
-            <Text strong>{record.annualIncome}</Text>
-          </Space>
-        </Space>
-      ),
-    },
+   
+   
     {
       title: "Location",
       key: "location",
-      width: 160,
-      sorter: (a, b) => a.city.localeCompare(b.city),
+      width: 220,
+      
       render: (_, record) => (
-        <Space direction="vertical" size={2}>
+        <Space direction="horizontal" size={2}>
           <Space>
-            <EnvironmentOutlined />
             <Text>{record.city}</Text>
           </Space>
           {record.preferredMeetingArea !== "-" && (
@@ -386,53 +344,13 @@ function ProspectAppointmentList() {
         </Space>
       ),
     },
-    {
-      title: "Lead Info",
-      key: "leadInfo",
-      width: 150,
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Tag color="purple">{record.leadSource}</Tag>
-          {record.leadName !== "-" && (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.leadName}
-            </Text>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: "Allocated To",
-      dataIndex: "allocatedCRE",
-      key: "allocatedCRE",
-      width: 130,
-      sorter: (a, b) => a.allocatedCRE.localeCompare(b.allocatedCRE),
-      render: (text) => (
-        <Tag color="geekblue" icon={<UserOutlined />}>
-          {text}
-        </Tag>
-      ),
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 110,
-      sorter: (a, b) => {
-        return new Date(a.rawCreatedAt || 0) - new Date(b.rawCreatedAt || 0);
-      },
-      defaultSortOrder: "descend",
-      render: (text) => (
-        <Space>
-          <CalendarOutlined />
-          <Text>{text}</Text>
-        </Space>
-      ),
-    },
+   
+   
+   
     {
       title: "Actions",
       key: "actions",
-      width: 240,
+      width: 140,
       fixed: "right",
       render: (_, record) => (
         <Space wrap>
@@ -444,7 +362,7 @@ function ProspectAppointmentList() {
               icon={<EyeOutlined />}
               onClick={() => handleView(record.id)}
             >
-              View
+              V
             </Button>
           </Tooltip>
           <Tooltip title="Edit Prospect">
@@ -471,7 +389,7 @@ function ProspectAppointmentList() {
               size="small"
               icon={<DeleteOutlined />}
             >
-              Delete
+              Del
             </Button>
           </Popconfirm>
         </Space>
@@ -480,7 +398,7 @@ function ProspectAppointmentList() {
     {
       title: "Convert",
       key: "convert",
-      width: 110,
+      width: 90,
       fixed: "right",
       render: (_, record) => (
         <Popconfirm
@@ -499,7 +417,7 @@ function ProspectAppointmentList() {
               borderColor: "#52c41a",
             }}
           >
-            To Client
+            Client
           </Button>
         </Popconfirm>
       ),

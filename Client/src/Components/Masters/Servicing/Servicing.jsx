@@ -1,18 +1,47 @@
 import React, { useState, useEffect } from "react";
-import { Tab, Tabs, Modal, Button, Table, Pagination } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { MdEdit, MdDelete } from "react-icons/md";
+import {
+  Table,
+  Button,
+  Card,
+  Space,
+  Typography,
+  Tag,
+  Tooltip,
+  Modal,
+  Spin,
+  Empty,
+  Tabs,
+  Popconfirm,
+  message,
+  Badge,
+  Input,
+} from "antd";
+import {
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UnorderedListOutlined,
+  MessageOutlined,
+  MailOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  ToolOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import DOMPurify from "dompurify";
 import AddTaskService from "./Addtask";
 import axios from "axios";
 
+const { Title, Text } = Typography;
+
 const Service = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("view");
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchText, setSearchText] = useState("");
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
@@ -20,25 +49,22 @@ const Service = () => {
   const [currentTask, setCurrentTask] = useState(null);
   const [update, setUpdate] = useState(null);
 
-  // Fetch all service tasks
   const fetchAllServiceTasks = async () => {
     setLoading(true);
-    setError(null);
     try {
       const response = await axios.get("/api/Task?type=service");
       if (response.data.success) {
         setTasks(response.data.tasks || []);
       } else {
-        setError(response.data.message || "Failed to fetch tasks");
+        message.error(response.data.message || "Failed to fetch tasks");
       }
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      message.error(error.response?.data?.message || error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch single service task by ID
   const fetchServiceTaskById = async (id) => {
     try {
       const response = await axios.get(`/api/Task/service/${id}`);
@@ -52,20 +78,17 @@ const Service = () => {
     }
   };
 
-  // Delete service task
   const deleteServiceTask = async (id) => {
-    if (window.confirm("Are you sure you want to delete this service task?")) {
-      try {
-        const response = await axios.delete(`/api/Task/service/${id}`);
-        if (response.data.success) {
-          alert("Service task deleted successfully");
-          fetchAllServiceTasks();
-        } else {
-          alert("Failed to delete: " + response.data.message);
-        }
-      } catch (error) {
-        alert("Error deleting task: " + error.message);
+    try {
+      const response = await axios.delete(`/api/Task/service/${id}`);
+      if (response.data.success) {
+        message.success("Service task deleted successfully");
+        fetchAllServiceTasks();
+      } else {
+        message.error("Failed to delete: " + response.data.message);
       }
+    } catch (error) {
+      message.error("Error deleting task: " + error.message);
     }
   };
 
@@ -101,392 +124,530 @@ const Service = () => {
     setUpdate(task);
   };
 
-  const handleDelete = (id) => {
-    deleteServiceTask(id);
+  const getPriorityConfig = (priority) => {
+    const configs = {
+      urgent: { color: "error", label: "URGENT" },
+      high: { color: "warning", label: "HIGH" },
+      medium: { color: "processing", label: "MEDIUM" },
+      low: { color: "default", label: "LOW" },
+    };
+    return configs[priority] || configs.medium;
   };
 
-  const indexOfLastEntry = currentPage * entriesPerPage;
-  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentEntries = tasks.slice(indexOfFirstEntry, indexOfLastEntry);
-  const totalPages = Math.ceil(tasks.length / entriesPerPage);
+  const filteredTasks = tasks.filter((task) => {
+    if (!searchText) return true;
+    const searchLower = searchText.toLowerCase();
+    return (
+      task.name?.toLowerCase().includes(searchLower) ||
+      task.cat?.name?.toLowerCase().includes(searchLower) ||
+      task.sub?.toLowerCase().includes(searchLower) ||
+      task.depart?.some((role) => role.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const columns = [
+    {
+      title: "#",
+      width: 60,
+      align: "center",
+      render: (_, __, index) => (
+        <Text type="secondary">
+          {(currentPage - 1) * pageSize + index + 1}
+        </Text>
+      ),
+    },
+    {
+      title: "Financial Product",
+      dataIndex: ["cat", "name"],
+      key: "product",
+      width: 160,
+      ellipsis: true,
+      render: (text) => text || "N/A",
+    },
+    {
+      title: "Company",
+      dataIndex: "sub",
+      key: "company",
+      width: 140,
+      ellipsis: true,
+    },
+    {
+      title: "Employee Role",
+      dataIndex: "depart",
+      key: "role",
+      width: 150,
+      render: (roles) => (
+        <Space wrap>
+          {roles?.map((role, i) => (
+            <Tag key={i} color="orange">
+              {role}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: "Task Name",
+      dataIndex: "name",
+      key: "name",
+      width: 180,
+      ellipsis: true,
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: "Priority",
+      dataIndex: "templatePriority",
+      key: "priority",
+      width: 100,
+      align: "center",
+      render: (priority) => {
+        const config = getPriorityConfig(priority);
+        return (
+          <Tag color={config.color} style={{ minWidth: 80, textAlign: "center" }}>
+            {config.label}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Days",
+      dataIndex: "estimatedDays",
+      key: "days",
+      width: 70,
+      align: "center",
+      render: (days) => <Text>{days || 1}</Text>,
+    },
+    {
+      title: "Assigned",
+      dataIndex: "assignments",
+      key: "assignments",
+      width: 90,
+      align: "center",
+      render: (assignments) => (
+        <Badge count={assignments?.length || 0} showZero />
+      ),
+    },
+    {
+      title: "Description",
+      key: "description",
+      width: 100,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Description">
+          <Button
+            type="link"
+            icon={<FileTextOutlined />}
+            onClick={() => openModal("detail", record)}
+            style={{ color: "#f093fb" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Checklist",
+      key: "checklist",
+      width: 90,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Checklist">
+          <Button
+            type="link"
+            icon={<UnorderedListOutlined />}
+            onClick={() => openModal("checklist", record)}
+            style={{ color: "#ff4d4f" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "SMS",
+      key: "sms",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View SMS Template">
+          <Button
+            type="link"
+            icon={<MessageOutlined />}
+            onClick={() => openModal("sms", record)}
+            style={{ color: "#faad14" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Email",
+      key: "email",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Email Template">
+          <Button
+            type="link"
+            icon={<MailOutlined />}
+            onClick={() => openModal("email", record)}
+            style={{ color: "#52c41a" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 100,
+      align: "center",
+      fixed: "right",
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Edit">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record._id)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Delete Service Task"
+            description="Are you sure you want to delete this service task?"
+            onConfirm={() => deleteServiceTask(record._id)}
+            okText="Yes"
+            cancelText="No"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete">
+              <Button
+                type="link"
+                icon={<DeleteOutlined />}
+                danger
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const tabItems = [
+    {
+      key: "view",
+      label: (
+        <span>
+          <EyeOutlined /> View Tasks
+        </span>
+      ),
+    },
+    {
+      key: "add",
+      label: (
+        <span>
+          <PlusOutlined /> Add Service Task
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="mt-2 mb-2">
-      <div className="row">
-        <div className="col-md-12">
-          <div className="card card-outline shadow-sm rounded-lg border-0">
-            <div style={{ backgroundColor: "#F3F4F6" }} className="card-header py-2 px-3">
-              <Tabs
-                id="service-tabs"
-                activeKey={activeTab}
-                onSelect={(k) => setActiveTab(k)}
-                className="mb-0 compact-tabs"
-              >
-                <Tab eventKey="view" title="View Data" />
-                <Tab eventKey="add" title="Add Service Task Template" />
-              </Tabs>
+    <div style={{ padding: "24px", background: "#f5f7fa", minHeight: "100vh" }}>
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: 16,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+        }}
+        bodyStyle={{ padding: 0 }}
+      >
+        <div
+          style={{
+            padding: "20px 24px",
+            borderBottom: "1px solid #f0f0f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <Space align="center" size={12}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ToolOutlined style={{ fontSize: 24, color: "#fff" }} />
             </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+                Service Tasks
+              </Title>
+              <Text type="secondary">Manage service task templates</Text>
+            </div>
+          </Space>
 
-            <div className="card-body p-3">
-              {activeTab === "view" && (
+          {activeTab === "view" && (
+            <Space>
+              <Input
+                placeholder="Search tasks..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 250 }}
+                allowClear
+              />
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchAllServiceTasks}
+                loading={loading}
+              >
+                Refresh
+              </Button>
+            </Space>
+          )}
+        </div>
+
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          style={{ padding: "0 24px" }}
+          tabBarStyle={{ marginBottom: 0 }}
+        />
+
+        <div style={{ padding: "24px" }}>
+          {activeTab === "view" && (
+            <>
+              {loading ? (
+                <div style={{ textAlign: "center", padding: "60px 0" }}>
+                  <Spin size="large" />
+                  <p style={{ marginTop: 16 }}>Loading service tasks...</p>
+                </div>
+              ) : filteredTasks.length === 0 ? (
+                <Empty
+                  description={
+                    searchText
+                      ? "No tasks match your search"
+                      : "No service tasks found"
+                  }
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setActiveTab("add")}
+                  >
+                    Create Service Task
+                  </Button>
+                </Empty>
+              ) : (
                 <>
-                  {loading ? (
-                    <div className="text-center p-5">
-                      <div className="spinner-border text-dark" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                      <p className="mt-3">Loading service tasks...</p>
-                    </div>
-                  ) : error ? (
-                    <div className="alert alert-danger">{error}</div>
-                  ) : (
-                    <div className="border rounded-md overflow-x-auto">
-                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mx-0 px-2 py-1 border-bottom">
-                        <div className="dataTables_length d-flex align-items-center">
-                          <label>
-                            Show
-                            <select
-                              className="form-control form-control-sm h-8 text-sm"
-                              value={entriesPerPage}
-                              onChange={(e) =>
-                                setEntriesPerPage(Number(e.target.value))
-                              }
-                            >
-                              <option value={10}>10</option>
-                              <option value={25}>25</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                            </select>
-                            entries
-                          </label>
-                        </div>
-                      </div>
+                  <div style={{ marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <Tag color="pink" style={{ padding: "4px 12px", fontSize: 14 }}>
+                      Total Tasks: {filteredTasks.length}
+                    </Tag>
+                    <Tag color="orange" style={{ padding: "4px 12px", fontSize: 14 }}>
+                      Service Type
+                    </Tag>
+                    {searchText && (
+                      <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
+                        Search: "{searchText}"
+                      </Tag>
+                    )}
+                  </div>
 
-                      <Table striped bordered hover responsive className="mb-0 compact-table">
-                        <thead>
-                          <tr>
-                            <th>No.</th>
-                            <th>Financial Product</th>
-                            <th>Co. Name</th>
-                            <th>Emp Role</th>
-                            <th>Task</th>
-                            <th>Priority</th>
-                            <th>Days</th>
-                            <th>Assignments</th>
-                            <th>Description</th>
-                            <th>Checklist</th>
-                            <th>SMS</th>
-                            <th>Email</th>
-                            <th>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentEntries.map((task, index) => (
-                            <tr key={task._id || index}>
-                              <td className="whitespace-nowrap">{indexOfFirstEntry + index + 1}</td>
-                              <td className="whitespace-nowrap">{task.cat?.name || "N/A"}</td>
-                              <td className="whitespace-nowrap">{task.sub}</td>
-                              <td>
-                                {task.depart?.map((role, i) => (
-                                  <span
-                                    key={i}
-                                    className="badge bg-secondary me-1"
-                                  >
-                                    {role}
-                                  </span>
-                                ))}
-                              </td>
-                              <td className="whitespace-nowrap">{task.name}</td>
-                              <td>
-                                <span
-                                  className={`badge bg-${
-                                    task.templatePriority === "urgent"
-                                      ? "danger"
-                                      : task.templatePriority === "high"
-                                      ? "warning"
-                                      : task.templatePriority === "medium"
-                                      ? "primary"
-                                      : "secondary"
-                                  }`}
-                                >
-                                  {task.templatePriority}
-                                </span>
-                              </td>
-                              <td>{task.estimatedDays}</td>
-                              <td>
-                                <span className="badge bg-info">
-                                  {task.assignments?.length || 0}
-                                </span>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs rounded-md compact-btn"
-                                  onClick={() => openModal("detail", task)}
-                                >
-                                  View
-                                </Button>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs rounded-md compact-btn"
-                                  onClick={() => openModal("checklist", task)}
-                                >
-                                  View
-                                </Button>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="warning"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs rounded-md compact-btn"
-                                  onClick={() => openModal("sms", task)}
-                                >
-                                  View
-                                </Button>
-                              </td>
-                              <td>
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs rounded-md compact-btn"
-                                  onClick={() => openModal("email", task)}
-                                >
-                                  View
-                                </Button>
-                              </td>
-                              <td>
-                                <div className="btn-group d-flex gap-2" role="group">
-                                  <Button
-                                    variant="link"
-                                    className="text-primary p-0 compact-icon-btn"
-                                    onClick={() => handleEdit(task._id)}
-                                  >
-                                    <MdEdit color="blue" size={16} />
-                                  </Button>
-                                  <Button
-                                    variant="link"
-                                    className="text-danger p-0 compact-icon-btn"
-                                    onClick={() => handleDelete(task._id)}
-                                  >
-                                    <MdDelete color="red" size={16} />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-
-                      <div className="row mx-0 px-3 py-2 border-top align-items-center">
-                        <div className="col-sm-5 px-0">
-                          <div className="dataTables_info text-sm">
-                            Showing {indexOfFirstEntry + 1} to{" "}
-                            {Math.min(indexOfLastEntry, tasks.length)} of{" "}
-                            {tasks.length} entries
-                          </div>
-                        </div>
-                        <div className="col-sm-7 px-0">
-                          <Pagination className="float-sm-right mb-0 pagination-sm">
-                            <Pagination.Prev
-                              disabled={currentPage === 1}
-                              onClick={() => setCurrentPage(currentPage - 1)}
-                            />
-                            {[...Array(totalPages)].map((_, i) => (
-                              <Pagination.Item
-                                key={i + 1}
-                                active={i + 1 === currentPage}
-                                onClick={() => setCurrentPage(i + 1)}
-                              >
-                                {i + 1}
-                              </Pagination.Item>
-                            ))}
-                            <Pagination.Next
-                              disabled={currentPage === totalPages}
-                              onClick={() => setCurrentPage(currentPage + 1)}
-                            />
-                          </Pagination>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <Table
+                    columns={columns}
+                    dataSource={filteredTasks}
+                    rowKey="_id"
+                    loading={loading}
+                    pagination={{
+                      current: currentPage,
+                      pageSize: pageSize,
+                      total: filteredTasks.length,
+                      onChange: (page, size) => {
+                        setCurrentPage(page);
+                        setPageSize(size);
+                      },
+                      showSizeChanger: true,
+                      pageSizeOptions: ["10", "20", "50", "100"],
+                      showTotal: (total, range) =>
+                        `${range[0]}-${range[1]} of ${total} items`,
+                    }}
+                    scroll={{ x: 1300 }}
+                    size="middle"
+                  />
                 </>
               )}
-
-              {activeTab === "add" && (
-                <div>
-                  <AddTaskService
-                    on={setActiveTab}
-                    data={update}
-                    onSuccess={() => {
-                      setUpdate(null);
-                      fetchAllServiceTasks();
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* View Modals */}
-      <Modal
-        show={showDetailModal}
-        onHide={() => setShowDetailModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <b>{currentTask?.name || ""} Description</b>
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(
-                currentTask?.descp?.text || "No description available"
-              ),
-            }}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal
-        show={showChecklistModal}
-        onHide={() => setShowChecklistModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <b>{currentTask?.name || ""} Checklist</b>
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {currentTask?.checklists && currentTask.checklists.length > 0 ? (
-            <ul>
-              {currentTask.checklists.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No checklist available</p>
+            </>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowChecklistModal(false)}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
-      <Modal show={showSmsModal} onHide={() => setShowSmsModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <b>{currentTask?.name || ""} SMS</b>
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(
-                currentTask?.sms_descp || "No SMS template available"
-              ),
-            }}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowSmsModal(false)}>
+          {activeTab === "add" && (
+            <AddTaskService
+              on={setActiveTab}
+              data={update}
+              onSuccess={() => {
+                setUpdate(null);
+                fetchAllServiceTasks();
+              }}
+            />
+          )}
+        </div>
+      </Card>
+
+      <Modal
+        title={
+          <Space>
+            <FileTextOutlined style={{ color: "#f093fb" }} />
+            <span>{currentTask?.name || "Task"} - Description</span>
+          </Space>
+        }
+        open={showDetailModal}
+        onCancel={() => setShowDetailModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setShowDetailModal(false)}>
             Close
-          </Button>
-        </Modal.Footer>
+          </Button>,
+        ]}
+        width={700}
+      >
+        <div
+          style={{
+            maxHeight: 500,
+            overflow: "auto",
+            padding: "16px 0",
+          }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(
+              currentTask?.descp?.text || "No description available"
+            ),
+          }}
+        />
       </Modal>
 
       <Modal
-        show={showEmailModal}
-        onHide={() => setShowEmailModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <b>{currentTask?.name || ""} EMAIL</b>
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(
-                currentTask?.email_descp || "No email template available"
-              ),
-            }}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEmailModal(false)}>
+        title={
+          <Space>
+            <UnorderedListOutlined style={{ color: "#f093fb" }} />
+            <span>{currentTask?.name || "Task"} - Checklist</span>
+          </Space>
+        }
+        open={showChecklistModal}
+        onCancel={() => setShowChecklistModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setShowChecklistModal(false)}>
             Close
-          </Button>
-        </Modal.Footer>
+          </Button>,
+        ]}
+        width={500}
+      >
+        {currentTask?.checklists && currentTask.checklists.length > 0 ? (
+          <div style={{ padding: "8px 0" }}>
+            {currentTask.checklists.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  padding: "12px 16px",
+                  background: "#fafafa",
+                  borderRadius: 8,
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "#f093fb",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {index + 1}
+                </div>
+                <Text>{item}</Text>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty description="No checklist available" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        )}
       </Modal>
-      <style>{`
-        .compact-tabs .nav-link {
-          background: #f3f4f6;
-          color: #374151;
-          font-size: 0.875rem;
-          font-weight: 500;
-          padding: 0.375rem 0.75rem;
-          border-radius: 0.5rem;
-          border: 1px solid transparent;
-          margin-right: 0.375rem;
+
+      <Modal
+        title={
+          <Space>
+            <MessageOutlined style={{ color: "#f093fb" }} />
+            <span>{currentTask?.name || "Task"} - SMS Template</span>
+          </Space>
         }
-        .compact-tabs .nav-link.active {
-          background: #2563eb;
-          color: #fff;
+        open={showSmsModal}
+        onCancel={() => setShowSmsModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setShowSmsModal(false)}>
+            Close
+          </Button>,
+        ]}
+        width={600}
+      >
+        <div
+          style={{
+            maxHeight: 400,
+            overflow: "auto",
+            padding: "16px",
+            background: "#fafafa",
+            borderRadius: 8,
+          }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(
+              currentTask?.sms_descp || "No SMS template available"
+            ),
+          }}
+        />
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <MailOutlined style={{ color: "#f093fb" }} />
+            <span>{currentTask?.name || "Task"} - Email Template</span>
+          </Space>
         }
-        .compact-table thead th {
-          background: #f3f4f6;
-          color: #374151;
-          font-weight: 500;
-          font-size: 0.875rem;
-          white-space: nowrap;
-          padding: 0.5rem 0.75rem;
-        }
-        .compact-table tbody td {
-          font-size: 0.875rem;
-          white-space: nowrap;
-          padding: 0.5rem 0.75rem;
-          vertical-align: middle;
-        }
-        .compact-btn {
-          transition: all 150ms ease-in-out;
-        }
-        .compact-btn:hover {
-          opacity: 0.9;
-        }
-        .compact-icon-btn {
-          transition: transform 150ms ease-in-out;
-        }
-        .compact-icon-btn:hover {
-          transform: scale(1.1);
-        }
-        .dataTables_length label {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          margin-bottom: 0;
-          font-size: 0.875rem;
-          line-height: 1.2;
-        }
-      `}</style>
+        open={showEmailModal}
+        onCancel={() => setShowEmailModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setShowEmailModal(false)}>
+            Close
+          </Button>,
+        ]}
+        width={700}
+      >
+        <div
+          style={{
+            maxHeight: 500,
+            overflow: "auto",
+            padding: "16px",
+            background: "#fafafa",
+            borderRadius: 8,
+          }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(
+              currentTask?.email_descp || "No email template available"
+            ),
+          }}
+        />
+      </Modal>
     </div>
   );
 };

@@ -232,28 +232,28 @@ function DisplaySuspect() {
       dataIndex: 'groupCode',
       key: 'groupCode',
       width: 120,
-      sorter: (a, b) => a.groupCode.localeCompare(b.groupCode),
+      
       render: (text) => <Tag color="orange">{text}</Tag>,
     },
-    {
-      title: 'Grade',
-      dataIndex: 'grade',
-      key: 'grade',
-      width: 80,
-      align: 'center',
-      sorter: (a, b) => a.grade - b.grade,
-      render: (text) => (
-        <Tag color={text === 'A' ? 'green' : text === 'B' ? 'orange' : 'default'}>
-          {text}
-        </Tag>
-      ),
-    },
+    // {
+    //   title: 'Grade',
+    //   dataIndex: 'grade',
+    //   key: 'grade',
+    //   width: 80,
+    //   align: 'center',
+    //   sorter: (a, b) => a.grade - b.grade,
+    //   render: (text) => (
+    //     <Tag color={text === 'A' ? 'green' : text === 'B' ? 'orange' : 'default'}>
+    //       {text}
+    //     </Tag>
+    //   ),
+    // },
     {
       title: 'Group Head',
       dataIndex: 'groupName',
       key: 'groupName',
       width: 150,
-      sorter: (a, b) => a.groupName.localeCompare(b.groupName),
+      
       render: (text) => (
         <Space>
           <UserOutlined />
@@ -266,7 +266,7 @@ function DisplaySuspect() {
       dataIndex: 'name',
       key: 'name',
       width: 150,
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      
       render: (text, record) => (
         <Space direction="vertical" size={0}>
           <Text strong>{text}</Text>
@@ -277,7 +277,7 @@ function DisplaySuspect() {
     {
       title: 'Contact Info',
       key: 'contact',
-      width: 180,
+      width: 110,
       render: (_, record) => (
         <Space direction="vertical" size={2}>
           {record.mobile && (
@@ -301,7 +301,7 @@ function DisplaySuspect() {
       dataIndex: 'leadSource',
       key: 'leadSource',
       width: 130,
-      sorter: (a, b) => a.leadSource.localeCompare(b.leadSource),
+      
       render: (text) => (
         <Tag color="purple">{text}</Tag>
       ),
@@ -318,7 +318,7 @@ function DisplaySuspect() {
       dataIndex: 'area',
       key: 'area',
       width: 130,
-      sorter: (a, b) => a.area.localeCompare(b.area),
+     
       render: (text) => (
         <Space>
           <EnvironmentOutlined />
@@ -331,16 +331,14 @@ function DisplaySuspect() {
       dataIndex: 'callingPurpose',
       key: 'callingPurpose',
       width: 130,
-      sorter: (a, b) => a.callingPurpose.localeCompare(b.callingPurpose),
+      
     },
     {
       title: 'Appointment Date',
       dataIndex: 'appointmentDate',
       key: 'appointmentDate',
-      width: 150,
-      sorter: (a, b) => {
-        return new Date(a.rawAppointmentDate || 0) - new Date(b.rawAppointmentDate || 0);
-      },
+      width: 120,
+     
       defaultSortOrder: 'ascend',
       render: (text, record) => (
         <Space direction="vertical" size={0}>
@@ -386,7 +384,7 @@ function DisplaySuspect() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 220,
+      width: 150,
       fixed: 'right',
       render: (_, record) => (
         <Space wrap>
@@ -405,7 +403,7 @@ function DisplaySuspect() {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
           >
-            Delete
+            Del
           </Button>
           <Button
             type="primary"
@@ -413,7 +411,7 @@ function DisplaySuspect() {
             icon={<EyeOutlined />}
             onClick={() => handleView(record.id)}
           >
-            View
+            
           </Button>
         </Space>
       ),
@@ -421,7 +419,7 @@ function DisplaySuspect() {
     {
       title: 'Convert',
       key: 'convert',
-      width: 140,
+      width: 100,
       fixed: 'right',
       render: (_, record) => (
         <Dropdown
