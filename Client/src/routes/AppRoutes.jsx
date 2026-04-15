@@ -190,7 +190,7 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <ProtectedRoute allowedRoles={["OA", "SUPERADMIN"]}>
+          <ProtectedRoute allowedRoles={["OA"]}>
             <Layout />
           </ProtectedRoute>
         }
@@ -333,7 +333,6 @@ const NavigateToRoleBasedRoute = () => {
     case "Telecaller":
       return <Navigate to="/telecaller/dashboard" replace />;
     case "OA":
-    case "SUPERADMIN":
       return <Navigate to="/" replace />;
     default:
       return <Navigate to="/auth/login" replace />;

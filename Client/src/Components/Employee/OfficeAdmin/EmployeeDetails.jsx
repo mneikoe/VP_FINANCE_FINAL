@@ -22,7 +22,6 @@ const EmployeeDetails = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
   const loggedInRole = String(loggedInUser?.role || "");
   const isOAViewer = loggedInRole === "OA";
-  const isSuperAdminViewer = loggedInRole === "SUPERADMIN";
 
   useEffect(() => {
     fetchEmployeeData();
@@ -411,7 +410,7 @@ const EmployeeDetails = () => {
                   </p>
                 </div>
               </div>
-              {isOAViewer && !isSuperAdminViewer && (
+              {isOAViewer && (
                 <>
                   <div className="detail-item">
                     <FiPhone className="detail-icon" />
@@ -438,7 +437,7 @@ const EmployeeDetails = () => {
         </div>
 
         {/* Right Content Area */}
-        {(!isOAViewer || isSuperAdminViewer) && <div className="content-area">
+        {!isOAViewer && <div className="content-area">
           {/* Quick Info Cards */}
           <div className="info-cards">
             <div className="info-card">

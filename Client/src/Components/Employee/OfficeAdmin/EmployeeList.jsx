@@ -222,9 +222,6 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
                 if (!emp || !emp.role) return false;
                 const empRole = String(emp.role).toLowerCase();
                 const targetRole = String(role).toLowerCase();
-                if (targetRole === "oa") {
-                  return empRole === "oa" || empRole === "superadmin";
-                }
                 return empRole === targetRole;
               });
 
@@ -247,48 +244,10 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
             }
 
             if (String(role).toLowerCase() === "oa") {
-              try {
-                const oaResponse = await axiosInstance.get("/api/OA/list");
-                if (oaResponse.data?.success && Array.isArray(oaResponse.data.users)) {
-                  const oaUsers = oaResponse.data.users.map((oaUser) => ({
-                    _id: oaUser._id,
-                    name: oaUser.username || "Office Admin",
-                    employeeCode:
-                      oaUser.employeeCode ||
-                      `OA-${String(oaUser._id).slice(-4) || "0000"}`,
-                    emailId: oaUser.email || "-",
-                    mobileNo: oaUser.mobileno || "-",
-                    role: oaUser.role || "OA",
-                    designation:
-                      String(oaUser.role || "").toUpperCase() === "SUPERADMIN"
-                        ? "Super Admin"
-                        : "Office Admin",
-                    dateOfJoining: oaUser.createdAt,
-                    source: "oa",
-                    status: "active",
-                    department: "Office Admin",
-                    presentAddress: "-",
-                    emergencyContact: "-",
-                    salary: "-",
-                  }));
-
-                  const mergedById = new Map(
-                    responseData.map((item) => [String(item._id), item])
-                  );
-                  oaUsers.forEach((item) => mergedById.set(String(item._id), item));
-                  responseData = Array.from(mergedById.values());
-                }
-              } catch (oaErr) {
-                console.error("OA users fetch error:", oaErr);
-              }
-
               const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
               const loggedUserRole = String(loggedUser?.role || "").toLowerCase();
 
-              if (
-                loggedUser?.id &&
-                (loggedUserRole === "oa" || loggedUserRole === "superadmin")
-              ) {
+              if (loggedUser?.id && loggedUserRole === "oa") {
                 const alreadyExists = responseData.some(
                   (emp) => String(emp?._id) === String(loggedUser.id)
                 );
@@ -303,11 +262,8 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
                         `OA-${String(loggedUser.id).slice(-4) || "0000"}`,
                       emailId: loggedUser.email || "-",
                       mobileNo: loggedUser.mobileno || loggedUser.mobileNo || "-",
-                      role: loggedUserRole === "superadmin" ? "SUPERADMIN" : "OA",
-                      designation:
-                        loggedUserRole === "superadmin"
-                          ? "Super Admin"
-                          : "Office Admin",
+                      role: "OA",
+                      designation: "Office Admin",
                       dateOfJoining: loggedUser.dateOfJoining || loggedUser.createdAt,
                       source: "oa",
                       status: "active",
