@@ -382,9 +382,9 @@ const Navbarfristn = () => {
         {
           title: "CRM Activities",
           items: [
-            { name: "Creative Activity", to: "/crm-creative-activity" },
-            { name: "Advertisement", to: "/crm-advertisement" },
-            { name: "Composite Data", to: "/crm-composite-data" },
+            { name: "CRM Advertisement Activities", to: "/crm-advertisement-activities" },
+            { name: "CRM Creativity Activities", to: "/crm-creativity-activities" },
+            { name: "CRM Relationship Activities", to: "/crm-relationship-activities" },
           ],
         },
       ],
