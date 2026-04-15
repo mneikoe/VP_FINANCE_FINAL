@@ -29,6 +29,7 @@ const PersonalDetailsFormForProspect = ({
   prospectData,
   onProspectCreated,
   setFamilyDetail,
+  onFormDataUpdate,
 }) => {
   const dispatch = useDispatch();
   const normalizeContactNo = (value = "") => String(value).replace(/^0755/, "");
@@ -89,6 +90,12 @@ const PersonalDetailsFormForProspect = ({
   const [filteredSubAreas, setFilteredSubAreas] = useState([]);
   const [rms, setRms] = useState([]);
   const [cres, setCres] = useState([]);
+
+  useEffect(() => {
+    if (onFormDataUpdate) {
+      onFormDataUpdate(formData);
+    }
+  }, [formData, onFormDataUpdate]);
 
   const { alldetails } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);

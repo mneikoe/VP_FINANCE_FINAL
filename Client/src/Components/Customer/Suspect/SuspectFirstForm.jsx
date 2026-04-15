@@ -277,7 +277,13 @@ const SuspectFirstForm = () => {
             </h6>
             <FamilyMembersFormSuspect
               suspectId={suspectId}
-              suspectData={isEdit ? suspectData : null}
+              suspectData={
+                isEdit
+                  ? suspectData
+                  : personalData
+                    ? { personalDetails: personalData }
+                    : null
+              }
               onDataUpdate={handleFamilyDataUpdate}
               onBack={() => handleTabChange("personal")}
             />
@@ -416,6 +422,11 @@ const SuspectFirstForm = () => {
         }
         .section-title {
           font-size: 0.9rem;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.35rem;
         }
       `}</style>
     </div>

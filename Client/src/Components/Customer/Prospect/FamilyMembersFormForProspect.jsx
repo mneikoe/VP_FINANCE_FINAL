@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { Form, Row, Col, Button, Modal } from "react-bootstrap";
+import { FaSave, FaUserPlus, FaTrash } from "react-icons/fa";
 import { addFamilyMember } from "../../../redux/feature/ProspectRedux/ProspectThunx";
 import { toast } from "react-toastify";
 
@@ -16,7 +17,11 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
     _id: data._id || undefined,
     title: data.title || "",
     name: isSelf
-      ? personalDetails.groupName || personalDetails.name || data.name || ""
+      ? personalDetails.groupHeadName ||
+        personalDetails.groupName ||
+        personalDetails.name ||
+        data.name ||
+        ""
       : data.name || "",
     relation: isSelf ? "Self" : data.relation || "",
     dobActual: data.dobActual || "",
@@ -58,7 +63,11 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
           ? {
               ...member,
               title: personalDetails?.salutation || personalDetails?.title || member.title,
-              name: personalDetails?.groupName || personalDetails?.name || member.name,
+              name:
+                personalDetails?.groupHeadName ||
+                personalDetails?.groupName ||
+                personalDetails?.name ||
+                member.name,
               occupation:
                 personalDetails?.leadOccupation ||
                 personalDetails?.occupation ||
@@ -158,7 +167,10 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
     const isValid = familyMembers.every((member) => {
       if (member.relation === "Self") {
         return (
-          (member.name || personalDetails.groupName || personalDetails.name) &&
+          (member.name ||
+            personalDetails.groupHeadName ||
+            personalDetails.groupName ||
+            personalDetails.name) &&
           member.dobActual &&
           isValidAadhar(member.adharNumber) &&
           isValidPan(member.panCardNumber) &&
@@ -193,7 +205,10 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
       title: member.title,
       name:
         member.relation === "Self"
-          ? personalDetails.groupName || personalDetails.name || member.name
+          ? personalDetails.groupHeadName ||
+            personalDetails.groupName ||
+            personalDetails.name ||
+            member.name
           : member.name,
       relation: member.relation || "Self",
       dobActual: member.dobActual,
@@ -225,6 +240,15 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
 
   const selfMember = familyMembers.find((member) => member.relation === "Self");
   const otherMembers = familyMembers.filter((member) => member.relation !== "Self");
+  const primaryTitle =
+    personalDetails?.salutation || personalDetails?.title || selfMember?.title || "-";
+  const primaryName =
+    personalDetails?.groupHeadName ||
+    personalDetails?.groupName ||
+    personalDetails?.name ||
+    selfMember?.name ||
+    "-";
+  const primaryMobile = personalDetails?.mobileNo || selfMember?.contact || "-";
   const activeHealthMember =
     healthModal.memberIndex !== null ? familyMembers[healthModal.memberIndex] : null;
 
@@ -254,43 +278,58 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
             font-size: 0.78rem;
             padding: 0.28rem 0.6rem;
           }
+          .compact-family-form .self-card {
+            position: relative;
+            padding: 0.45rem !important;
+            margin-bottom: 0.35rem !important;
+            padding-top: 1.15rem !important;
+          }
+          .compact-family-form .self-badge {
+            position: absolute;
+            top: 0.25rem;
+            left: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #0d6efd;
+            background: #e9f2ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 10px;
+            padding: 0.05rem 0.45rem;
+            line-height: 1.2;
+          }
         `}
       </style>
 
       {selfMember && (
-        <div className="border rounded p-3 mb-3 bg-light">
-          <h5>Primary Client (Self)</h5>
-          <Row className="mb-2">
+        <div className="border rounded p-3 mb-3 bg-light self-card">
+          <span className="self-badge">Primary Client (Self)</span>
+          <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId="title-self">
                 <Form.Label>Mr/Mrs</Form.Label>
-                <Form.Control plaintext readOnly value={selfMember.title || "N/A"} />
+                <Form.Control readOnly value={primaryTitle} />
               </Form.Group>
             </Col>
             <Col md={4}>
               <Form.Group controlId="name-self">
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
-                <Form.Control
-                  plaintext
-                  readOnly
-                  value={personalDetails.groupName || personalDetails.name || selfMember.name || "N/A"}
-                />
+                <Form.Control readOnly value={primaryName} />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId="relation-self">
                 <Form.Label>Relation</Form.Label>
-                <Form.Control plaintext readOnly value="Self" />
+                <Form.Control readOnly value="Self" />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId="mobile-self">
                 <Form.Label>Mobile No</Form.Label>
-                <Form.Control plaintext readOnly value={personalDetails.mobileNo || selfMember.contact || "N/A"} />
+                <Form.Control readOnly value={primaryMobile} />
               </Form.Group>
             </Col>
           </Row>
-          <Row className="mb-2">
+          <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId="dobActual-self">
                 <Form.Label>DOB (Actual) <span className="text-danger">*</span></Form.Label>
@@ -347,11 +386,11 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
               </Form.Group>
             </Col>
           </Row>
-          <Row className="mb-2">
+          <Row className="mb-1">
             <Col md={3}>
               <Form.Group controlId="contact-self">
                 <Form.Label>Contact</Form.Label>
-                <Form.Control plaintext readOnly value={personalDetails.mobileNo || selfMember.contact || "N/A"} />
+                <Form.Control readOnly value={primaryMobile} />
               </Form.Group>
             </Col>
             <Col md={2}>
@@ -518,17 +557,28 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
               </Form.Group>
             </Col>
           </Row>
-          <Button variant="danger" className="mt-2" onClick={() => handleRemoveMember(familyMembers.indexOf(member))}>
-            Remove Member
+          <Button
+            variant="danger"
+            className="mt-2"
+            onClick={() => handleRemoveMember(familyMembers.indexOf(member))}
+            title="Remove Member"
+          >
+            <FaTrash />
           </Button>
         </div>
       ))}
 
-      <Button variant="success" onClick={handleAddMember} type="button" className="me-2 btn-sm">
-        Add New Member
+      <Button
+        variant="success"
+        onClick={handleAddMember}
+        type="button"
+        className="me-2 btn-sm"
+        title="Add New Member"
+      >
+        <FaUserPlus />
       </Button>
-      <Button type="submit" className="btn btn-primary btn-sm">
-        Save Members
+      <Button type="submit" className="btn btn-primary btn-sm" title="Save Members">
+        <FaSave />
       </Button>
 
       <Modal show={healthModal.show} onHide={closeHealthModal} centered size="lg">

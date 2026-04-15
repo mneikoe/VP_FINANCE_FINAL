@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { Form, Row, Col, Button, Modal } from "react-bootstrap";
+import { FaSave, FaUserPlus, FaTrash } from "react-icons/fa";
 import { addFamilyMember, updateFamilyMember } from "../../../redux/feature/ClientRedux/ClientThunx";
 import { toast } from "react-toastify";
 import { useParams } from "react-router-dom";
@@ -13,12 +14,18 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
   const { id } = useParams();
   const isEdit = !!id || !!clientData?._id;
   const selfDetails = familyDetail || clientData?.personalDetails || clientData || {};
+  const primarySource = clientData?.personalDetails || selfDetails || {};
 
   // Default member template
   const defaultMember = (isSelf = false, data = {}) => ({
     _id: data._id || undefined,
     title: isSelf ? (data.title || "") : (data.title || ""),
-    name: isSelf ? (familyDetail?.groupName || data.name || "") : (data.name || ""),
+    name: isSelf
+      ? (familyDetail?.groupHeadName ||
+          familyDetail?.groupName ||
+          data.name ||
+          "")
+      : (data.name || ""),
     relation: isSelf ? "Self" : (data.relation || ""),
     dobActual: data.dobActual || "",
     dobRecord: data.dobRecord || "",
@@ -67,7 +74,11 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
           ? {
               ...member,
               title: selfDetails?.salutation || selfDetails?.title || member.title,
-              name: selfDetails?.groupName || selfDetails?.name || member.name,
+              name:
+                selfDetails?.groupHeadName ||
+                selfDetails?.groupName ||
+                selfDetails?.name ||
+                member.name,
               occupation:
                 selfDetails?.leadOccupation || selfDetails?.occupation || member.occupation,
               occupationType:
@@ -180,7 +191,10 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
     const isValid = familyMembers.every((member) => {
       if (member.relation === "Self") {
         return (
-          (member.name || familyDetail?.groupName || clientData?.name) &&
+          (member.name ||
+            familyDetail?.groupHeadName ||
+            familyDetail?.groupName ||
+            clientData?.name) &&
           member.dobActual &&
           isValidAadhar(member.adharNumber) &&
           isValidPan(member.panCardNumber) &&
@@ -214,7 +228,13 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
     const membersPayload = familyMembers.map((member) => ({
       _id: member._id,
       title: member.relation === "Self" ? (clientData?.title || member.title) : member.title,
-      name: member.relation === "Self" ? (familyDetail?.groupName || clientData?.name || member.name) : member.name,
+      name:
+        member.relation === "Self"
+          ? (familyDetail?.groupHeadName ||
+              familyDetail?.groupName ||
+              clientData?.name ||
+              member.name)
+          : member.name,
       relation: member.relation || "Self",
       dobActual: member.dobActual,
       dobRecord: member.dobRecord,
@@ -315,6 +335,16 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
   // Find the "Self" member
   const selfMember = familyMembers.find((member) => member.relation === "Self");
   const otherMembers = familyMembers.filter((member) => member.relation !== "Self");
+  const primaryTitle =
+    primarySource?.salutation || primarySource?.title || selfMember?.title || "-";
+  const primaryName =
+    primarySource?.groupHeadName ||
+    primarySource?.groupName ||
+    primarySource?.name ||
+    selfMember?.name ||
+    "-";
+  const primaryMobile =
+    primarySource?.mobileNo || primarySource?.contactNo || selfMember?.contact || "-";
   const activeHealthMember =
     healthModal.memberIndex !== null ? familyMembers[healthModal.memberIndex] : null;
 
@@ -346,22 +376,40 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
             font-size: 0.78rem;
             padding: 0.28rem 0.6rem;
           }
+          .compact-family-form .self-card {
+            position: relative;
+            padding: 0.45rem !important;
+            margin-bottom: 0.35rem !important;
+            padding-top: 1.15rem !important;
+          }
+          .compact-family-form .self-badge {
+            position: absolute;
+            top: 0.25rem;
+            left: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #0d6efd;
+            background: #e9f2ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 10px;
+            padding: 0.05rem 0.45rem;
+            line-height: 1.2;
+          }
         `}
       </style>
 
     
       {/* Self Member Section */}
       {selfMember && (
-        <div className="border rounded p-3 mb-3 bg-light">
-          <h5>Primary Client (Self)</h5>
-          <Row className="mb-2">
+        <div className="border rounded p-3 mb-3 bg-light self-card">
+          <span className="self-badge">Primary Client (Self)</span>
+          <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId={`title-self`}>
                 <Form.Label>Mr/Mrs</Form.Label>
                 <Form.Control
-                  plaintext
                   readOnly
-                  value={clientData?.title || selfMember.title || "N/A"}
+                  value={primaryTitle}
                 />
               </Form.Group>
             </Col>
@@ -369,30 +417,28 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
               <Form.Group controlId={`name-self`}>
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
                 <Form.Control
-                  plaintext
                   readOnly
-                  value={familyDetail?.groupName || clientData?.name || selfMember.name || "N/A"}
+                  value={primaryName}
                 />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`relation-self`}>
                 <Form.Label>Relation</Form.Label>
-                <Form.Control plaintext readOnly value="Self" />
+                <Form.Control readOnly value="Self" />
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group controlId={`mobile-self`}>
                 <Form.Label>Mobile No</Form.Label>
                 <Form.Control
-                  plaintext
                   readOnly
-                  value={selfDetails?.mobileNo || selfMember.contact || "N/A"}
+                  value={primaryMobile}
                 />
               </Form.Group>
             </Col>
           </Row>
-          <Row className="mb-2">
+          <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId={`dobActual-self`}>
                 <Form.Label>DOB (Actual) <span className="text-danger">*</span></Form.Label>
@@ -433,9 +479,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
                 <Form.Label>Occupation</Form.Label>
                 <Form.Control
                   name="occupation"
-                  value={selfMember.occupation || familyDetail?.
-leadOccupation
-}
+                  value={selfMember.occupation || familyDetail?.leadOccupation}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
                 />
               </Form.Group>
@@ -451,14 +495,13 @@ leadOccupation
               </Form.Group>
             </Col>
           </Row>
-          <Row className="mb-2">
+          <Row className="mb-1">
             <Col md={3}>
               <Form.Group controlId={`contact-self`}>
                 <Form.Label>Contact</Form.Label>
                 <Form.Control
-                  plaintext
                   readOnly
-                  value={familyDetail?.mobileNo || clientData?.contact || selfMember.contact || "N/A"}
+                  value={primaryMobile}
                 />
               </Form.Group>
             </Col>
@@ -691,8 +734,9 @@ leadOccupation
             variant="danger"
             className="mt-2"
             onClick={() => handleRemoveMember(familyMembers.indexOf(member))}
+            title="Remove Member"
           >
-            Remove Member
+            <FaTrash />
           </Button>
         </div>
       ))}
@@ -701,11 +745,16 @@ leadOccupation
         onClick={handleAddMember}
         type="button"
         className="me-2 btn-sm"
+        title="Add New Member"
       >
-        Add New Member
+        <FaUserPlus />
       </Button>
-      <Button type="submit" className="btn btn-primary btn-sm">
-        {isEdit && clientData?._id ? "Update Members" : "Save Members"}
+      <Button
+        type="submit"
+        className="btn btn-primary btn-sm"
+        title={isEdit && clientData?._id ? "Update Members" : "Save Members"}
+      >
+        <FaSave />
       </Button>
 
       <Modal show={healthModal.show} onHide={closeHealthModal} centered size="lg">

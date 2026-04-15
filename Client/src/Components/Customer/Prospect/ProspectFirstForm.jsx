@@ -21,6 +21,7 @@ const ProspectFirstForm = () => {
   const [prospectId, setProspectId] = useState(id || "");
   const [isEdit, setIsEdit] = useState(false);
   const [prospectData, setProspectData] = useState(null);
+  const [personalDraft, setPersonalDraft] = useState(null);
 
   useEffect(() => {
     dispatch(getAllOccupationTypes());
@@ -44,6 +45,13 @@ const ProspectFirstForm = () => {
   const handleProspectCreated = (newProspectId) => {
     // setProspectData(newProspectId);
     setProspectId(newProspectId);
+  };
+  const sectionTitles = {
+    personal: { icon: <FaUser />, label: "Personal Details" },
+    family: { icon: <FaUsers />, label: "Family Details" },
+    financial: { icon: <FaRupeeSign />, label: "Financial Information" },
+    priorities: { icon: <FaBullseye />, label: "Future Priorities" },
+    proposed: { icon: <FaBullseye />, label: "Proposed Financial Plan" },
   };
 
   return (
@@ -108,17 +116,28 @@ const ProspectFirstForm = () => {
         </li>
       </ul>
       <div className="tab-content p-2 border rounded bg-light">
+        <h6 className="mb-1 text-primary fw-semibold section-title">
+          {sectionTitles[activeTab]?.icon}
+          {sectionTitles[activeTab]?.label}
+        </h6>
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
             prospectData={prospectData}
             onProspectCreated={handleProspectCreated}
+            onFormDataUpdate={setPersonalDraft}
           />
         )}
         {activeTab === "family" && (
           <FamilyMembersForm
             prospectId={prospectId}
-            prospectData={isEdit ? prospectData : null}
+            prospectData={
+              isEdit
+                ? prospectData
+                : personalDraft
+                  ? { personalDetails: personalDraft }
+                  : null
+            }
             onProspectCreated={handleProspectCreated}
           />
         )}
@@ -185,6 +204,14 @@ const ProspectFirstForm = () => {
   
   .active-custom.orange {
     background: linear-gradient(135deg, #fd7e14, #e96a00) !important;
+  }
+  .section-title {
+    font-size: 0.9rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem;
   }
 `}</style>
       </div>

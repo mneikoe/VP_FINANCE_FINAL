@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Form, Row, Col, Button } from "react-bootstrap";
+import { FaShieldAlt } from "react-icons/fa";
 import { addFinancialInfo } from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { toast } from "react-toastify";
 
@@ -412,7 +413,7 @@ const FinancialInformationFormForSuspect = ({
   };
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleSubmit} className="compact-financial-form">
       <Row className="mb-3">
         <Col md={4}>
           <Form.Group>
@@ -464,7 +465,10 @@ const FinancialInformationFormForSuspect = ({
       {/* Insurance Forms */}
       {openInsurance.map((option) => (
         <div key={option} className="border p-3 mb-3">
-          <h5 className="text-primary">{option} Insurance</h5>
+          <h5 className={`text-primary insurance-form-title ${option === "LIC Policy" ? "lic-policy-title" : ""}`}>
+            {option === "LIC Policy" && <FaShieldAlt className="lic-icon" />}
+            <span>{option} Insurance</span>
+          </h5>
           <Row>
             <Col md={4}>
               <Form.Group>
@@ -1205,6 +1209,50 @@ const FinancialInformationFormForSuspect = ({
         </div>
       ))}
 
+      <style>{`
+        .compact-financial-form .row {
+          --bs-gutter-x: 0.55rem;
+          --bs-gutter-y: 0.35rem;
+        }
+        .compact-financial-form .form-group {
+          margin-bottom: 0.35rem;
+        }
+        .compact-financial-form .form-label {
+          font-size: 0.78rem;
+          margin-bottom: 0.18rem;
+          line-height: 1.1;
+        }
+        .compact-financial-form .form-control,
+        .compact-financial-form .form-select {
+          min-height: 30px;
+          font-size: 0.82rem;
+          padding: 0.2rem 0.5rem;
+        }
+        .compact-financial-form .border.p-3 {
+          padding: 0.7rem !important;
+          margin-bottom: 0.55rem !important;
+        }
+        .compact-financial-form .insurance-form-title {
+          margin-bottom: 0.45rem;
+          font-size: 1rem;
+        }
+        .compact-financial-form .lic-policy-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.45rem;
+          color: #0d6efd !important;
+          text-align: center;
+        }
+        .compact-financial-form .lic-icon {
+          color: #0ea5e9;
+          filter: drop-shadow(0 0 1px #9ca3af);
+        }
+        .compact-financial-form .lic-policy-title span {
+          border-bottom: 1px solid #9ca3af;
+          padding-bottom: 1px;
+        }
+      `}</style>
       <Button
         type="submit"
         className="btn btn-primary"

@@ -768,11 +768,17 @@ exports.addFuturePrioritiesAndNeeds = async (req, res) => {
     }
 
     for (const priority of futurePriorities) {
+      const isLifeInsurance = priority.priorityName === "Life Insurance";
       if (
         !priority.priorityName ||
         !Array.isArray(priority.members) ||
         typeof priority.approxAmount !== "number" ||
-        !priority.duration
+        (isLifeInsurance &&
+          (!priority.individualOrFamily ||
+            !priority.policyType ||
+            !priority.companyName ||
+            !priority.termPpt ||
+            !priority.maturityDate))
       ) {
         return res
           .status(400)

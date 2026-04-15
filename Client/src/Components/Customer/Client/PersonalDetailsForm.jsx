@@ -29,6 +29,7 @@ const PersonalDetailsForm = ({
   clientData,
   onClientCreated,
   setFamilyDetail,
+  onFormDataUpdate,
   changeTab,
 }) => {
   const dispatch = useDispatch();
@@ -92,6 +93,12 @@ const PersonalDetailsForm = ({
   const [filteredSubAreas, setFilteredSubAreas] = useState([]);
   const [rms, setRms] = useState([]);
   const [cres, setCres] = useState([]);
+
+  useEffect(() => {
+    if (onFormDataUpdate) {
+      onFormDataUpdate(formData);
+    }
+  }, [formData, onFormDataUpdate]);
 
   const { alldetails } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);

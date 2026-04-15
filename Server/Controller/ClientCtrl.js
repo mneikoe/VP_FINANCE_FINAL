@@ -983,12 +983,27 @@ exports.addFuturePrioritiesAndNeeds = async (req, res) => {
 
     // Push new priorities
     futurePriorities.forEach((priority) => {
-      const { priorityName, members, approxAmount, duration } = priority;
+      const {
+        priorityName,
+        members,
+        approxAmount,
+        individualOrFamily,
+        policyType,
+        companyName,
+        termPpt,
+        maturityDate,
+        duration,
+      } = priority;
 
       client.futurePriorities.push({
         priorityName: priorityName || "",
         members: Array.isArray(members) ? members : [],
         approxAmount: typeof approxAmount === "number" ? approxAmount : 0,
+        individualOrFamily: individualOrFamily || "",
+        policyType: policyType || "",
+        companyName: companyName || "",
+        termPpt: termPpt || "",
+        maturityDate: maturityDate || null,
         duration: duration || "",
       });
     });
@@ -1056,7 +1071,18 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
 
     // Update or add priorities
     futurePriorities.forEach((priority) => {
-      const { _id, priorityName, members, approxAmount, duration } = priority;
+      const {
+        _id,
+        priorityName,
+        members,
+        approxAmount,
+        individualOrFamily,
+        policyType,
+        companyName,
+        termPpt,
+        maturityDate,
+        duration,
+      } = priority;
 
       if (_id) {
         // Update existing
@@ -1066,6 +1092,11 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
           existing.members = Array.isArray(members) ? members : [];
           existing.approxAmount =
             typeof approxAmount === "number" ? approxAmount : 0;
+          existing.individualOrFamily = individualOrFamily || "";
+          existing.policyType = policyType || "";
+          existing.companyName = companyName || "";
+          existing.termPpt = termPpt || "";
+          existing.maturityDate = maturityDate || null;
           existing.duration = duration || "";
         } else {
           // If ID not found, push new
@@ -1073,6 +1104,11 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
             priorityName: priorityName || "",
             members: Array.isArray(members) ? members : [],
             approxAmount: typeof approxAmount === "number" ? approxAmount : 0,
+            individualOrFamily: individualOrFamily || "",
+            policyType: policyType || "",
+            companyName: companyName || "",
+            termPpt: termPpt || "",
+            maturityDate: maturityDate || null,
             duration: duration || "",
           });
         }
@@ -1082,6 +1118,11 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
           priorityName: priorityName || "",
           members: Array.isArray(members) ? members : [],
           approxAmount: typeof approxAmount === "number" ? approxAmount : 0,
+          individualOrFamily: individualOrFamily || "",
+          policyType: policyType || "",
+          companyName: companyName || "",
+          termPpt: termPpt || "",
+          maturityDate: maturityDate || null,
           duration: duration || "",
         });
       }

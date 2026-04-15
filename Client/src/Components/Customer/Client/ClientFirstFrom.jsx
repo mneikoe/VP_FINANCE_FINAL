@@ -74,12 +74,19 @@ const ClientFirstFrom = () => {
   const changeTab = (tabChange) => {
     setActiveTab(tabChange); // yeh correct hai
   };
+  const sectionTitles = {
+    personal: { icon: <FaUser />, label: "Personal Details" },
+    family: { icon: <FaUsers />, label: "Family Details" },
+    financial: { icon: <FaRupeeSign />, label: "Financial Information" },
+    priorities: { icon: <FaBullseye />, label: "Future Priorities" },
+    proposed: { icon: <FaBullseye />, label: "Proposed Financial Plan" },
+  };
 
   return (
-    <div className="container py-2 px-2">
-      <h4 className="mb-2">Client</h4>
+    <div className="container-fluid p-0">
+      <div className="client-form-tag">Client</div>
       <ul
-        className="nav nav-pills mb-2 bg-white shadow-sm"
+        className="nav nav-pills mb-1 bg-white shadow-sm"
         id="pills-tab"
         role="tablist"
       >
@@ -135,20 +142,31 @@ const ClientFirstFrom = () => {
         </li>
       </ul>
 
-      <div className="tab-content p-3 border rounded bg-light">
+      <div className="tab-content p-2 border rounded bg-light">
+        <h6 className="mb-1 text-primary fw-semibold section-title">
+          {sectionTitles[activeTab]?.icon}
+          {sectionTitles[activeTab]?.label}
+        </h6>
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
             clientData={clientData}
             onClientCreated={handleClientCreated}
             setFamilyDetail={setFamilyDetail}
+            onFormDataUpdate={setFamilyDetail}
             changeTab={changeTab}
           />
         )}
         {activeTab === "family" && (
           <FamilyMembersForm
             clientId={clientId}
-            clientData={isEdit ? clientData : null}
+            clientData={
+              isEdit
+                ? clientData
+                : familyDetail
+                  ? { personalDetails: familyDetail }
+                  : null
+            }
             onClientCreated={handleClientCreated}
             familyDetail={familyDetail}
             setFamilyDetail={setFamilyDetail}
@@ -175,6 +193,24 @@ const ClientFirstFrom = () => {
           />
         )}
       </div>
+      <style>{`
+        .client-form-tag {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #0d6efd;
+          margin: 0 0 0.35rem 0.1rem;
+          line-height: 1.15;
+          letter-spacing: 0.01em;
+        }
+        .section-title {
+          font-size: 0.9rem;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.35rem;
+        }
+      `}</style>
     </div>
   );
 };

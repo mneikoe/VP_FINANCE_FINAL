@@ -488,8 +488,8 @@ exports.addFinancialInfo = async (req, res) => {
     attachFiles(loansData, loanFiles);
 
     // Initialize financialInfo if not present
-    if (!suspect.financialInfo) {
-      suspect.financialInfo = {
+    if (!prospect.financialInfo) {
+      prospect.financialInfo = {
         insurance: [],
         investments: [],
         loans: [],
@@ -560,11 +560,17 @@ exports.addFuturePrioritiesAndNeeds = async (req, res) => {
     }
 
     for (const priority of futurePriorities) {
+      const isLifeInsurance = priority.priorityName === "Life Insurance";
       if (
         !priority.priorityName ||
         !Array.isArray(priority.members) ||
         typeof priority.approxAmount !== "number" ||
-        !priority.duration
+        (isLifeInsurance &&
+          (!priority.individualOrFamily ||
+            !priority.policyType ||
+            !priority.companyName ||
+            !priority.termPpt ||
+            !priority.maturityDate))
       ) {
         return res
           .status(400)
@@ -723,7 +729,7 @@ exports.getAllFamilyMembers = async (req, res) => {
 
     const prospect = await prospectModel.findById(id).select("familyMembers");
 
-    if (!suspect) {
+    if (!prospect) {
       return res.status(404).json({
         success: false,
         message: "Prospect not found for this ID",

@@ -358,18 +358,26 @@ const Addtask = ({ on, data, onSuccess }) => {
   ];
 
   return (
-    <div style={{ padding: "24px", background: "#f5f7fa", minHeight: "100vh" }}>
+    <div
+      className="composite-task-shell"
+      style={{
+        padding: "6px 16px 10px",
+        background: "linear-gradient(180deg, #f8fbff 0%, #f5f7fa 45%, #f3f4f6 100%)",
+        minHeight: "100vh",
+      }}
+    >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Card
           bordered={false}
           style={{
-            borderRadius: 16,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+            borderRadius: 14,
+            boxShadow: "0 8px 24px rgba(13, 110, 253, 0.08)",
+            border: "1px solid #dbeafe",
           }}
         >
           {/* Header */}
-          <div style={{ marginBottom: 24 }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+          <div style={{ marginBottom: 8, textAlign: "center" }}>
+            <Title level={3} style={{ margin: 0, fontWeight: 700, color: "#0d6efd" }}>
               {data ? "Edit Composite Task" : "Create Composite Task"}
             </Title>
             <Text type="secondary">
@@ -379,10 +387,11 @@ const Addtask = ({ on, data, onSuccess }) => {
             </Text>
           </div>
 
-          <Divider style={{ margin: "0 0 24px 0" }} />
+          <Divider style={{ margin: "0 0 8px 0" }} />
 
           <Form
             form={form}
+            className="compact-composite-form"
             layout="vertical"
             onFinish={handleSubmit}
             initialValues={{
@@ -396,10 +405,15 @@ const Addtask = ({ on, data, onSuccess }) => {
             <Card
               size="small"
               title="Basic Information"
-              style={{ marginBottom: 24, borderRadius: 12 }}
+              style={{
+                marginBottom: 8,
+                borderRadius: 12,
+                border: "1px solid #e5e7eb",
+                background: "#f9fafb",
+              }}
               styles={{ header: { borderBottom: "none", paddingBottom: 0 } }}
             >
-              <Row gutter={[12, 0]}>
+              <Row gutter={[10, 0]}>
                 <Col xs={24} md={6}>
                   <Form.Item
                     name="cat"
@@ -472,7 +486,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                 </Col>
               </Row>
 
-              <Row gutter={[12, 0]}>
+              <Row gutter={[10, 0]}>
                 <Col xs={24} md={8}>
                   <Form.Item name="templatePriority" label="Priority">
                     <Select size="middle">
@@ -515,23 +529,23 @@ const Addtask = ({ on, data, onSuccess }) => {
             {/* Tabs Section */}
             <Card
               size="small"
-              style={{ borderRadius: 12 }}
+              style={{ borderRadius: 12, border: "1px solid #e5e7eb" }}
               styles={{ body: { padding: 0 } }}
             >
               <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 items={tabItems}
-                style={{ padding: "0 16px" }}
+                style={{ padding: "0 12px" }}
                 tabBarStyle={{ marginBottom: 0 }}
               />
 
-              <div style={{ padding: "24px" }}>
+              <div style={{ padding: "8px 12px" }}>
                 {/* Work Description Tab */}
                 {activeTab === "work" && (
-                  <Row gutter={[20, 0]} align="top">
+                  <Row gutter={[14, 0]} align="top">
                     <Col xs={24} md={16}>
-                      <Text strong style={{ display: "block", marginBottom: 16 }}>
+                      <Text strong style={{ display: "block", marginBottom: 8, textAlign: "center" }}>
                         Detailed Description
                       </Text>
                       <div
@@ -539,7 +553,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                           border: "1px solid #d9d9d9",
                           borderRadius: 8,
                           overflow: "hidden",
-                          minHeight: 220,
+                          minHeight: 200,
                         }}
                       >
                         <CKEditor
@@ -560,11 +574,11 @@ const Addtask = ({ on, data, onSuccess }) => {
                         style={{
                           border: "1px solid #f0f0f0",
                           borderRadius: 10,
-                          padding: 16,
-                          background: "#fafafa",
+                          padding: 12,
+                          background: "#f8fafc",
                         }}
                       >
-                        <Text strong style={{ display: "block", marginBottom: 12 }}>
+                        <Text strong style={{ display: "block", marginBottom: 8 }}>
                           Attach Image
                         </Text>
                         <Upload
@@ -577,7 +591,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                           </Button>
                         </Upload>
                         {previewImage && (
-                          <div style={{ marginTop: 14, textAlign: "center" }}>
+                          <div style={{ marginTop: 10, textAlign: "center" }}>
                             <Image
                               src={previewImage}
                               alt="Preview"
@@ -609,7 +623,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: 16,
+                        marginBottom: 10,
                       }}
                     >
                       <Text strong>Checklist Items</Text>
@@ -622,15 +636,15 @@ const Addtask = ({ on, data, onSuccess }) => {
                       </Button>
                     </div>
 
-                    <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                    <Space direction="vertical" style={{ width: "100%" }} size={8}>
                       {checklists.map((item, index) => (
-                        <div key={index} style={{ display: "flex", gap: 12 }}>
+                        <div key={index} style={{ display: "flex", gap: 8 }}>
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
+                              width: 30,
+                              height: 30,
                               borderRadius: 8,
-                              background: "#f0f0f0",
+                              background: "#e2e8f0",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -644,7 +658,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                             placeholder={`Checklist item ${index + 1}`}
                             value={item}
                             onChange={(e) => updateChecklist(index, e.target.value)}
-                            size="large"
+                            size="middle"
                             style={{ flex: 1 }}
                           />
                           {checklists.length > 1 && (
@@ -667,7 +681,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: 16,
+                        marginBottom: 10,
                       }}
                     >
                       <Text strong>Form Checklists</Text>
@@ -680,7 +694,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                       </Button>
                     </div>
 
-                    <Space direction="vertical" style={{ width: "100%" }} size={16}>
+                    <Space direction="vertical" style={{ width: "100%" }} size={10}>
                       {formChecklists.map((item, index) => (
                         <Card
                           key={index}
@@ -698,7 +712,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                           }
                           style={{ borderRadius: 12 }}
                         >
-                          <Row gutter={[16, 16]}>
+                          <Row gutter={[12, 10]}>
                             <Col xs={24}>
                               <Input
                                 placeholder="Form Name"
@@ -720,7 +734,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                                 <Button
                                   block
                                   icon={<UploadOutlined />}
-                                  style={{ marginTop: 8 }}
+                                  style={{ marginTop: 6 }}
                                 >
                                   {item.downloadFormUrl
                                     ? item.downloadFormUrl instanceof File
@@ -735,7 +749,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                                     href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.downloadFormUrl}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    style={{ display: "block", marginTop: 8 }}
+                                    style={{ display: "block", marginTop: 6 }}
                                   >
                                     <Button icon={<EyeOutlined />} block>
                                       View
@@ -755,7 +769,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                                 <Button
                                   block
                                   icon={<UploadOutlined />}
-                                  style={{ marginTop: 8 }}
+                                  style={{ marginTop: 6 }}
                                 >
                                   {item.sampleFormUrl
                                     ? item.sampleFormUrl instanceof File
@@ -770,7 +784,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                                     href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.sampleFormUrl}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    style={{ display: "block", marginTop: 8 }}
+                                    style={{ display: "block", marginTop: 6 }}
                                   >
                                     <Button icon={<EyeOutlined />} block>
                                       View
@@ -788,7 +802,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                 {/* Email Tab */}
                 {activeTab === "email" && (
                   <div>
-                    <Text strong style={{ display: "block", marginBottom: 16 }}>
+                    <Text strong style={{ display: "block", marginBottom: 10 }}>
                       Email Template
                     </Text>
                     <div
@@ -815,7 +829,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                 {/* WhatsApp Tab */}
                 {activeTab === "whatsapp" && (
                   <div>
-                    <Text strong style={{ display: "block", marginBottom: 16 }}>
+                    <Text strong style={{ display: "block", marginBottom: 10 }}>
                       WhatsApp Template
                     </Text>
                     <div
@@ -844,8 +858,8 @@ const Addtask = ({ on, data, onSuccess }) => {
             {/* Submit Section */}
             <div
               style={{
-                marginTop: 24,
-                paddingTop: 24,
+                marginTop: 8,
+                paddingTop: 8,
                 borderTop: "1px solid #f0f0f0",
                 display: "flex",
                 justifyContent: "center",
@@ -869,6 +883,26 @@ const Addtask = ({ on, data, onSuccess }) => {
           </Form>
         </Card>
       </div>
+      <style>{`
+        .compact-composite-form .ant-form-item {
+          margin-bottom: 10px;
+        }
+        .compact-composite-form .ant-form-item-label > label {
+          font-weight: 600;
+          font-size: 12px;
+          color: #334155;
+        }
+        .compact-composite-form .ant-input,
+        .compact-composite-form .ant-select-selector,
+        .compact-composite-form .ant-input-number,
+        .compact-composite-form .ant-picker {
+          min-height: 32px !important;
+        }
+        .composite-task-shell .ant-tabs-tab {
+          padding-top: 8px !important;
+          padding-bottom: 8px !important;
+        }
+      `}</style>
     </div>
   );
 };
