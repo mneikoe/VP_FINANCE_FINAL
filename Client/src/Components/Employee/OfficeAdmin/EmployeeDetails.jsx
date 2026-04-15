@@ -19,6 +19,10 @@ const EmployeeDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const loggedInRole = String(loggedInUser?.role || "");
+  const isOAViewer = loggedInRole === "OA";
+  const isSuperAdminViewer = loggedInRole === "SUPERADMIN";
 
   useEffect(() => {
     fetchEmployeeData();
@@ -407,12 +411,34 @@ const EmployeeDetails = () => {
                   </p>
                 </div>
               </div>
+              {isOAViewer && !isSuperAdminViewer && (
+                <>
+                  <div className="detail-item">
+                    <FiPhone className="detail-icon" />
+                    <div>
+                      <p className="detail-label">Emergency Contact Person</p>
+                      <p className="detail-value">
+                        {employee.emergencyContactPerson || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <FiPhone className="detail-icon" />
+                    <div>
+                      <p className="detail-label">Emergency Contact Mobile</p>
+                      <p className="detail-value">
+                        {employee.emergencyContactMobile || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Right Content Area */}
-        <div className="content-area">
+        {(!isOAViewer || isSuperAdminViewer) && <div className="content-area">
           {/* Quick Info Cards */}
           <div className="info-cards">
             <div className="info-card">
@@ -701,7 +727,7 @@ const EmployeeDetails = () => {
               </div>
             )}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* CSS Styles */}

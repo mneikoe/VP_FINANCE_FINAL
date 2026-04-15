@@ -28,6 +28,8 @@ const Navbarfristn = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showNotification, setShowNotification] = useState(false);
+  const [showProfileCard, setShowProfileCard] = useState(false);
+  const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
 
 
@@ -536,6 +538,44 @@ const Navbarfristn = () => {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Icon */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProfileCard((prev) => !prev)}
+                className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
+                aria-label="Profile details"
+              >
+                <FiUser className="text-lg" />
+              </button>
+
+              {showProfileCard && (
+                <div className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
+                  <div className="mb-2 text-sm font-semibold text-gray-700">
+                    Logged In User
+                  </div>
+                  <div className="space-y-1 text-xs text-gray-700">
+                    <div>
+                      <span className="font-medium">Name: </span>
+                      {loggedInUser.username || loggedInUser.name || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Role: </span>
+                      {loggedInUser.role || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Email: </span>
+                      {loggedInUser.email || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Mobile: </span>
+                      {loggedInUser.mobileno || loggedInUser.mobileNo || "-"}
+                    </div>
                   </div>
                 </div>
               )}
