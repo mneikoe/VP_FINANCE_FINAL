@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col, Button } from "react-bootstrap";
 import {
@@ -82,7 +82,6 @@ const PersonalDetailsFormForProspect = ({
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
   const [contactEdited, setContactEdited] = useState(false);
-  const groupNameRef = useRef(null);
 
   // ✅ NEW STATES
   const [areas, setAreas] = useState([]);
@@ -264,12 +263,6 @@ const PersonalDetailsFormForProspect = ({
   }, [isEdit, prospectData]);
 
   useEffect(() => {
-    if (groupNameRef.current) {
-      groupNameRef.current.focus();
-    }
-  }, []);
-
-  useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       grade: gradeMap[prev.annualIncome] || "",
@@ -391,13 +384,14 @@ const PersonalDetailsFormForProspect = ({
 
   const handleMobileWhatsappChange = (e) => {
     const { name, value } = e.target;
+    const numericValue = String(value).replace(/\D/g, "").slice(0, 10);
 
     setFormData((prev) => {
-      let updated = { ...prev, [name]: value };
+      let updated = { ...prev, [name]: numericValue };
 
       // ✅ agar mobileNo complete ho (10 digit for example) aur whatsapp edit nahi hua ho
-      if (name === "mobileNo" && value.length === 10 && !whatsappEdited) {
-        updated.whatsappNo = value;
+      if (name === "mobileNo" && numericValue.length === 10 && !whatsappEdited) {
+        updated.whatsappNo = numericValue;
       }
 
       return updated;
@@ -511,28 +505,23 @@ const PersonalDetailsFormForProspect = ({
             >
               <option value="">Select</option>
               <option>Mr.</option>
+              <option>Adv.</option>
+              <option>Brig.</option>
+              <option>Capt.</option>
+              <option>Col.</option>
+              <option>Dr.</option>
+              <option>Gen.</option>
+              <option>Kr.</option>
+              <option>Kum.</option>
+              <option>Lion</option>
+              <option>Maj.</option>
+              <option>Mast.</option>
               <option>Mrs.</option>
               <option>Ms.</option>
-              <option>Mast.</option>
+              <option>Rtn.</option>
               <option>Shri.</option>
               <option>Smt.</option>
-              <option>Kum.</option>
-              <option>Kr.</option>
-              <option>Dr.</option>
             </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="groupName">
-            <Form.Label>Group Name</Form.Label>
-            <Form.Control
-              ref={groupNameRef}
-              name="groupName"
-              type="text"
-              value={formData.groupName ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
           </Form.Group>
         </Col>
         <Col md={2}>
@@ -548,13 +537,28 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="emailId">
-            <Form.Label>Email Id</Form.Label>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No*</Form.Label>
             <Form.Control
-              name="emailId"
-              type="email"
-              value={formData.emailId ?? ""}
-              onChange={handleChange}
+              name="mobileNo"
+              type="text"
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
               size="sm"
             />
           </Form.Group>
@@ -612,7 +616,7 @@ const PersonalDetailsFormForProspect = ({
       <Row className="mb-2">
         <Col md={2}>
           <Form.Group controlId="organisation">
-            <Form.Label>Organisation</Form.Label>
+            <Form.Label>Occupation</Form.Label>
             <Form.Control
               name="organisation"
               type="text"
@@ -635,26 +639,24 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No*</Form.Label>
+          <Form.Group controlId="emailId">
+            <Form.Label>Email Id</Form.Label>
             <Form.Control
-              name="mobileNo"
-              type="text"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
+              name="emailId"
+              type="email"
+              value={formData.emailId ?? ""}
+              onChange={handleChange}
               size="sm"
-              required
             />
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
+          <Form.Group controlId="contactNo">
+            <Form.Label>Phone No.</Form.Label>
             <Form.Control
-              name="whatsappNo"
+              name="contactNo"
               type="text"
-              value={formData.whatsappNo ?? ""}
+              value={formData.contactNo ?? ""}
               maxLength={10}
               onChange={handleMobileWhatsappChange}
               size="sm"

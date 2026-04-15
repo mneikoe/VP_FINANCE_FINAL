@@ -32,6 +32,28 @@ const LOAN_OPTIONS = [
   "Other Loan",
 ];
 
+const INSURANCE_COMPANY_OPTIONS = [
+  "LIC",
+  "HDFC Life",
+  "ICICI Prudential",
+  "SBI Life",
+  "Max Life",
+  "Bajaj Allianz Life",
+  "Kotak Life",
+  "Tata AIA",
+  "Aditya Birla Sun Life",
+  "Reliance Nippon Life",
+  "Star Health",
+  "Niva Bupa",
+  "New India Assurance",
+  "ICICI Lombard",
+  "Bajaj Allianz General",
+  "United India Insurance",
+  "Oriental Insurance",
+  "National Insurance",
+  "Other",
+];
+
 const initialInsuranceForm = {
   _id: null,
   type: "",
@@ -45,6 +67,8 @@ const initialInsuranceForm = {
   premium: "",
   startDate: "",
   maturityDate: "",
+  term: "",
+  ppt: "",
   document: null,
 };
 
@@ -57,6 +81,7 @@ const initialInvestmentForm = {
   companyName: "",
   planName: "",
   amount: "",
+  maturityAmt: "",
   startDate: "",
   maturityDate: "",
   document: null,
@@ -476,7 +501,9 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Policy Holder Name</Form.Label>
+                <Form.Label>
+                  {option === "LIC Policy" ? "Policy Holder Name" : "Member Name"}
+                </Form.Label>
                 <Form.Select
                   name="memberName"
                   value={insuranceFormData[option]?.memberName || ""}
@@ -485,7 +512,11 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   }
                   required
                 >
-                  <option value="">Select Member Name</option>
+                  <option value="">
+                    {option === "LIC Policy"
+                      ? "Select Policy Holder Name"
+                      : "Select Member Name"}
+                  </option>
                   {familyMembers.map((member) => (
                     <option key={member._id} value={member.name}>
                       {member.name}
@@ -497,14 +528,20 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             <Col md={4}>
               <Form.Group>
                 <Form.Label>Insurance Company</Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   value={insuranceFormData[option]?.insuranceCompany || ""}
                   onChange={(e) =>
                     handleFormChange(option, "insurance", "insuranceCompany", e.target.value)
                   }
                   required
-                />
+                >
+                  <option value="">Select Insurance Company</option>
+                  {INSURANCE_COMPANY_OPTIONS.map((company) => (
+                    <option key={company} value={company}>
+                      {company}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
@@ -535,7 +572,9 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Sum Assured</Form.Label>
+                <Form.Label>
+                  {option === "Motor Policy" ? "DV Value" : "Sum Assured"}
+                </Form.Label>
                 <Form.Control
                   type="number"
                   value={insuranceFormData[option]?.sumAssured || ""}
@@ -593,7 +632,9 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Maturity Date</Form.Label>
+                <Form.Label>
+                  {option === "Health Policy" ? "Expire Date" : "Maturity Date"}
+                </Form.Label>
                 <Form.Control
                   type="date"
                   value={insuranceFormData[option]?.maturityDate || ""}
@@ -604,6 +645,36 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                 />
               </Form.Group>
             </Col>
+            {option === "LIC Policy" && (
+              <>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Term</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={insuranceFormData[option]?.term || ""}
+                      onChange={(e) =>
+                        handleFormChange(option, "insurance", "term", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>PPT</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={insuranceFormData[option]?.ppt || ""}
+                      onChange={(e) =>
+                        handleFormChange(option, "insurance", "ppt", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              </>
+            )}
             <Col md={6}>
               <Form.Group>
                 <Form.Label>Upload Documents (up to 10)</Form.Label>
@@ -712,7 +783,9 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Amount</Form.Label>
+                <Form.Label>
+                  {option === "Deposits" ? "Investment Amount" : "Amount"}
+                </Form.Label>
                 <Form.Control
                   type="number"
                   value={investmentFormData[option]?.amount || ""}
@@ -723,6 +796,21 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                 />
               </Form.Group>
             </Col>
+            {option === "Deposits" && (
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Maturity Amt</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={investmentFormData[option]?.maturityAmt || ""}
+                    onChange={(e) =>
+                      handleFormChange(option, "investment", "maturityAmt", e.target.value)
+                    }
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            )}
             <Col md={4}>
               <Form.Group>
                 <Form.Label>Start Date</Form.Label>

@@ -132,7 +132,7 @@ const SuspectFirstForm = () => {
       return;
     }
 
-    if (!personalData.groupName || !personalData.mobileNo) {
+    if (!personalData.groupHeadName || !personalData.mobileNo) {
       toast.error("Please fill in required fields (Group Head and Mobile No)");
       return;
     }

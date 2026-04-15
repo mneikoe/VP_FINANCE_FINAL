@@ -75,12 +75,18 @@ const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreat
 
   const handleSaveForm = (priority) => {
     const formData = futurePriorityForms[priority];
+    const isLifeInsurance = priority === "Life Insurance";
 
     if (
       !formData?.priorityName ||
       !formData?.members ||
       !formData?.approxAmount ||
-      !formData?.duration
+      (isLifeInsurance &&
+        (!formData?.individualOrFamily ||
+          !formData?.policyType ||
+          !formData?.companyName ||
+          !formData?.termPpt ||
+          !formData?.maturityDate))
     ) {
       toast.error("Please complete all required fields before saving.");
       return;
@@ -121,7 +127,11 @@ const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreat
         priorityName: data?.priorityName || "",
         members: data?.members || [],
         approxAmount: data?.approxAmount || 0,
-        duration: data?.duration || "",
+        individualOrFamily: data?.individualOrFamily || "",
+        policyType: data?.policyType || "",
+        companyName: data?.companyName || "",
+        termPpt: data?.termPpt || "",
+        maturityDate: data?.maturityDate || "",
         remark: data?.remark || "",
       })
     );
@@ -217,7 +227,11 @@ const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreat
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Approx Amount</Form.Label>
+                <Form.Label>
+                  {priority === "Life Insurance"
+                    ? "Insurance Amount"
+                    : "Approx Amount"}
+                </Form.Label>
                 <Form.Control
                   type="number"
                   value={futurePriorityForms[priority]?.approxAmount || ""}
@@ -228,21 +242,82 @@ const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreat
                 />
               </Form.Group>
             </Col>
-          </Row>
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Duration</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={futurePriorityForms[priority]?.duration || ""}
-                  onChange={(e) =>
-                    handleFormChange(priority, "duration", e.target.value)
-                  }
-                  required
-                />
-              </Form.Group>
-            </Col>
+            {priority === "Life Insurance" && (
+              <>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Individual / Family</Form.Label>
+                    <Form.Select
+                      value={futurePriorityForms[priority]?.individualOrFamily || ""}
+                      onChange={(e) =>
+                        handleFormChange(
+                          priority,
+                          "individualOrFamily",
+                          e.target.value
+                        )
+                      }
+                      required
+                    >
+                      <option value="">Select</option>
+                      <option value="Individual">Individual</option>
+                      <option value="Family">Family</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Policy Type</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={futurePriorityForms[priority]?.policyType || ""}
+                      onChange={(e) =>
+                        handleFormChange(priority, "policyType", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Company Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={futurePriorityForms[priority]?.companyName || ""}
+                      onChange={(e) =>
+                        handleFormChange(priority, "companyName", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Terms / PPT</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={futurePriorityForms[priority]?.termPpt || ""}
+                      onChange={(e) =>
+                        handleFormChange(priority, "termPpt", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Maturity Date</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={futurePriorityForms[priority]?.maturityDate || ""}
+                      onChange={(e) =>
+                        handleFormChange(priority, "maturityDate", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              </>
+            )}
             <Col md={6}>
               <Form.Group>
                 <Form.Label>Remark</Form.Label>

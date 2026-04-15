@@ -31,6 +31,28 @@ const LOAN_OPTIONS = [
   "Other Loan",
 ];
 
+const INSURANCE_COMPANY_OPTIONS = [
+  "LIC",
+  "HDFC Life",
+  "ICICI Prudential",
+  "SBI Life",
+  "Max Life",
+  "Bajaj Allianz Life",
+  "Kotak Life",
+  "Tata AIA",
+  "Aditya Birla Sun Life",
+  "Reliance Nippon Life",
+  "Star Health",
+  "Niva Bupa",
+  "New India Assurance",
+  "ICICI Lombard",
+  "Bajaj Allianz General",
+  "United India Insurance",
+  "Oriental Insurance",
+  "National Insurance",
+  "Other",
+];
+
 const initialInsuranceForm = {
   type: "",
   submissionDate: "",
@@ -43,6 +65,8 @@ const initialInsuranceForm = {
   premium: "",
   startDate: "",
   maturityDate: "",
+  term: "",
+  ppt: "",
   document: null,
 };
 
@@ -54,6 +78,7 @@ const initialInvestmentForm = {
   companyName: "",
   planName: "",
   amount: "",
+  maturityAmt: "",
   startDate: "",
   maturityDate: "",
   document: null,
@@ -172,7 +197,8 @@ const FinancialInformationFormForSuspect = ({
         !formData.mode ||
         !formData.premium ||
         !formData.startDate ||
-        !formData.maturityDate
+        !formData.maturityDate ||
+        (option === "LIC Policy" && (!formData.term || !formData.ppt))
       ) {
         toast.error(
           "Please fill in all required fields for the insurance form"
@@ -201,6 +227,7 @@ const FinancialInformationFormForSuspect = ({
         !formData.companyName ||
         !formData.planName ||
         !formData.amount ||
+        (option === "Deposits" && !formData.maturityAmt) ||
         !formData.startDate ||
         !formData.maturityDate
       ) {
@@ -313,6 +340,8 @@ const FinancialInformationFormForSuspect = ({
         formData.append("premium", form.premium);
         formData.append("startDate", form.startDate);
         formData.append("maturityDate", form.maturityDate);
+        formData.append("term", form.term || "");
+        formData.append("ppt", form.ppt || "");
         if (form.document) {
           formData.append("document", form.document);
         }
@@ -332,6 +361,7 @@ const FinancialInformationFormForSuspect = ({
         formData.append("companyName", form.companyName);
         formData.append("planName", form.planName);
         formData.append("amount", form.amount);
+        formData.append("maturityAmt", form.maturityAmt || "");
         formData.append("startDate", form.startDate);
         formData.append("maturityDate", form.maturityDate);
         if (form.document) {
@@ -459,7 +489,8 @@ const FinancialInformationFormForSuspect = ({
             <Col md={4}>
               <Form.Group>
                 <Form.Label>
-                  Member Name <span className="text-danger">*</span>
+                  {option === "LIC Policy" ? "Policy Holder Name" : "Member Name"}{" "}
+                  <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   type="text"
@@ -481,8 +512,7 @@ const FinancialInformationFormForSuspect = ({
                 <Form.Label>
                   Insurance Company <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   value={insuranceFormData[option]?.insuranceCompany || ""}
                   onChange={(e) =>
                     handleFormChange(
@@ -493,7 +523,14 @@ const FinancialInformationFormForSuspect = ({
                     )
                   }
                   required
-                />
+                >
+                  <option value="">Select Insurance Company</option>
+                  {INSURANCE_COMPANY_OPTIONS.map((company) => (
+                    <option key={company} value={company}>
+                      {company}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
@@ -539,7 +576,8 @@ const FinancialInformationFormForSuspect = ({
             <Col md={4}>
               <Form.Group>
                 <Form.Label>
-                  Sum Assured <span className="text-danger">*</span>
+                  {option === "Motor Policy" ? "DV Value" : "Sum Assured"}{" "}
+                  <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   type="number"
@@ -619,7 +657,8 @@ const FinancialInformationFormForSuspect = ({
             <Col md={4}>
               <Form.Group>
                 <Form.Label>
-                  Maturity Date <span className="text-danger">*</span>
+                  {option === "Health Policy" ? "Expire Date" : "Maturity Date"}{" "}
+                  <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   type="date"
@@ -636,6 +675,45 @@ const FinancialInformationFormForSuspect = ({
                 />
               </Form.Group>
             </Col>
+            {option === "LIC Policy" && (
+              <>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>
+                      Term <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={insuranceFormData[option]?.term || ""}
+                      onChange={(e) =>
+                        handleFormChange(
+                          option,
+                          "insurance",
+                          "term",
+                          e.target.value
+                        )
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>
+                      PPT <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={insuranceFormData[option]?.ppt || ""}
+                      onChange={(e) =>
+                        handleFormChange(option, "insurance", "ppt", e.target.value)
+                      }
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              </>
+            )}
             <Col md={6}>
               <Form.Group>
                 <Form.Label>
@@ -780,7 +858,8 @@ const FinancialInformationFormForSuspect = ({
             <Col md={4}>
               <Form.Group>
                 <Form.Label>
-                  Amount <span className="text-danger">*</span>
+                  {option === "Deposits" ? "Investment Amount" : "Amount"}{" "}
+                  <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   type="number"
@@ -797,6 +876,28 @@ const FinancialInformationFormForSuspect = ({
                 />
               </Form.Group>
             </Col>
+            {option === "Deposits" && (
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>
+                    Maturity Amt <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={investmentFormData[option]?.maturityAmt || ""}
+                    onChange={(e) =>
+                      handleFormChange(
+                        option,
+                        "investment",
+                        "maturityAmt",
+                        e.target.value
+                      )
+                    }
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            )}
             <Col md={4}>
               <Form.Group>
                 <Form.Label>
