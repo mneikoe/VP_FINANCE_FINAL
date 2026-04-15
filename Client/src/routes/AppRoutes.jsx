@@ -106,6 +106,9 @@ import MarketingAssignments from "../Components/Masters/Marketing/MarketingAssig
 import ServiceAssignments from "../Components/Masters/Servicing/ServiceAssignment";
 import DisplaySuspect from "../Components/Customer/Suspect/DisplaySuspect";
 import EmployeeList from "../Components/Employee/OfficeAdmin/EmployeeList";
+import CRMAdvertisementActivities from "../Components/CRM/CRMAdvertisementActivities";
+import CRMCreativityActivities from "../Components/CRM/CRMCreativityActivities";
+import CRMRelationshipActivities from "../Components/CRM/CRMRelationshipActivities";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -267,6 +270,18 @@ const AppRoutes = () => {
         <Route path="/office-diary" element={<OfficeDiaryTabs />} />
         <Route path="/office-purchase" element={<OfficePurchase />} />
         <Route path="/important-documents" element={<ImpDocument />} />
+        <Route
+          path="/crm-advertisement-activities"
+          element={<CRMAdvertisementActivities />}
+        />
+        <Route
+          path="/crm-creativity-activities"
+          element={<CRMCreativityActivities />}
+        />
+        <Route
+          path="/crm-relationship-activities"
+          element={<CRMRelationshipActivities />}
+        />
         <Route path="/CRE" element={<CREDashboard />} />
       </Route>
 
