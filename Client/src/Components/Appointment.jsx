@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Modal, Button, Table } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllSuspectsOnlyAppointMentDone } from "../redux/feature/SuspectRedux/SuspectThunx";
+import axiosInstance from "../config/axios";
 
-const Appointment = () => {
+const Appointment = ({ roleFilter = "OA" }) => {
   const dispatch = useDispatch();
   const { familyMembers: suspects, loading } = useSelector(
     (state) => state.suspect
@@ -13,11 +14,73 @@ const Appointment = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [appointmentTasks, setAppointmentTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeByUser, setSelectedEmployeeByUser] = useState({});
+
+  const roleLabelMap = {
+    OA: "Office Admin",
+    Telecaller: "Telecaller",
+    RM: "CRE",
+    CRE: "CRE",
+    Telemarketer: "Telemarketer",
+    OE: "Office Executive",
+  };
+
+  const normalizedRole = String(roleFilter || "").toLowerCase();
+  const roleAliases = {
+    oa: ["oa", "office admin"],
+    telecaller: ["telecaller"],
+    rm: ["rm", "cre", "relationship manager"],
+    cre: ["cre", "rm", "relationship manager"],
+    telemarketer: ["telemarketer"],
+    oe: ["oe", "office executive"],
+  };
 
   // Fetch suspects having "Appointment Done" tasks
   useEffect(() => {
     dispatch(getAllSuspectsOnlyAppointMentDone());
   }, [dispatch]);
+
+  useEffect(() => {
+    const fetchRoleEmployees = async () => {
+      try {
+        let mappedEmployees = [];
+
+        if (normalizedRole === "telecaller") {
+          const response = await axiosInstance.get("/api/telecaller");
+          const telecallers = response?.data?.telecallers || [];
+          mappedEmployees = telecallers
+            .filter((emp) => emp?._id)
+            .map((emp) => ({
+              _id: emp._id,
+              name: emp.username || "Unnamed",
+              role: "Telecaller",
+            }));
+        } else {
+          const response = await axiosInstance.get("/api/employee/getAllEmployees");
+          const allEmployees = response?.data?.data || [];
+          const acceptedRoles = roleAliases[normalizedRole] || [normalizedRole];
+          mappedEmployees = allEmployees
+            .filter((emp) => {
+              const empRole = String(emp?.role || "").toLowerCase();
+              return emp?._id && acceptedRoles.includes(empRole);
+            })
+            .map((emp) => ({
+              _id: emp._id,
+              name: emp.name || "Unnamed",
+              role: emp.role || roleFilter,
+            }));
+        }
+
+        setEmployees(mappedEmployees);
+      } catch (error) {
+        console.error("Failed to fetch role-based employees:", error);
+        setEmployees([]);
+      }
+    };
+
+    fetchRoleEmployees();
+  }, [normalizedRole, roleFilter]);
 
   // Filter users who have Appointment Done tasks
   const filteredUsers = (suspects || [])
@@ -52,13 +115,24 @@ const Appointment = () => {
     setAppointmentTasks([]);
   };
 
-  const handleSelectCRE = (e) => {
-    console.log(e);
+  const handleSelectEmployee = (userId, employeeId) => {
+    setSelectedEmployeeByUser((prev) => ({
+      ...prev,
+      [userId]: employeeId,
+    }));
   };
+
+  const roleHeading = useMemo(
+    () => roleLabelMap[roleFilter] || roleFilter,
+    [roleFilter]
+  );
 
   return (
     <div className="container py-4">
-      <h2 className="mb-4 text-center">Appointments</h2>
+      <h2 className="mb-2 text-center">Appointments</h2>
+      <p className="mb-4 text-center text-muted">
+        Job Profile & Target - {roleHeading}
+      </p>
 
       {loading ? (
         <div className="text-center">Loading...</div>
@@ -94,11 +168,19 @@ const Appointment = () => {
                     <select
                       name="chooseCRE"
                       id="chooseCRE"
-                      onChange={(e) => handleSelectCRE(e.target.value)}
+                      value={selectedEmployeeByUser[user._id] || ""}
+                      onChange={(e) =>
+                        handleSelectEmployee(user._id, e.target.value)
+                      }
                     >
-                      <option value="">Select the CRE</option>
-                      <option value="Aditya">Aditya</option>
-                      <option value="Dheeraj">Dheeraj</option>
+                      <option value="">
+                        Select {roleLabelMap[roleFilter] || "Employee"}
+                      </option>
+                      {employees.map((employee) => (
+                        <option key={employee._id} value={employee._id}>
+                          {employee.name}
+                        </option>
+                      ))}
                     </select>
                   </td>
                 </tr>

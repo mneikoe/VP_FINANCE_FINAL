@@ -19,6 +19,7 @@ import {
   Avatar,
   Statistic,
   Tabs,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -52,14 +53,41 @@ import axiosInstance from "../../../config/axios";
 
 const { Title, Text } = Typography;
 
-const EmployeeList = () => {
+const getRoleTabFromInitialRole = (initialRole) => {
+  const normalized = String(initialRole || "").toLowerCase().trim();
+  const roleMap = {
+    oa: "oa",
+    "office admin": "oa",
+    telecaller: "telecaller",
+    hr: "hr",
+    rm: "rm",
+    cre: "rm",
+    "relationship manager": "rm",
+    telemarketer: "telemarketer",
+    oe: "oe",
+    "office executive": "oe",
+  };
+
+  return roleMap[normalized] || "telecaller";
+};
+
+const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
   const navigate = useNavigate();
+  const initialTab = getRoleTabFromInitialRole(initialRole);
+  const jobProfileRouteByRole = {
+    oa: "/job-profile-target-admin",
+    telecaller: "/job-profile-target-telecaller",
+    rm: "/job-profile-target-cre",
+    telemarketer: "/job-profile-target-telemarketer",
+    oe: "/job-profile-target-office-executive",
+    hr: "/all-employee",
+  };
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(null);
   const [searchText, setSearchText] = useState("");
-  const [activeTab, setActiveTab] = useState("telecaller");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -194,6 +222,9 @@ const EmployeeList = () => {
                 if (!emp || !emp.role) return false;
                 const empRole = String(emp.role).toLowerCase();
                 const targetRole = String(role).toLowerCase();
+                if (targetRole === "oa") {
+                  return empRole === "oa" || empRole === "superadmin";
+                }
                 return empRole === targetRole;
               });
 
@@ -213,6 +244,82 @@ const EmployeeList = () => {
                 emergencyContact: emp.emergencyContactMobile || "-",
                 salary: emp.salaryOnJoining || "-",
               }));
+            }
+
+            if (String(role).toLowerCase() === "oa") {
+              try {
+                const oaResponse = await axiosInstance.get("/api/OA/list");
+                if (oaResponse.data?.success && Array.isArray(oaResponse.data.users)) {
+                  const oaUsers = oaResponse.data.users.map((oaUser) => ({
+                    _id: oaUser._id,
+                    name: oaUser.username || "Office Admin",
+                    employeeCode:
+                      oaUser.employeeCode ||
+                      `OA-${String(oaUser._id).slice(-4) || "0000"}`,
+                    emailId: oaUser.email || "-",
+                    mobileNo: oaUser.mobileno || "-",
+                    role: oaUser.role || "OA",
+                    designation:
+                      String(oaUser.role || "").toUpperCase() === "SUPERADMIN"
+                        ? "Super Admin"
+                        : "Office Admin",
+                    dateOfJoining: oaUser.createdAt,
+                    source: "oa",
+                    status: "active",
+                    department: "Office Admin",
+                    presentAddress: "-",
+                    emergencyContact: "-",
+                    salary: "-",
+                  }));
+
+                  const mergedById = new Map(
+                    responseData.map((item) => [String(item._id), item])
+                  );
+                  oaUsers.forEach((item) => mergedById.set(String(item._id), item));
+                  responseData = Array.from(mergedById.values());
+                }
+              } catch (oaErr) {
+                console.error("OA users fetch error:", oaErr);
+              }
+
+              const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
+              const loggedUserRole = String(loggedUser?.role || "").toLowerCase();
+
+              if (
+                loggedUser?.id &&
+                (loggedUserRole === "oa" || loggedUserRole === "superadmin")
+              ) {
+                const alreadyExists = responseData.some(
+                  (emp) => String(emp?._id) === String(loggedUser.id)
+                );
+
+                if (!alreadyExists) {
+                  responseData = [
+                    {
+                      _id: loggedUser.id,
+                      name: loggedUser.username || loggedUser.name || "Office Admin",
+                      employeeCode:
+                        loggedUser.employeeCode ||
+                        `OA-${String(loggedUser.id).slice(-4) || "0000"}`,
+                      emailId: loggedUser.email || "-",
+                      mobileNo: loggedUser.mobileno || loggedUser.mobileNo || "-",
+                      role: loggedUserRole === "superadmin" ? "SUPERADMIN" : "OA",
+                      designation:
+                        loggedUserRole === "superadmin"
+                          ? "Super Admin"
+                          : "Office Admin",
+                      dateOfJoining: loggedUser.dateOfJoining || loggedUser.createdAt,
+                      source: "oa",
+                      status: "active",
+                      department: "Office Admin",
+                      presentAddress: "-",
+                      emergencyContact: "-",
+                      salary: "-",
+                    },
+                    ...responseData,
+                  ];
+                }
+              }
             }
           } catch (err) {
             console.error("Employee fetch error:", err);
@@ -234,6 +341,10 @@ const EmployeeList = () => {
   useEffect(() => {
     fetchEmployeesByRole(activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    setActiveTab(getRoleTabFromInitialRole(initialRole));
+  }, [initialRole]);
 
   const filteredEmployees = useMemo(() => {
     if (!searchText) return employees;
@@ -364,7 +475,11 @@ const EmployeeList = () => {
   };
 
   // Tab items configuration
-  const tabItems = Object.entries(roleConfig).map(([key, role]) => ({
+  const allowedRoleKeys = lockRole ? Object.keys(roleConfig) : Object.keys(roleConfig);
+  const tabItems = allowedRoleKeys.map((key) => ({
+    key,
+    ...{ role: roleConfig[key] },
+  })).map(({ key, role }) => ({
     key,
     label: (
       <Space size={6}>
@@ -379,6 +494,11 @@ const EmployeeList = () => {
         )}
       </Space>
     ),
+  }));
+
+  const roleSelectOptions = allowedRoleKeys.map((key) => ({
+    value: key,
+    label: roleConfig[key]?.name || key,
   }));
 
   const columns = [
@@ -614,6 +734,23 @@ const EmployeeList = () => {
           </Space>
 
           <Space size={12} wrap>
+            <Select
+              value={activeTab}
+              onChange={(value) => {
+                if (lockRole) {
+                  const targetRoute = jobProfileRouteByRole[value];
+                  if (targetRoute) {
+                    navigate(targetRoute);
+                    return;
+                  }
+                }
+                setActiveTab(value);
+              }}
+              options={roleSelectOptions}
+              style={{ width: 220 }}
+              size="large"
+              placeholder="Select role"
+            />
             <Input
               placeholder={`Search ${currentRole.name.toLowerCase()}s...`}
               prefix={<SearchOutlined />}
@@ -635,20 +772,21 @@ const EmployeeList = () => {
           </Space>
         </div>
 
-        {/* Role Selection Tabs - Using Tabs component for reliable switching */}
-        <div style={{ padding: "16px 24px 0 24px", borderBottom: "1px solid #f0f0f0" }}>
-          <Tabs
-            activeKey={activeTab}
-            onChange={(key) => {
-              console.log("Tab changed to:", key);
-              setActiveTab(key);
-            }}
-            items={tabItems}
-            size="large"
-            type="card"
-            style={{ marginBottom: 0 }}
-          />
-        </div>
+        {!lockRole && (
+          <div style={{ padding: "16px 24px 0 24px", borderBottom: "1px solid #f0f0f0" }}>
+            <Tabs
+              activeKey={activeTab}
+              onChange={(key) => {
+                console.log("Tab changed to:", key);
+                setActiveTab(key);
+              }}
+              items={tabItems}
+              size="large"
+              type="card"
+              style={{ marginBottom: 0 }}
+            />
+          </div>
+        )}
 
         {/* Stats Summary */}
         {!loading && filteredEmployees.length > 0 && (

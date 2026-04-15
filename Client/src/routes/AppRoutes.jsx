@@ -193,7 +193,7 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <ProtectedRoute allowedRoles={["OA"]}>
+          <ProtectedRoute allowedRoles={["OA", "SUPERADMIN"]}>
             <Layout />
           </ProtectedRoute>
         }
@@ -261,7 +261,26 @@ const AppRoutes = () => {
         <Route path="/resume-shortlist" element={<ResumesShortlist />} />
         <Route path="/interview-process" element={<SelectedInterviewTable />} />
         <Route path="/joining-data" element={<JoiningData />} />
-        <Route path="/job-profile-target-admin" element={<Appointment />} />
+        <Route
+          path="/job-profile-target-admin"
+          element={<EmployeeList initialRole="oa" lockRole />}
+        />
+        <Route
+          path="/job-profile-target-telecaller"
+          element={<EmployeeList initialRole="telecaller" lockRole />}
+        />
+        <Route
+          path="/job-profile-target-cre"
+          element={<EmployeeList initialRole="rm" lockRole />}
+        />
+        <Route
+          path="/job-profile-target-telemarketer"
+          element={<EmployeeList initialRole="telemarketer" lockRole />}
+        />
+        <Route
+          path="/job-profile-target-office-executive"
+          element={<EmployeeList initialRole="oe" lockRole />}
+        />
         {/* Office - Only OA */}
         <Route path="/financial-product-list" element={<FinancialProduct />} />
         <Route path="/company-name" element={<CompanyTabs />} />
@@ -329,6 +348,7 @@ const NavigateToRoleBasedRoute = () => {
     case "Telecaller":
       return <Navigate to="/telecaller/dashboard" replace />;
     case "OA":
+    case "SUPERADMIN":
       return <Navigate to="/" replace />;
     default:
       return <Navigate to="/auth/login" replace />;
