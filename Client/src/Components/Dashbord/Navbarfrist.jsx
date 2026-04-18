@@ -23,7 +23,7 @@ const Navbarfristn = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [scrolled, setScrolled] = useState(false);
-  const closeTimerRef = useRef(null);
+  const navbarRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,41 +60,32 @@ const Navbarfristn = () => {
       path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
     );
 
-  // ✅ FIX: Clear any pending close timer
-  const clearCloseTimer = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  // ✅ FIX: Open dropdown immediately
-  const handleDropdownOpen = (name) => {
-    clearCloseTimer();
-    setOpenDropdown(name);
-  };
-
-  // ✅ FIX: Close dropdown with small delay (allows moving cursor to menu)
-  const handleDropdownClose = () => {
-    clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => {
-      setOpenDropdown(null);
-    }, 150); // 150ms delay gives enough time to move cursor
-  };
-
   const handleDropdownClick = (name) => {
     setOpenDropdown((prev) => (prev === name ? null : name));
   };
 
   const closeAllDropdowns = () => {
-    clearCloseTimer();
     setOpenDropdown(null);
     setIsMobileMenuOpen(false);
   };
 
   useEffect(() => {
-    return () => clearCloseTimer();
+    const handleOutsideClick = (event) => {
+      if (navbarRef.current && !navbarRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+        setShowNotification(false);
+        setShowProfileCard(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    setOpenDropdown(null);
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Navigation Item
   const NavItem = ({ to, icon: Icon, label, active, onClick }) => (
@@ -120,11 +111,7 @@ const Navbarfristn = () => {
     const isOpen = openDropdown === name;
 
     return (
-      <div
-        className="relative"
-        onMouseEnter={() => handleDropdownOpen(name)}
-        onMouseLeave={handleDropdownClose}
-      >
+      <div className="relative">
         {/* Trigger Button */}
         <button
           type="button"
@@ -149,19 +136,15 @@ const Navbarfristn = () => {
           )}
         </button>
 
-        {/* Dropdown Menu */}
-        <div
-          className={`
-            absolute left-0 top-full z-50 mt-1 rounded-lg border border-gray-100 
-            bg-white shadow-lg transition-all duration-150
-            ${isOpen ? "visible opacity-100 translate-y-0" : "invisible opacity-0 -translate-y-1"}
-          `}
-          style={{ width }}
-        >
-          <div className="p-5">
-            {children}
+        {/* Click-open menu avoids hover gap issues on dense pages */}
+        {isOpen && (
+          <div
+            className="absolute left-0 top-full z-[110] mt-1 max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border border-gray-100 bg-white shadow-lg"
+            style={{ width }}
+          >
+            <div className="p-5">{children}</div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -438,12 +421,16 @@ const Navbarfristn = () => {
   };
 
   return (
-    <div className="font-sans border shadow-md" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div
+      ref={navbarRef}
+      className="font-sans border shadow-md"
+      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+    >
       <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-blue-400 to-blue-500" />
 
       <nav
         className={`
-          sticky top-0 z-50 border-b  border-gray-100 bg-white/95 backdrop-blur-sm
+          sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur-sm
           transition-shadow duration-200
           ${scrolled ? "shadow-sm" : ""}
         `}
@@ -473,7 +460,7 @@ const Navbarfristn = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-1 lg:flex lg:items-center border shadow-md rounded-full lg:justify-center lg:gap-0.5 xl:gap-1">
+            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-md rounded-full lg:justify-center lg:gap-0.5 xl:gap-1">
               <NavItem
                 to="/"
                 icon={FiGrid}

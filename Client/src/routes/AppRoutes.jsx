@@ -321,37 +321,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      {/* 🚀 Default Route - Redirect based on role */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <NavigateToRoleBasedRoute />
-          </ProtectedRoute>
-        }
-      />
     </Routes>
   );
-};
-
-// Helper component to redirect based on user role
-const NavigateToRoleBasedRoute = () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-  switch (user.role) {
-    case "RM":
-      return <Navigate to="/rm/dashboard" replace />;
-    case "OE":
-      return <Navigate to="/oe/dashboard" replace />;
-    case "HR":
-      return <Navigate to="/dashboard" replace />;
-    case "Telecaller":
-      return <Navigate to="/telecaller/dashboard" replace />;
-    case "OA":
-      return <Navigate to="/" replace />;
-    default:
-      return <Navigate to="/auth/login" replace />;
-  }
 };
 
 export default AppRoutes;

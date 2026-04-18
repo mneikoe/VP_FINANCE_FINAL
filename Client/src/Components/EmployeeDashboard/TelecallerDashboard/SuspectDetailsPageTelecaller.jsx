@@ -27,6 +27,12 @@ import {
   FiSave,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import {
+  splitGroupHeadName,
+  joinGroupHeadName,
+  sanitizePersonalDetailsGroupHead,
+  GROUP_HEAD_NAME_PART_FIELDS,
+} from "../../../utils/groupNameParts";
 
 // Import Redux actions
 import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
@@ -60,6 +66,10 @@ const SuspectDetailTelecaller = () => {
   const [formData, setFormData] = useState({
     salutation: "",
     groupName: "",
+    groupHeadName: "",
+    groupHeadNameFirst: "",
+    groupHeadNameMiddle: "",
+    groupHeadNameLast: "",
     gender: "",
     organisation: "",
     designation: "",
@@ -152,11 +162,20 @@ const SuspectDetailTelecaller = () => {
 
           // Set personal details in form
           if (suspectData.personalDetails) {
+            const pd = suspectData.personalDetails;
+            const combined = (pd.groupHeadName || pd.groupName || "").trim();
+            const parts = splitGroupHeadName(combined);
+            const joined = joinGroupHeadName(parts) || combined;
             setFormData((prev) => ({
               ...prev,
-              ...suspectData.personalDetails,
-              dob: formatDateToYMD(suspectData.personalDetails.dob),
-              dom: formatDateToYMD(suspectData.personalDetails.dom),
+              ...pd,
+              dob: formatDateToYMD(pd.dob),
+              dom: formatDateToYMD(pd.dom),
+              groupHeadNameFirst: parts.first,
+              groupHeadNameMiddle: parts.middle,
+              groupHeadNameLast: parts.last,
+              groupHeadName: joined,
+              groupName: joined,
             }));
           }
 
@@ -238,10 +257,19 @@ const SuspectDetailTelecaller = () => {
   // Handle personal details form changes
   const handlePersonalDetailsChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (GROUP_HEAD_NAME_PART_FIELDS.includes(name)) {
+        const joined = joinGroupHeadName({
+          first: next.groupHeadNameFirst,
+          middle: next.groupHeadNameMiddle,
+          last: next.groupHeadNameLast,
+        });
+        next.groupHeadName = joined;
+        next.groupName = joined;
+      }
+      return next;
+    });
   };
 
   // Handle mobile and whatsapp change (sync functionality)
@@ -275,10 +303,11 @@ const SuspectDetailTelecaller = () => {
     try {
       setUpdating(true);
 
+      const personalDetails = sanitizePersonalDetailsGroupHead(formData);
       const response = await axios.put(
         `/api/suspect/update/personaldetails/${id}`,
         {
-          personalDetails: formData,
+          personalDetails,
         }
       );
 
@@ -288,7 +317,7 @@ const SuspectDetailTelecaller = () => {
         // Update local state
         setSuspect((prev) => ({
           ...prev,
-          personalDetails: formData,
+          personalDetails,
         }));
       } else {
         toast.error("Failed to update details");
@@ -454,8 +483,45 @@ const SuspectDetailTelecaller = () => {
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleUpdatePersonalDetails}>
-                {/* Salutation, Group Name, Gender */}
+                {/* Group head name, Salutation, Gender */}
                 <Row className="mb-3">
+                  <Col md={5}>
+                    <Form.Group>
+                      <Form.Label>Group head name</Form.Label>
+                      <div className="d-flex gap-1">
+                        <Form.Control
+                          name="groupHeadNameFirst"
+                          type="text"
+                          placeholder="First"
+                          value={formData.groupHeadNameFirst ?? ""}
+                          onChange={handlePersonalDetailsChange}
+                          size="sm"
+                          className="flex-grow-1"
+                          style={{ minWidth: 0 }}
+                        />
+                        <Form.Control
+                          name="groupHeadNameMiddle"
+                          type="text"
+                          placeholder="Middle"
+                          value={formData.groupHeadNameMiddle ?? ""}
+                          onChange={handlePersonalDetailsChange}
+                          size="sm"
+                          className="flex-grow-1"
+                          style={{ minWidth: 0 }}
+                        />
+                        <Form.Control
+                          name="groupHeadNameLast"
+                          type="text"
+                          placeholder="Last"
+                          value={formData.groupHeadNameLast ?? ""}
+                          onChange={handlePersonalDetailsChange}
+                          size="sm"
+                          className="flex-grow-1"
+                          style={{ minWidth: 0 }}
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
                   <Col md={2}>
                     <Form.Group>
                       <Form.Label>Salutation</Form.Label>
@@ -476,18 +542,6 @@ const SuspectDetailTelecaller = () => {
                         <option>Kr.</option>
                         <option>Dr.</option>
                       </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={5}>
-                    <Form.Group>
-                      <Form.Label>Group Head</Form.Label>
-                      <Form.Control
-                        name="groupName"
-                        type="text"
-                        value={formData.groupName}
-                        onChange={handlePersonalDetailsChange}
-                        size="sm"
-                      />
                     </Form.Group>
                   </Col>
                   <Col md={3}>

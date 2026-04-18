@@ -10,6 +10,7 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
   const [familyMembers, setFamilyMembers] = useState([]);
   const [healthModal, setHealthModal] = useState({ show: false, memberIndex: null });
   const selfDobRef = useRef(null);
+  const selfDobFocusedRef = useRef(false);
 
   const personalDetails = prospectData?.personalDetails || {};
 
@@ -85,8 +86,11 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
   }, [personalDetails]);
 
   useEffect(() => {
-    if (selfDobRef.current) selfDobRef.current.focus();
-  }, [familyMembers.length]);
+    if (!selfDobFocusedRef.current && familyMembers.length > 0 && selfDobRef.current) {
+      selfDobRef.current.focus();
+      selfDobFocusedRef.current = true;
+    }
+  }, [familyMembers]);
 
   useEffect(() => {
     if (onDataUpdate) onDataUpdate(familyMembers);
@@ -251,6 +255,7 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
   const primaryMobile = personalDetails?.mobileNo || selfMember?.contact || "-";
   const activeHealthMember =
     healthModal.memberIndex !== null ? familyMembers[healthModal.memberIndex] : null;
+  const selfMemberIndex = selfMember ? familyMembers.indexOf(selfMember) : -1;
 
   return (
     <Form onSubmit={handleSubmit} className="compact-family-form">
@@ -419,15 +424,36 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
                 <Form.Control.Feedback type="invalid">PAN format should be like ABCDE1234F.</Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={2}>
+            <Col md={5}>
               <Form.Group controlId="includeHealth-self">
-                <Form.Check
-                  type="checkbox"
-                  label="Include Health History"
-                  name="includeHealth"
-                  checked={selfMember.includeHealth}
-                  onChange={(e) => handleHealthToggle(familyMembers.indexOf(selfMember), e.target.checked)}
-                />
+                <Form.Label className="d-block">Health History</Form.Label>
+                <div className="border rounded px-2 py-2 bg-white d-flex flex-wrap align-items-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    label="Include"
+                    name="includeHealth"
+                    className="mb-0"
+                    checked={selfMember.includeHealth}
+                    onChange={(e) => handleHealthToggle(selfMemberIndex, e.target.checked)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={selfMember.includeHealth ? "outline-primary" : "outline-secondary"}
+                    disabled={!selfMember.includeHealth}
+                    onClick={() => openHealthModal(selfMemberIndex)}
+                  >
+                    Open Details
+                  </Button>
+                  {selfMember.includeHealth && (
+                    <small className="text-muted">
+                      {selfMember.healthHistory?.submissionDate &&
+                      selfMember.healthHistory?.diseaseName
+                        ? "Details added"
+                        : "Please complete details"}
+                    </small>
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>
@@ -545,15 +571,35 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
                 <Form.Control.Feedback type="invalid">PAN format should be like ABCDE1234F.</Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={2}>
+            <Col md={5}>
               <Form.Group controlId={`includeHealth-${member._id || index}`}>
-                <Form.Check
-                  type="checkbox"
-                  label="Include Health History"
-                  name="includeHealth"
-                  checked={member.includeHealth}
-                  onChange={(e) => handleHealthToggle(familyMembers.indexOf(member), e.target.checked)}
-                />
+                <Form.Label className="d-block">Health History</Form.Label>
+                <div className="border rounded px-2 py-2 bg-light d-flex flex-wrap align-items-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    label="Include"
+                    name="includeHealth"
+                    className="mb-0"
+                    checked={member.includeHealth}
+                    onChange={(e) => handleHealthToggle(familyMembers.indexOf(member), e.target.checked)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={member.includeHealth ? "outline-primary" : "outline-secondary"}
+                    disabled={!member.includeHealth}
+                    onClick={() => openHealthModal(familyMembers.indexOf(member))}
+                  >
+                    Open Details
+                  </Button>
+                  {member.includeHealth && (
+                    <small className="text-muted">
+                      {member.healthHistory?.submissionDate && member.healthHistory?.diseaseName
+                        ? "Details added"
+                        : "Please complete details"}
+                    </small>
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>
@@ -575,7 +621,8 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
         className="me-2 btn-sm"
         title="Add New Member"
       >
-        <FaUserPlus />
+        <FaUserPlus className="me-1" />
+        Add New Member
       </Button>
       <Button type="submit" className="btn btn-primary btn-sm" title="Save Members">
         <FaSave />

@@ -247,7 +247,7 @@ const TelecallerPanel = () => {
         </div>
 
         <div className="content-area">
-          <Outlet />
+          <Outlet key={location.pathname} />
         </div>
       </main>
 

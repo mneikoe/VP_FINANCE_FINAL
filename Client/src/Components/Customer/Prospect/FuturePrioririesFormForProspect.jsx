@@ -440,19 +440,9 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                 />
               </Form.Group>
             </Col>
-            <Col md={4}>
-              <Form.Group>
-                <Form.Label>Upload Documents (up to 10)</Form.Label>
-                <Form.Control
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/png,image/gif,image/avif,application/pdf"
-                  onChange={(e) => handleFileChange(priority, e.target.files)}
-                />
-              </Form.Group>
-            </Col>
+
           </Row>
-          <Button variant="primary" className="me-2 mt-2" onClick={() => handleSaveForm(priority)}>
+          <Button variant="primary" className="me-2 ml-10 mt-2" onClick={() => handleSaveForm(priority)}>
             Save
           </Button>
           <Button variant="secondary" className="mt-2" onClick={() => handleCloseForm(priority)}>
@@ -466,67 +456,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
        <Form.Group>
          {/* <Form.Label>Needs</Form.Label> */}
    
-         <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "center" }}>
-           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-             Financial Calculation
-             <Form.Check
-               type="checkbox"
-               name="financialCalculation"
-               checked={needs.financialCalculation}
-               onChange={handleNeedsChange}
-               label=""
-               style={{ margin: 0 }}
-             />
-           </label>
-   
-           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-             Assessment of Need
-             <Form.Check
-               type="checkbox"
-               name="assesmentOfNeed"
-               checked={needs.assesmentOfNeed}
-               onChange={handleNeedsChange}
-               label=""
-               style={{ margin: 0 }}
-             />
-           </label>
-   
-           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-             Portfolio Management
-             <Form.Check
-               type="checkbox"
-               name="portfolioManagement"
-               checked={needs.portfolioManagement}
-               onChange={handleNeedsChange}
-               label=""
-               style={{ margin: 0 }}
-             />
-           </label>
-   
-           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-             Door Step Services
-             <Form.Check
-               type="checkbox"
-               name="doorStepServices"
-               checked={needs.doorStepServices}
-               onChange={handleNeedsChange}
-               label=""
-               style={{ margin: 0 }}
-             />
-           </label>
-   
-           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-             Purchase New Products
-             <Form.Check
-               type="checkbox"
-               name="purchaseNewProducts"
-               checked={needs.purchaseNewProducts}
-               onChange={handleNeedsChange}
-               label=""
-               style={{ margin: 0 }}
-             />
-           </label>
-         </div>
+       
        </Form.Group>
      </Col>
    </Row>

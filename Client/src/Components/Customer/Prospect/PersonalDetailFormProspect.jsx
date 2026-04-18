@@ -11,6 +11,12 @@ import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/Occ
 import { toast } from "react-toastify";
 import axiosInstance from "/src/config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
+import {
+  splitGroupHeadName,
+  joinGroupHeadName,
+  sanitizePersonalDetailsGroupHead,
+  GROUP_HEAD_NAME_PART_FIELDS,
+} from "../../../utils/groupNameParts";
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -39,6 +45,9 @@ const PersonalDetailsFormForProspect = ({
     salutation: "",
     groupName: "",
     groupHeadName: "",
+    groupHeadNameFirst: "",
+    groupHeadNameMiddle: "",
+    groupHeadNameLast: "",
     gender: "",
     organisation: "",
     designation: "",
@@ -52,15 +61,23 @@ const PersonalDetailsFormForProspect = ({
     grade: "",
     preferredAddressType: "resi",
     resiAddr: "",
-    resiLandmark: "",
+    resiState: "",
+    resiCity: "",
+    resiArea: "",
+    resiSubArea: "",
     resiPincode: "",
     officeAddr: "",
-    officeLandmark: "",
+    officeState: "",
+    officeCity: "",
+    officeArea: "",
+    officeSubArea: "",
     officePincode: "",
     preferredMeetingAddr: "",
     preferredMeetingArea: "",
     subArea: "", // ✅ NEW FIELD
     city: "",
+    state: "",
+    meetingLandmark: "",
     bestTime: "",
     time: "10:00 AM", // ✅ NEW TIME FIELD
     hobbies: "",
@@ -83,17 +100,20 @@ const PersonalDetailsFormForProspect = ({
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
   const [contactEdited, setContactEdited] = useState(false);
+  const [resiPincodeError, setResiPincodeError] = useState("");
+  const [officePincodeError, setOfficePincodeError] = useState("");
 
   // ✅ NEW STATES
   const [areas, setAreas] = useState([]);
   const [subAreas, setSubAreas] = useState([]);
-  const [filteredSubAreas, setFilteredSubAreas] = useState([]);
+  const [filteredResiSubAreas, setFilteredResiSubAreas] = useState([]);
+  const [filteredOfficeSubAreas, setFilteredOfficeSubAreas] = useState([]);
   const [rms, setRms] = useState([]);
   const [cres, setCres] = useState([]);
 
   useEffect(() => {
     if (onFormDataUpdate) {
-      onFormDataUpdate(formData);
+      onFormDataUpdate(sanitizePersonalDetailsGroupHead(formData));
     }
   }, [formData, onFormDataUpdate]);
 
@@ -260,9 +280,40 @@ const PersonalDetailsFormForProspect = ({
 
   useEffect(() => {
     if (isEdit && prospectData) {
+      const pd = prospectData.personalDetails || {};
+      const combined = (pd.groupHeadName || pd.groupName || "").trim();
+      const parts = splitGroupHeadName(combined);
+      const joined = joinGroupHeadName(parts) || combined;
+      const preferredOffice = pd.preferredAddressType === "office";
       setFormData({
-        ...prospectData.personalDetails,
-        contactNo: normalizeContactNo(prospectData.personalDetails?.contactNo),
+        ...initialFormState,
+        ...pd,
+        contactNo: normalizeContactNo(pd.contactNo),
+        groupHeadNameFirst: parts.first,
+        groupHeadNameMiddle: parts.middle,
+        groupHeadNameLast: parts.last,
+        groupHeadName: joined,
+        groupName: joined,
+        resiCity:
+          pd.resiCity ?? (!preferredOffice ? pd.city : "") ?? "",
+        officeCity:
+          pd.officeCity ?? (preferredOffice ? pd.city : "") ?? "",
+        resiState:
+          pd.resiState ?? (!preferredOffice ? pd.state : "") ?? "",
+        officeState:
+          pd.officeState ?? (preferredOffice ? pd.state : "") ?? "",
+        resiArea:
+          pd.resiArea ??
+          (!preferredOffice ? pd.preferredMeetingArea : "") ??
+          "",
+        resiSubArea:
+          pd.resiSubArea ?? (!preferredOffice ? pd.subArea : "") ?? "",
+        officeArea:
+          pd.officeArea ??
+          (preferredOffice ? pd.preferredMeetingArea : "") ??
+          "",
+        officeSubArea:
+          pd.officeSubArea ?? (preferredOffice ? pd.subArea : "") ?? "",
       });
     } else {
       setFormData(initialFormState);
@@ -276,25 +327,32 @@ const PersonalDetailsFormForProspect = ({
     }));
   }, [formData.annualIncome]);
 
-  // ✅ FILTER SUBAREAS BASED ON SELECTED AREA
-  useEffect(() => {
-    if (formData.preferredMeetingArea) {
-      const selectedArea = areas.find(
-        (area) => area.name === formData.preferredMeetingArea
-      );
-      if (selectedArea) {
-        const filtered = subAreas.filter(
-          (sub) =>
-            sub.areaId &&
-            (sub.areaId._id === selectedArea._id ||
-              sub.areaId === selectedArea._id)
-        );
-        setFilteredSubAreas(filtered);
-      } else {
-        setFilteredSubAreas([]);
-      }
+  const filterSubsForAreaName = (areaName, setter) => {
+    if (!areaName) {
+      setter([]);
+      return;
     }
-  }, [formData.preferredMeetingArea, areas, subAreas]);
+    const selectedArea = areas.find((area) => area.name === areaName);
+    if (selectedArea) {
+      const filtered = subAreas.filter(
+        (sub) =>
+          sub.areaId &&
+          (sub.areaId._id === selectedArea._id ||
+            sub.areaId === selectedArea._id)
+      );
+      setter(filtered);
+    } else {
+      setter([]);
+    }
+  };
+
+  useEffect(() => {
+    filterSubsForAreaName(formData.resiArea, setFilteredResiSubAreas);
+  }, [formData.resiArea, areas, subAreas]);
+
+  useEffect(() => {
+    filterSubsForAreaName(formData.officeArea, setFilteredOfficeSubAreas);
+  }, [formData.officeArea, areas, subAreas]);
 
   // ✅ FETCH AREA DATA WHEN PINCODE CHANGES
   const fetchAreaData = async (pincode) => {
@@ -330,7 +388,10 @@ const PersonalDetailsFormForProspect = ({
           ...prev,
           preferredMeetingAddr: prev.resiAddr,
           preferredMeetingArea: areaData.name,
-          city: areaData.city,
+          resiArea: areaData.name,
+          resiCity: areaData.city || "",
+          city: areaData.city || "",
+          resiSubArea: "",
         }));
       } else if (
         formData.preferredAddressType === "office" &&
@@ -341,7 +402,10 @@ const PersonalDetailsFormForProspect = ({
           ...prev,
           preferredMeetingAddr: prev.officeAddr,
           preferredMeetingArea: areaData.name,
-          city: areaData.city,
+          officeArea: areaData.name,
+          officeCity: areaData.city || "",
+          city: areaData.city || "",
+          officeSubArea: "",
         }));
       }
     };
@@ -356,34 +420,86 @@ const PersonalDetailsFormForProspect = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const digitOnlyFields = [
+      "mobileNo",
+      "whatsappNo",
+      "paMobileNo",
+      "resiPincode",
+      "officePincode",
+    ];
+    const cleanedValue = digitOnlyFields.includes(name)
+      ? String(value).replace(/\D/g, "")
+      : value;
     const normalizedValue =
-      name === "contactNo" ? normalizeContactNo(value) : value;
-    setFormData((prev) => ({ ...prev, [name]: normalizedValue }));
+      name === "contactNo" ? normalizeContactNo(cleanedValue) : cleanedValue;
 
-    // ✅ When pincode changes, fetch area and update preferred meeting area
+    if (name === "resiPincode") {
+      if (!normalizedValue) {
+        setResiPincodeError("");
+      } else if (!/^\d{6}$/.test(normalizedValue)) {
+        setResiPincodeError("Residential pincode must be exactly 6 digits.");
+      } else {
+        setResiPincodeError("");
+      }
+    }
+
+    if (name === "officePincode") {
+      if (!normalizedValue) {
+        setOfficePincodeError("");
+      } else if (!/^\d{6}$/.test(normalizedValue)) {
+        setOfficePincodeError("Office pincode must be exactly 6 digits.");
+      } else {
+        setOfficePincodeError("");
+      }
+    }
+
+    setFormData((prev) => {
+      const next = { ...prev, [name]: normalizedValue };
+      if (GROUP_HEAD_NAME_PART_FIELDS.includes(name)) {
+        const joined = joinGroupHeadName({
+          first: next.groupHeadNameFirst,
+          middle: next.groupHeadNameMiddle,
+          last: next.groupHeadNameLast,
+        });
+        next.groupHeadName = joined;
+        next.groupName = joined;
+      }
+      return next;
+    });
+
     if (
       (name === "resiPincode" || name === "officePincode") &&
       value.length === 6
     ) {
       fetchAreaData(normalizedValue).then((areaData) => {
-        if (
-          name === "resiPincode" &&
-          formData.preferredAddressType === "resi"
-        ) {
-          setFormData((prev) => ({
-            ...prev,
-            preferredMeetingArea: areaData.name,
-            city: areaData.city,
-          }));
-        } else if (
-          name === "officePincode" &&
-          formData.preferredAddressType === "office"
-        ) {
-          setFormData((prev) => ({
-            ...prev,
-            preferredMeetingArea: areaData.name,
-            city: areaData.city,
-          }));
+        if (name === "resiPincode") {
+          setFormData((prev) => {
+            const next = {
+              ...prev,
+              resiCity: areaData.city || "",
+              resiArea: areaData.name,
+              resiSubArea: "",
+            };
+            if (prev.preferredAddressType === "resi") {
+              next.preferredMeetingArea = areaData.name;
+              next.city = areaData.city || "";
+            }
+            return next;
+          });
+        } else if (name === "officePincode") {
+          setFormData((prev) => {
+            const next = {
+              ...prev,
+              officeCity: areaData.city || "",
+              officeArea: areaData.name,
+              officeSubArea: "",
+            };
+            if (prev.preferredAddressType === "office") {
+              next.preferredMeetingArea = areaData.name;
+              next.city = areaData.city || "";
+            }
+            return next;
+          });
         }
       });
     }
@@ -415,13 +531,18 @@ const PersonalDetailsFormForProspect = ({
         ...prev,
         preferredAddressType: type,
         preferredMeetingAddr: type === "resi" ? prev.resiAddr : prev.officeAddr,
+        preferredMeetingArea: type === "resi" ? prev.resiArea : prev.officeArea,
+        subArea: type === "resi" ? prev.resiSubArea : prev.officeSubArea,
       };
       if (type === "resi" && prev.resiPincode.length === 6) {
         fetchAreaData(prev.resiPincode).then((areaData) => {
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
-            city: areaData.city,
+            resiArea: areaData.name,
+            resiCity: areaData.city || "",
+            city: areaData.city || "",
+            resiSubArea: "",
           }));
         });
       } else if (type === "office" && prev.officePincode.length === 6) {
@@ -429,7 +550,10 @@ const PersonalDetailsFormForProspect = ({
           setFormData((prev) => ({
             ...prev,
             preferredMeetingArea: areaData.name,
-            city: areaData.city,
+            officeArea: areaData.name,
+            officeCity: areaData.city || "",
+            city: areaData.city || "",
+            officeSubArea: "",
           }));
         });
       }
@@ -439,13 +563,25 @@ const PersonalDetailsFormForProspect = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.resiPincode && !/^\d{6}$/.test(formData.resiPincode)) {
+      setResiPincodeError("Residential pincode must be exactly 6 digits.");
+      toast.error("Please enter a valid 6-digit residential pincode.");
+      return;
+    }
+
+    if (formData.officePincode && !/^\d{6}$/.test(formData.officePincode)) {
+      setOfficePincodeError("Office pincode must be exactly 6 digits.");
+      toast.error("Please enter a valid 6-digit office pincode.");
+      return;
+    }
+
     if (isEdit && prospectData?._id) {
       console.log(formData);
-      // ❌ CHANGE THIS
       const result = await dispatch(
         updateProspectPersonalDetails({
           id: prospectData._id,
-          personalDetails: formData,
+          personalDetails: sanitizePersonalDetailsGroupHead(formData),
         })
       );
       if (result) {
@@ -454,9 +590,10 @@ const PersonalDetailsFormForProspect = ({
         if (onProspectCreated) onProspectCreated(prospectData._id);
       }
     } else {
-      // ❌ CHANGE THIS
       const resultAction = await dispatch(
-        createProspect({ personalDetails: formData })
+        createProspect({
+          personalDetails: sanitizePersonalDetailsGroupHead(formData),
+        })
       );
       if (resultAction) {
         toast.success("Prospect Created Successfully");
@@ -501,7 +638,7 @@ const PersonalDetailsFormForProspect = ({
         `}
       </style>
       <Row className="mb-2 align-items-end">
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="salutation">
             <Form.Label>Salutation</Form.Label>
             <Form.Select
@@ -512,65 +649,75 @@ const PersonalDetailsFormForProspect = ({
             >
               <option value="">Select</option>
               <option>Mr.</option>
+              <option>Mrs.</option>
+              <option>Ms.</option>
+              <option>Kr.</option>
+              <option>Kum.</option>
+              <option>Shri.</option>
+              <option>Smt.</option>
+              <option>Dr.</option>
               <option>Adv.</option>
               <option>Brig.</option>
               <option>Capt.</option>
               <option>Col.</option>
-              <option>Dr.</option>
               <option>Gen.</option>
-              <option>Kr.</option>
-              <option>Kum.</option>
               <option>Lion</option>
               <option>Maj.</option>
               <option>Mast.</option>
-              <option>Mrs.</option>
-              <option>Ms.</option>
               <option>Rtn.</option>
-              <option>Shri.</option>
-              <option>Smt.</option>
             </Form.Select>
           </Form.Group>
         </Col>
+        <Col md={6}>
+          <Form.Group controlId="groupHeadNameParts">
+            <Form.Label>Group head name</Form.Label>
+            <div className="d-flex gap-1">
+              <Form.Control
+                name="groupHeadNameFirst"
+                type="text"
+                placeholder="First"
+                value={formData.groupHeadNameFirst ?? ""}
+                onChange={handleChange}
+                size="sm"
+                className="flex-grow-1"
+                style={{ minWidth: 0 }}
+              />
+              <Form.Control
+                name="groupHeadNameMiddle"
+                type="text"
+                placeholder="Middle"
+                value={formData.groupHeadNameMiddle ?? ""}
+                onChange={handleChange}
+                size="sm"
+                className="flex-grow-1"
+                style={{ minWidth: 0 }}
+              />
+              <Form.Control
+                name="groupHeadNameLast"
+                type="text"
+                placeholder="Last"
+                value={formData.groupHeadNameLast ?? ""}
+                onChange={handleChange}
+                size="sm"
+                className="flex-grow-1"
+                style={{ minWidth: 0 }}
+              />
+            </div>
+          </Form.Group>
+        </Col>
         <Col md={2}>
-          <Form.Group controlId="groupHeadName">
-            <Form.Label>Group Head Name</Form.Label>
+          <Form.Group controlId="designation">
+            <Form.Label>Designation</Form.Label>
             <Form.Control
-              name="groupHeadName"
+              name="designation"
               type="text"
-              value={formData.groupHeadName ?? ""}
+              value={formData.designation ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={2}>
-          <Form.Group controlId="mobileNo">
-            <Form.Label>Mobile No*</Form.Label>
-            <Form.Control
-              name="mobileNo"
-              type="text"
-              value={formData.mobileNo ?? ""}
-              onChange={handleMobileWhatsappChange}
-              maxLength={10}
-              size="sm"
-              required
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="whatsappNo">
-            <Form.Label>WhatsApp No</Form.Label>
-            <Form.Control
-              name="whatsappNo"
-              type="text"
-              value={formData.whatsappNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
+        <Col md={1}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
             <Form.Select
@@ -622,25 +769,41 @@ const PersonalDetailsFormForProspect = ({
       </Row>
       <Row className="mb-2">
         <Col md={2}>
-          <Form.Group controlId="organisation">
-            <Form.Label>Occupation</Form.Label>
+          <Form.Group controlId="contactNo">
+            <Form.Label>Phone No.</Form.Label>
             <Form.Control
-              name="organisation"
+              name="contactNo"
               type="text"
-              value={formData.organisation ?? ""}
+              value={formData.contactNo ?? ""}
+              maxLength={10}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
         <Col md={2}>
-          <Form.Group controlId="designation">
-            <Form.Label>Designation</Form.Label>
+          <Form.Group controlId="mobileNo">
+            <Form.Label>Mobile No*</Form.Label>
             <Form.Control
-              name="designation"
+              name="mobileNo"
               type="text"
-              value={formData.designation ?? ""}
-              onChange={handleChange}
+              value={formData.mobileNo ?? ""}
+              onChange={handleMobileWhatsappChange}
+              maxLength={10}
+              size="sm"
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={2}>
+          <Form.Group controlId="whatsappNo">
+            <Form.Label>WhatsApp No</Form.Label>
+            <Form.Control
+              name="whatsappNo"
+              type="text"
+              value={formData.whatsappNo ?? ""}
+              maxLength={10}
+              onChange={handleMobileWhatsappChange}
               size="sm"
             />
           </Form.Group>
@@ -653,19 +816,6 @@ const PersonalDetailsFormForProspect = ({
               type="email"
               value={formData.emailId ?? ""}
               onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
-        <Col md={2}>
-          <Form.Group controlId="contactNo">
-            <Form.Label>Phone No.</Form.Label>
-            <Form.Control
-              name="contactNo"
-              type="text"
-              value={formData.contactNo ?? ""}
-              maxLength={10}
-              onChange={handleMobileWhatsappChange}
               size="sm"
             />
           </Form.Group>
@@ -696,8 +846,8 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
       </Row>
-      <Row className="mb-2">
-        <Col md={1} className="mt-2">
+      <Row className="mb-2 align-items-end gx-1">
+        <Col xs={12} md={1} className="mt-1 mt-md-2">
           <Form.Check
             type="radio"
             label="Resi."
@@ -706,7 +856,7 @@ const PersonalDetailsFormForProspect = ({
             onChange={() => handleAddressTypeChange("resi")}
           />
         </Col>
-        <Col md={6}>
+        <Col xs={6} md={3}>
           <Form.Group controlId="resiAddr">
             <Form.Label>Address</Form.Label>
             <Form.Control
@@ -718,33 +868,81 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group controlId="resiLandmark">
-            <Form.Label>Landmark</Form.Label>
+        <Col xs={6} md={2}>
+          <Form.Group controlId="resiState">
+            <Form.Label>State</Form.Label>
             <Form.Control
-              name="resiLandmark"
+              name="resiState"
               type="text"
-              value={formData.resiLandmark ?? ""}
+              value={formData.resiState ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={2}>
+        <Col xs={6} md={1}>
           <Form.Group controlId="resiPincode">
             <Form.Label>Pincode</Form.Label>
             <Form.Control
               name="resiPincode"
               type="text"
+              maxLength={6}
               value={formData.resiPincode ?? ""}
+              onChange={handleChange}
+              size="sm"
+              isInvalid={Boolean(resiPincodeError)}
+            />
+            <Form.Control.Feedback type="invalid">
+              {resiPincodeError}
+            </Form.Control.Feedback>
+          </Form.Group>
+        </Col>
+        <Col xs={6} md={2}>
+          <Form.Group controlId="resiCity">
+            <Form.Label>City</Form.Label>
+            <Form.Control
+              name="resiCity"
+              type="text"
+              value={formData.resiCity ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
+        <Col xs={4} md={2}>
+          <Form.Group controlId="resiArea">
+            <Form.Label>Area</Form.Label>
+            <Form.Control
+              name="resiArea"
+              type="text"
+              value={formData.resiArea ?? ""}
+              onChange={handleChange}
+              size="sm"
+              readOnly
+            />
+          </Form.Group>
+        </Col>
+        <Col xs={8} md={1}>
+          <Form.Group controlId="resiSubArea">
+            <Form.Label>Sub Area</Form.Label>
+            <Form.Select
+              name="resiSubArea"
+              value={formData.resiSubArea ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Sub Area</option>
+              {filteredResiSubAreas.map((sub) => (
+                <option key={sub._id} value={sub.subAreaName}>
+                  {sub.subAreaName}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
       </Row>
-      <Row className="mb-2">
-        <Col md={1} className="mt-2">
+      <Row className="mb-2 align-items-end gx-1">
+        <Col xs={12} md={1} className="mt-1 mt-md-2">
           <Form.Check
             type="radio"
             label="Office"
@@ -753,7 +951,7 @@ const PersonalDetailsFormForProspect = ({
             onChange={() => handleAddressTypeChange("office")}
           />
         </Col>
-        <Col md={6}>
+        <Col xs={6} md={3}>
           <Form.Group controlId="officeAddr">
             <Form.Label>Address</Form.Label>
             <Form.Control
@@ -765,37 +963,86 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group controlId="officeLandmark">
-            <Form.Label>Landmark</Form.Label>
+        <Col xs={6} md={2}>
+          <Form.Group controlId="officeState">
+            <Form.Label>State</Form.Label>
             <Form.Control
-              name="officeLandmark"
+              name="officeState"
               type="text"
-              value={formData.officeLandmark ?? ""}
+              value={formData.officeState ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
-        <Col md={2}>
+        <Col xs={6} md={1}>
           <Form.Group controlId="officePincode">
             <Form.Label>Pincode</Form.Label>
             <Form.Control
               name="officePincode"
               type="text"
+              maxLength={6}
               value={formData.officePincode ?? ""}
+              onChange={handleChange}
+              size="sm"
+              isInvalid={Boolean(officePincodeError)}
+            />
+            <Form.Control.Feedback type="invalid">
+              {officePincodeError}
+            </Form.Control.Feedback>
+          </Form.Group>
+        </Col>
+        <Col xs={6} md={2}>
+          <Form.Group controlId="officeCity">
+            <Form.Label>City</Form.Label>
+            <Form.Control
+              name="officeCity"
+              type="text"
+              value={formData.officeCity ?? ""}
               onChange={handleChange}
               size="sm"
             />
           </Form.Group>
         </Col>
+        <Col xs={4} md={2}>
+          <Form.Group controlId="officeArea">
+            <Form.Label>Area</Form.Label>
+            <Form.Control
+              name="officeArea"
+              type="text"
+              value={formData.officeArea ?? ""}
+              onChange={handleChange}
+              size="sm"
+              readOnly
+            />
+          </Form.Group>
+        </Col>
+        <Col xs={8} md={1}>
+          <Form.Group controlId="officeSubArea">
+            <Form.Label>Sub Area</Form.Label>
+            <Form.Select
+              name="officeSubArea"
+              value={formData.officeSubArea ?? ""}
+              onChange={handleChange}
+              size="sm"
+            >
+              <option value="">Sub Area</option>
+              {filteredOfficeSubAreas.map((sub) => (
+                <option key={sub._id} value={sub.subAreaName}>
+                  {sub.subAreaName}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
       </Row>
 
-      {/* ✅ UPDATED SECTION WITH SUBAREA AND TIME (SAME LINE LIKE CLIENT) */}
-      <Row className="mb-2">
-        <Col md={4}>
+      <Row className="mb-2 align-items-end gx-1">
+        <Col xs={12} md={3}>
           <Form.Group controlId="preferredMeetingAddr">
-            <Form.Label>Preferred Meeting Address</Form.Label>
+            <Form.Label className="text-truncate d-block">
+              Preferred Meeting Address
+            </Form.Label>
             <Form.Control
               name="preferredMeetingAddr"
               type="text"
@@ -806,54 +1053,20 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={2}>
-          <Form.Group controlId="preferredMeetingArea">
-            <Form.Label>Area</Form.Label>
+        <Col xs={12} md={3}>
+          <Form.Group controlId="meetingLandmark">
+            <Form.Label>Landmark</Form.Label>
             <Form.Control
-              name="preferredMeetingArea"
+              name="meetingLandmark"
               type="text"
-              value={formData.preferredMeetingArea ?? ""}
+              value={formData.meetingLandmark ?? ""}
               onChange={handleChange}
               size="sm"
-              readOnly
+              placeholder="Near meeting point"
             />
           </Form.Group>
         </Col>
-
-        {/* ✅ NEW SUBAREA FIELD */}
-        <Col md={2}>
-          <Form.Group controlId="subArea">
-            <Form.Label>Sub Area</Form.Label>
-            <Form.Select
-              name="subArea"
-              value={formData.subArea ?? ""}
-              onChange={handleChange}
-              size="sm"
-            >
-              <option value="">-- Select Sub Area --</option>
-              {filteredSubAreas.map((subArea) => (
-                <option key={subArea._id} value={subArea.subAreaName}>
-                  {subArea.subAreaName}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Col>
-
-        <Col md={1}>
-          <Form.Group controlId="city">
-            <Form.Label>City</Form.Label>
-            <Form.Control
-              name="city"
-              type="text"
-              value={formData.city ?? ""}
-              onChange={handleChange}
-              size="sm"
-              readOnly
-            />
-          </Form.Group>
-        </Col>
-        <Col md={1}>
+        <Col xs={6} md={3}>
           <Form.Group controlId="bestTime">
             <Form.Label>Best Time</Form.Label>
             <Form.Select
@@ -868,8 +1081,7 @@ const PersonalDetailsFormForProspect = ({
             </Form.Select>
           </Form.Group>
         </Col>
-
-        <Col md={2}>
+        <Col xs={6} md={3}>
           <Form.Group controlId="time">
             <Form.Label>Specific Time</Form.Label>
             <Form.Control
@@ -1046,7 +1258,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col md={2}>
+        {/* <Col md={2}>
           <Form.Group controlId="allocatedCRE">
             <Form.Label>Allocated CRE</Form.Label>
             <Form.Select
@@ -1063,7 +1275,7 @@ const PersonalDetailsFormForProspect = ({
               ))}
             </Form.Select>
           </Form.Group>
-        </Col>
+        </Col> */}
 
         {/* ✅ NEW ALLOCATED RM FIELD */}
         <Col md={2}>

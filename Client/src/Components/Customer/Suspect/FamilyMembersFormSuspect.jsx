@@ -16,6 +16,9 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
     memberIndex: null,
   });
   const selfDobRef = useRef(null);
+  const selfDobFocusedRef = useRef(false);
+  const addedMemberRef = useRef(null);
+  const scrollToAddedMemberRef = useRef(false);
 
   const personalDetails = suspectData?.personalDetails || {};
 
@@ -93,10 +96,22 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
   }, [personalDetails]);
 
   useEffect(() => {
-    if (selfDobRef.current) {
+    if (!selfDobFocusedRef.current && familyMembers.length > 0 && selfDobRef.current) {
       selfDobRef.current.focus();
+      selfDobFocusedRef.current = true;
     }
-  }, [familyMembers.length]);
+  }, [familyMembers]);
+
+  useEffect(() => {
+    if (scrollToAddedMemberRef.current && addedMemberRef.current) {
+      addedMemberRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      const firstInput = addedMemberRef.current.querySelector("input, select");
+      if (firstInput) {
+        firstInput.focus();
+      }
+      scrollToAddedMemberRef.current = false;
+    }
+  }, [familyMembers]);
 
   useEffect(() => {
     if (onDataUpdate) {
@@ -105,6 +120,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
   }, [familyMembers, onDataUpdate]);
 
   const handleAddMember = () => {
+    scrollToAddedMemberRef.current = true;
     setFamilyMembers((prev) => [...prev, defaultMember(false)]);
   };
 
@@ -288,6 +304,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
   const primaryMobile = personalDetails?.mobileNo || selfMember?.contact || "-";
   const activeHealthMember =
     healthModal.memberIndex !== null ? familyMembers[healthModal.memberIndex] : null;
+  const selfMemberIndex = selfMember ? familyMembers.indexOf(selfMember) : -1;
 
   return (
     <Form onSubmit={handleSubmit} className="compact-family-form">
@@ -472,17 +489,36 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={2}>
+            <Col md={5}>
               <Form.Group controlId="includeHealth-self">
-                <Form.Check
-                  type="checkbox"
-                  label="Include Health History"
-                  name="includeHealth"
-                  checked={selfMember.includeHealth}
-                  onChange={(e) =>
-                    handleHealthToggle(familyMembers.indexOf(selfMember), e.target.checked)
-                  }
-                />
+                <Form.Label className="d-block">Health History</Form.Label>
+                <div className="border rounded px-2 py-2 bg-white d-flex flex-wrap align-items-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    label="Include"
+                    name="includeHealth"
+                    className="mb-0"
+                    checked={selfMember.includeHealth}
+                    onChange={(e) => handleHealthToggle(selfMemberIndex, e.target.checked)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={selfMember.includeHealth ? "outline-primary" : "outline-secondary"}
+                    disabled={!selfMember.includeHealth}
+                    onClick={() => openHealthModal(selfMemberIndex)}
+                  >
+                    Open Details
+                  </Button>
+                  {selfMember.includeHealth && (
+                    <small className="text-muted">
+                      {selfMember.healthHistory?.submissionDate &&
+                      selfMember.healthHistory?.diseaseName
+                        ? "Details added"
+                        : "Please complete details"}
+                    </small>
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>
@@ -490,7 +526,11 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       )}
 
       {otherMembers.map((member, index) => (
-        <div key={member._id || index} className="border rounded p-3 mb-3">
+        <div
+          key={member._id || index}
+          ref={index === otherMembers.length - 1 ? addedMemberRef : null}
+          className="border rounded p-3 mb-3"
+        >
           <h5>Family Member {index + 1}</h5>
           <Row className="mb-2">
             <Col md={2}>
@@ -663,17 +703,37 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={2}>
+            <Col md={5}>
               <Form.Group controlId={`includeHealth-${member._id || index}`}>
-                <Form.Check
-                  type="checkbox"
-                  label="Include Health History"
-                  name="includeHealth"
-                  checked={member.includeHealth}
-                  onChange={(e) =>
-                    handleHealthToggle(familyMembers.indexOf(member), e.target.checked)
-                  }
-                />
+                <Form.Label className="d-block">Health History</Form.Label>
+                <div className="border rounded px-2 py-2 bg-light d-flex flex-wrap align-items-center gap-2">
+                  <Form.Check
+                    type="checkbox"
+                    label="Include"
+                    name="includeHealth"
+                    className="mb-0"
+                    checked={member.includeHealth}
+                    onChange={(e) =>
+                      handleHealthToggle(familyMembers.indexOf(member), e.target.checked)
+                    }
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={member.includeHealth ? "outline-primary" : "outline-secondary"}
+                    disabled={!member.includeHealth}
+                    onClick={() => openHealthModal(familyMembers.indexOf(member))}
+                  >
+                    Open Details
+                  </Button>
+                  {member.includeHealth && (
+                    <small className="text-muted">
+                      {member.healthHistory?.submissionDate && member.healthHistory?.diseaseName
+                        ? "Details added"
+                        : "Please complete details"}
+                    </small>
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>
@@ -695,7 +755,8 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
         className="me-2 btn-sm"
         title="Add New Member"
       >
-        <FaUserPlus />
+        <FaUserPlus className="me-1" />
+        Add New Member
       </Button>
       <Button type="submit" className="btn btn-primary btn-sm" title="Save Members">
         <FaSave />

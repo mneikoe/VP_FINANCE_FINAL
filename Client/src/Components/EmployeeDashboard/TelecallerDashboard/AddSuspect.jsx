@@ -11,6 +11,12 @@ import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/Occ
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
 import { toast } from "react-toastify";
 import axiosInstance from "/src/config/axios";
+import {
+  splitGroupHeadName,
+  joinGroupHeadName,
+  sanitizePersonalDetailsGroupHead,
+  GROUP_HEAD_NAME_PART_FIELDS,
+} from "../../../utils/groupNameParts";
 
 const incomeOptions = [
   { value: "25 lakh to 1 Cr.", label: "25 lakh to 1 Cr." },
@@ -41,6 +47,10 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
   const initialFormState = {
     salutation: "",
     groupName: "",
+    groupHeadName: "",
+    groupHeadNameFirst: "",
+    groupHeadNameMiddle: "",
+    groupHeadNameLast: "",
     gender: "",
     organisation: "",
     designation: "",
@@ -102,12 +112,21 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
 
   useEffect(() => {
     if (isEdit && suspectData) {
+      const pd = suspectData.personalDetails || {};
+      const combined = (pd.groupHeadName || pd.groupName || "").trim();
+      const parts = splitGroupHeadName(combined);
+      const joined = joinGroupHeadName(parts) || combined;
       setFormData({
         ...initialFormState,
-        ...suspectData.personalDetails,
-        dob: formatDateToYMD(suspectData.personalDetails?.dob),
-        dom: formatDateToYMD(suspectData.personalDetails?.dom),
-        bestTimeExact: suspectData.personalDetails?.bestTimeExact || "",
+        ...pd,
+        dob: formatDateToYMD(pd.dob),
+        dom: formatDateToYMD(pd.dom),
+        bestTimeExact: pd.bestTimeExact || "",
+        groupHeadNameFirst: parts.first,
+        groupHeadNameMiddle: parts.middle,
+        groupHeadNameLast: parts.last,
+        groupHeadName: joined,
+        groupName: joined,
       });
       setFormData2({
         NextCallDate: formatDateToYMD(suspectData.NextCallDate),
@@ -335,7 +354,19 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
       return;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (GROUP_HEAD_NAME_PART_FIELDS.includes(name)) {
+        const joined = joinGroupHeadName({
+          first: next.groupHeadNameFirst,
+          middle: next.groupHeadNameMiddle,
+          last: next.groupHeadNameLast,
+        });
+        next.groupHeadName = joined;
+        next.groupName = joined;
+      }
+      return next;
+    });
     if (
       (name === "resiPincode" || name === "officePincode") &&
       value.length === 6
@@ -396,8 +427,13 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
     e.preventDefault();
 
     // Basic front-end required validations
-    if (!formData.groupName.trim()) {
-      toast.error("Group Head is required");
+    const joinedGroup = joinGroupHeadName({
+      first: formData.groupHeadNameFirst,
+      middle: formData.groupHeadNameMiddle,
+      last: formData.groupHeadNameLast,
+    });
+    if (!joinedGroup.trim()) {
+      toast.error("Group head name is required");
       return;
     }
     if (!formData.mobileNo || formData.mobileNo.length !== 10) {
@@ -420,10 +456,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
       const result = await dispatch(
         updateSuspectPersonalDetails({
           id: suspectData._id,
-          personalDetails: {
-            ...formData,
-            // bestTimeExact only in frontend, optionally send later if needed
-          },
+          personalDetails: sanitizePersonalDetailsGroupHead(formData),
         })
       );
       if (result) {
@@ -434,10 +467,7 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
     } else {
       const resultAction = await dispatch(
         createSuspect({
-          personalDetails: {
-            ...formData,
-            // bestTimeExact not required in backend payload as per requirement
-          },
+          personalDetails: sanitizePersonalDetailsGroupHead(formData),
         })
       );
       if (resultAction) {
@@ -476,17 +506,40 @@ const AddSuspect = ({ isEdit, suspectData, onSuspectCreated }) => {
             </Form.Group>
           </Col>
           <Col md={5}>
-            <Form.Group controlId="groupName">
-              <Form.Label>Group Name</Form.Label>
-              <Form.Control
-                name="groupName"
-                type="text"
-                placeholder="Group Head"
-                value={formData.groupName ?? ""}
-                onChange={handleChange}
-                size="xs"
-                required
-              />
+            <Form.Group controlId="groupHeadNameParts">
+              <Form.Label>Group head name</Form.Label>
+              <div className="d-flex gap-1">
+                <Form.Control
+                  name="groupHeadNameFirst"
+                  type="text"
+                  placeholder="First"
+                  value={formData.groupHeadNameFirst ?? ""}
+                  onChange={handleChange}
+                  size="xs"
+                  className="flex-grow-1"
+                  style={{ minWidth: 0 }}
+                />
+                <Form.Control
+                  name="groupHeadNameMiddle"
+                  type="text"
+                  placeholder="Middle"
+                  value={formData.groupHeadNameMiddle ?? ""}
+                  onChange={handleChange}
+                  size="xs"
+                  className="flex-grow-1"
+                  style={{ minWidth: 0 }}
+                />
+                <Form.Control
+                  name="groupHeadNameLast"
+                  type="text"
+                  placeholder="Last"
+                  value={formData.groupHeadNameLast ?? ""}
+                  onChange={handleChange}
+                  size="xs"
+                  className="flex-grow-1"
+                  style={{ minWidth: 0 }}
+                />
+              </div>
             </Form.Group>
           </Col>
           <Col md={3}>

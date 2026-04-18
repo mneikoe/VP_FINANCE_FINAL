@@ -137,10 +137,10 @@ const Composite = () => {
       ellipsis: true,
     },
     {
-      title: "Employee Roles",
+      title: "Emp Roles",
       dataIndex: "depart",
       key: "roles",
-      width: 180,
+      width: 80,
       render: (roles) => (
         <Space wrap>
           {roles?.map((role, i) => (
@@ -191,22 +191,22 @@ const Composite = () => {
         </Tooltip>
       ),
     },
-    {
-      title: "SMS",
-      key: "sms",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View SMS Template">
-          <Button
-            type="link"
-            icon={<MessageOutlined />}
-            onClick={() => openModal("sms", record)}
-            style={{ color: "#faad14" }}
-          />
-        </Tooltip>
-      ),
-    },
+    // {
+    //   title: "SMS",
+    //   key: "sms",
+    //   width: 80,
+    //   align: "center",
+    //   render: (_, record) => (
+    //     <Tooltip title="View SMS Template">
+    //       <Button
+    //         type="link"
+    //         icon={<MessageOutlined />}
+    //         onClick={() => openModal("sms", record)}
+    //         style={{ color: "#faad14" }}
+    //       />
+    //     </Tooltip>
+    //   ),
+    // },
     {
       title: "Email",
       key: "email",
