@@ -33,6 +33,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
     marriageDate: data.marriageDate || "",
     occupation: data.occupation || "",
     occupationType: data.occupationType || "",
+    designation: data.designation || "",
     annualIncome: data.annualIncome || "",
     contact: isSelf ? (familyDetail?.mobileNo || data.contact || "") : (data.contact || ""),
     adharNumber: data.adharNumber || "",
@@ -86,6 +87,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
                 selfDetails?.leadOccupationType ||
                 selfDetails?.occupationType ||
                 member.occupationType,
+              designation: selfDetails?.designation || member.designation,
               annualIncome: selfDetails?.annualIncome || member.annualIncome,
               contact: selfDetails?.mobileNo || selfDetails?.contact || member.contact,
             }
@@ -243,6 +245,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
       marriageDate: member.marriageDate,
       occupation: member.occupation,
       occupationType: member.occupationType,
+      designation: member.designation,
       annualIncome: member.annualIncome,
       contact: member.relation === "Self" ? (familyDetail?.mobileNo || clientData?.contact || member.contact) : member.contact,
       adharNumber: member.adharNumber,
@@ -268,6 +271,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
             marriageDate: m.marriageDate || "",
             occupation: m.occupation || "",
             occupationType: m.occupationType || "",
+            designation: m.designation || "",
             annualIncome: m.annualIncome || "",
             contact: m.contact || "",
             adharNumber: m.adharNumber || "",
@@ -302,6 +306,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
             marriageDate: m.marriageDate || "",
             occupation: m.occupation || "",
             occupationType: m.occupationType || "",
+            designation: m.designation || "",
             annualIncome: m.annualIncome || "",
             contact: m.contact || "",
             adharNumber: m.adharNumber || "",
@@ -477,7 +482,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId={`occupation-self`}>
                 <Form.Label>Occupation</Form.Label>
                 <Form.Control
@@ -487,12 +492,22 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId={`occupationType-self`}>
                 <Form.Label>Type of Occupation</Form.Label>
                 <Form.Control
                   name="occupationType"
                   value={selfMember.occupationType || ""}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId={`designation-self`}>
+                <Form.Label>Designation</Form.Label>
+                <Form.Control
+                  name="designation"
+                  value={selfMember.designation || ""}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
                 />
               </Form.Group>
@@ -790,7 +805,7 @@ const FamilyMembersForm = ({ clientId, clientData, onClientCreated, familyDetail
         title="Add New Member"
       >
         <FaUserPlus className="me-1" />
-        Add New Member
+        
       </Button>
       <Button
         type="submit"

@@ -38,6 +38,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
     marriageDate: data.marriageDate || "",
     occupation: data.occupation || "",
     occupationType: data.occupationType || "",
+    designation: data.designation || "",
     annualIncome: data.annualIncome || "",
     contact: isSelf
       ? personalDetails.mobileNo || data.contact || ""
@@ -87,6 +88,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 personalDetails?.leadOccupationType ||
                 personalDetails?.occupationType ||
                 member.occupationType,
+              designation: personalDetails?.designation || member.designation,
               annualIncome: personalDetails?.annualIncome || member.annualIncome,
               contact: personalDetails?.mobileNo || member.contact,
             }
@@ -264,6 +266,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       marriageDate: member.marriageDate,
       occupation: member.occupation,
       occupationType: member.occupationType,
+      designation: member.designation,
       annualIncome: member.annualIncome,
       contact:
         member.relation === "Self"
@@ -425,7 +428,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId="occupation-self">
                 <Form.Label>Occupation</Form.Label>
                 <Form.Control
@@ -435,12 +438,22 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 />
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group controlId="occupationType-self">
                 <Form.Label>Type of Occupation</Form.Label>
                 <Form.Control
                   name="occupationType"
                   value={selfMember.occupationType || ""}
+                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group controlId="designation-self">
+                <Form.Label>Designation</Form.Label>
+                <Form.Control
+                  name="designation"
+                  value={selfMember.designation || ""}
                   onChange={(e) => handleMemberChange(e, familyMembers.indexOf(selfMember))}
                 />
               </Form.Group>

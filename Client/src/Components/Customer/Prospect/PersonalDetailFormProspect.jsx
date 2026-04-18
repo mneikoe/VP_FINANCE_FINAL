@@ -668,7 +668,7 @@ const PersonalDetailsFormForProspect = ({
             </Form.Select>
           </Form.Group>
         </Col>
-        <Col md={6}>
+        <Col md={8}>
           <Form.Group controlId="groupHeadNameParts">
             <Form.Label>Group head name</Form.Label>
             <div className="d-flex gap-1">
@@ -705,18 +705,7 @@ const PersonalDetailsFormForProspect = ({
             </div>
           </Form.Group>
         </Col>
-        <Col md={2}>
-          <Form.Group controlId="designation">
-            <Form.Label>Designation</Form.Label>
-            <Form.Control
-              name="designation"
-              type="text"
-              value={formData.designation ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
+       
         <Col md={1}>
           <Form.Group controlId="gender">
             <Form.Label>Gender</Form.Label>
@@ -856,7 +845,7 @@ const PersonalDetailsFormForProspect = ({
             onChange={() => handleAddressTypeChange("resi")}
           />
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={5}>
           <Form.Group controlId="resiAddr">
             <Form.Label>Address</Form.Label>
             <Form.Control
@@ -868,18 +857,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col xs={6} md={2}>
-          <Form.Group controlId="resiState">
-            <Form.Label>State</Form.Label>
-            <Form.Control
-              name="resiState"
-              type="text"
-              value={formData.resiState ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
+       
         <Col xs={6} md={1}>
           <Form.Group controlId="resiPincode">
             <Form.Label>Pincode</Form.Label>
@@ -951,7 +929,7 @@ const PersonalDetailsFormForProspect = ({
             onChange={() => handleAddressTypeChange("office")}
           />
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={5}>
           <Form.Group controlId="officeAddr">
             <Form.Label>Address</Form.Label>
             <Form.Control
@@ -963,18 +941,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col xs={6} md={2}>
-          <Form.Group controlId="officeState">
-            <Form.Label>State</Form.Label>
-            <Form.Control
-              name="officeState"
-              type="text"
-              value={formData.officeState ?? ""}
-              onChange={handleChange}
-              size="sm"
-            />
-          </Form.Group>
-        </Col>
+      
         <Col xs={6} md={1}>
           <Form.Group controlId="officePincode">
             <Form.Label>Pincode</Form.Label>
@@ -1038,7 +1005,7 @@ const PersonalDetailsFormForProspect = ({
       </Row>
 
       <Row className="mb-2 align-items-end gx-1">
-        <Col xs={12} md={3}>
+        <Col xs={12} md={5}>
           <Form.Group controlId="preferredMeetingAddr">
             <Form.Label className="text-truncate d-block">
               Preferred Meeting Address
@@ -1053,7 +1020,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col xs={12} md={3}>
+        <Col xs={12} md={5}>
           <Form.Group controlId="meetingLandmark">
             <Form.Label>Landmark</Form.Label>
             <Form.Control
@@ -1066,7 +1033,7 @@ const PersonalDetailsFormForProspect = ({
             />
           </Form.Group>
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={1}>
           <Form.Group controlId="bestTime">
             <Form.Label>Best Time</Form.Label>
             <Form.Select
@@ -1081,7 +1048,7 @@ const PersonalDetailsFormForProspect = ({
             </Form.Select>
           </Form.Group>
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={1}>
           <Form.Group controlId="time">
             <Form.Label>Specific Time</Form.Label>
             <Form.Control
@@ -1278,9 +1245,9 @@ const PersonalDetailsFormForProspect = ({
         </Col> */}
 
         {/* ✅ NEW ALLOCATED RM FIELD */}
-        <Col md={2}>
+        <Col md={5}>
           <Form.Group controlId="allocatedRM">
-            <Form.Label>Allocated RM</Form.Label>
+            <Form.Label>Allocated Employee Name & Designation</Form.Label>
             <Form.Select
               name="allocatedRM"
               value={formData.allocatedRM ?? ""}
@@ -1290,7 +1257,7 @@ const PersonalDetailsFormForProspect = ({
               <option value="">-- Select RM --</option>
               {rms.map((rm) => (
                 <option key={rm._id} value={rm._id}>
-                  {rm.name} - {rm.employeeCode || rm.designation}
+                   {rm.employeeCode || rm.designation} - {rm.name}
                 </option>
               ))}
             </Form.Select>
@@ -1298,7 +1265,7 @@ const PersonalDetailsFormForProspect = ({
         </Col>
       </Row>
       <Row className="mb-2">
-        <Col md={9}>
+        <Col md={12}>
           <Form.Group controlId="remark">
             <Form.Label>Remark</Form.Label>
             <Form.Control
