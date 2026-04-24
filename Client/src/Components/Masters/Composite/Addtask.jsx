@@ -64,6 +64,8 @@ const { TabPane } = Tabs;
 const Addtask = ({ on, data, onSuccess }) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const selectedTaskMode = Form.useWatch("taskMode", form) || "assigned";
+  const selectedProductId = Form.useWatch("cat", form);
 
   const flat = data?.task
     ? {
@@ -100,9 +102,11 @@ const Addtask = ({ on, data, onSuccess }) => {
   );
   const company = useSelector((state) => state.CompanyName.CompanyNames || []);
 
-  const filteredCompanies = company.filter(
-    (item) => item.financialProduct?._id === form.getFieldValue("cat")
-  );
+  const filteredCompanies = company.filter((item) => {
+    const productId =
+      item?.financialProduct?._id || item?.financialProduct || "";
+    return String(productId) === String(selectedProductId || "");
+  });
 
   // Fetch data
   useEffect(() => {
@@ -138,6 +142,9 @@ const Addtask = ({ on, data, onSuccess }) => {
         estimatedDays: flat?.estimatedDays || 1,
         reward: flat?.reward || "",
         templatePriority: flat?.templatePriority || "medium",
+        taskMode: flat?.taskMode || "assigned",
+        monthlyWindowFrom: flat?.monthlyWindowFrom || undefined,
+        monthlyWindowTo: flat?.monthlyWindowTo || undefined,
         email_descp: flat?.email_descp || "",
         sms_descp: flat?.sms_descp || "",
         whatsapp_descp: flat?.whatsapp_descp || "",
@@ -227,10 +234,17 @@ const Addtask = ({ on, data, onSuccess }) => {
   const handleSubmit = async (values) => {
     try {
       const formDataToSend = new FormData();
+      const normalizedValues = {
+        ...values,
+        estimatedDays: values.estimatedDays || 1,
+      };
+      if ((values.taskMode || "assigned") === "default") {
+        delete normalizedValues.estimatedDays;
+      }
 
-      Object.keys(values).forEach((key) => {
-        if (values[key] !== undefined && values[key] !== null) {
-          formDataToSend.append(key, values[key]);
+      Object.keys(normalizedValues).forEach((key) => {
+        if (normalizedValues[key] !== undefined && normalizedValues[key] !== null) {
+          formDataToSend.append(key, normalizedValues[key]);
         }
       });
 
@@ -399,6 +413,7 @@ const Addtask = ({ on, data, onSuccess }) => {
               estimatedDays: 1,
               reward: "",
               templatePriority: "medium",
+              taskMode: "assigned",
             }}
           >
             {/* Basic Information */}
@@ -424,6 +439,7 @@ const Addtask = ({ on, data, onSuccess }) => {
                       placeholder="Select Financial Product"
                       size="middle"
                       allowClear
+                      onChange={() => form.setFieldValue("sub", undefined)}
                     >
                       {products.map((product) => (
                         <Option key={product._id} value={product._id}>
@@ -500,16 +516,27 @@ const Addtask = ({ on, data, onSuccess }) => {
                 </Col>
 
                 <Col xs={24} md={8}>
-                  <Form.Item name="estimatedDays" label="Estimated Days">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      size="middle"
-                      prefix={<CalendarOutlined />}
-                    />
+                  <Form.Item name="taskMode" label="Task Type">
+                    <Select size="middle">
+                      <Option value="assigned">Assigned Task</Option>
+                      <Option value="default">Default Task</Option>
+                    </Select>
                   </Form.Item>
                 </Col>
+
+                {selectedTaskMode !== "default" && (
+                  <Col xs={24} md={8}>
+                    <Form.Item name="estimatedDays" label="Estimated Days">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        size="middle"
+                        prefix={<CalendarOutlined />}
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
 
                 <Col xs={24} md={8}>
                   <Form.Item
@@ -524,6 +551,28 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
               </Row>
+              {selectedTaskMode === "default" && (
+                <Row gutter={[10, 0]}>
+                  <Col xs={24} md={6}>
+                    <Form.Item
+                      name="monthlyWindowFrom"
+                      label="Monthly Window From"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input type="number" min={1} max={31} size="middle" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={6}>
+                    <Form.Item
+                      name="monthlyWindowTo"
+                      label="Monthly Window To"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input type="number" min={1} max={31} size="middle" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )}
             </Card>
 
             {/* Tabs Section */}

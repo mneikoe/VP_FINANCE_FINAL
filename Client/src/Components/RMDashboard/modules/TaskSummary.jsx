@@ -65,6 +65,7 @@ import {
 } from "react-icons/fa";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { Table as AntTable, Tag as AntTag, Space as AntSpace } from "antd";
 
 const TaskSummary = () => {
   const [tasks, setTasks] = useState([]);
@@ -87,11 +88,14 @@ const TaskSummary = () => {
   const [taskClients, setTaskClients] = useState([]);
   const [taskProspects, setTaskProspects] = useState([]);
   const [showClientsModal, setShowClientsModal] = useState(false);
+  const [activeTaskTab, setActiveTaskTab] = useState("assigned");
 
   // ✅ NEW: Complete Task Modal State
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionRemarks, setCompletionRemarks] = useState("");
   const [completingTask, setCompletingTask] = useState(false);
+  const [selectedCompletionClients, setSelectedCompletionClients] = useState([]);
+  const [selectedCompletionProspects, setSelectedCompletionProspects] = useState([]);
   // Forward to OE (when RM completes)
   const [forwardToOE, setForwardToOE] = useState(false);
   const [selectedOEId, setSelectedOEId] = useState("");
@@ -101,7 +105,7 @@ const TaskSummary = () => {
 
   // Get current user
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const employeeId = user?.id;
+  const employeeId = user?.id || user?._id;
   const employeeName = user?.username || "Employee";
   const employeeRole = user?.role || "";
   const employeeCode = user?.employeeCode || "";
@@ -215,6 +219,7 @@ const TaskSummary = () => {
           // Calculate progress
           const progress = calculateProgress(task, checklists);
           const type = task.parentTask?.type || task.type;
+          const taskMode = task.taskMode || task.parentTask?.taskMode || "assigned";
           // Get assigned clients/prospects
           const assignedClients = task.assignmentDetails?.assignedClients || [];
           const assignedProspects =
@@ -234,6 +239,13 @@ const TaskSummary = () => {
             checklists,
             progress,
             type,
+            taskMode,
+            monthlyWindowFrom:
+              task.monthlyWindowFrom ?? task.parentTask?.monthlyWindowFrom ?? null,
+            monthlyWindowTo:
+              task.monthlyWindowTo ?? task.parentTask?.monthlyWindowTo ?? null,
+            currentMonthStatus: task.currentMonthStatus || "pending",
+            pendingPreviousMonths: task.pendingPreviousMonths || [],
             assignedClients,
             assignedProspects,
             assignmentDetails: task.assignmentDetails || {},
@@ -315,6 +327,43 @@ const TaskSummary = () => {
     }
   };
 
+  const fetchRMAllottedCustomers = async () => {
+    if (!employeeId) {
+      return { clients: [], prospects: [] };
+    }
+    try {
+      const allottedRes = await axios.get("/api/rm/allotted-customers", {
+        params: { rmId: employeeId },
+      });
+      if (allottedRes.data?.success) {
+        return {
+          clients: allottedRes.data.data?.clients || [],
+          prospects: allottedRes.data.data?.prospects || [],
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching RM allotted customers:", error);
+    }
+    return { clients: [], prospects: [] };
+  };
+
+  const openCompleteModalForTask = async (task) => {
+    let preparedTask = task;
+    if (task?.taskMode === "default") {
+      const allotted = await fetchRMAllottedCustomers();
+      preparedTask = {
+        ...task,
+        assignedClients: allotted.clients,
+        assignedProspects: allotted.prospects,
+      };
+    }
+    setSelectedTask(preparedTask);
+    setCompletionRemarks("");
+    setSelectedCompletionClients([]);
+    setSelectedCompletionProspects([]);
+    setShowCompleteModal(true);
+  };
+
   // ✅ NEW: Complete Task Function (with optional Forward to OE)
   const handleCompleteTask = async () => {
     if (!selectedTask) return;
@@ -323,14 +372,14 @@ const TaskSummary = () => {
       alert("Please add completion remarks before marking as complete");
       return;
     }
-    if (forwardToOE && !selectedOEId) {
+    if (selectedTask.taskMode !== "default" && forwardToOE && !selectedOEId) {
       alert("Please select an OE to forward the task to");
       return;
     }
 
     setCompletingTask(true);
     try {
-      if (forwardToOE && selectedOEId) {
+      if (selectedTask.taskMode !== "default" && forwardToOE && selectedOEId) {
         const response = await axios.post("/api/Task/forward-to-oe", {
           taskId: selectedTask._id,
           oeId: selectedOEId,
@@ -356,6 +405,16 @@ const TaskSummary = () => {
           remarks: completionRemarks,
           employeeId: employeeId,
           employeeName: employeeName,
+          monthKey:
+            selectedTask.taskMode === "default"
+              ? `${new Date().getFullYear()}-${String(
+                  new Date().getMonth() + 1
+                ).padStart(2, "0")}`
+              : undefined,
+          completedForClients:
+            selectedTask.taskMode === "default" ? selectedCompletionClients : [],
+          completedForProspects:
+            selectedTask.taskMode === "default" ? selectedCompletionProspects : [],
         });
         if (response.data?.success) {
           alert(`✅ Task "${selectedTask.name}" marked as completed!`);
@@ -380,13 +439,23 @@ const TaskSummary = () => {
   // ✅ Load task details including clients/prospects
   const loadTaskDetails = async (task) => {
     setLoadingDetails(true);
-    setSelectedTask(task);
+    let taskForDetails = task;
 
     try {
+      if (task.taskMode === "default") {
+        const allotted = await fetchRMAllottedCustomers();
+        taskForDetails = {
+          ...task,
+          assignedClients: allotted.clients,
+          assignedProspects: allotted.prospects,
+        };
+      }
+      setSelectedTask(taskForDetails);
+
       // Load clients if assigned
-      if (task.assignedClients?.length > 0) {
+      if (taskForDetails.assignedClients?.length > 0) {
         const clientsResponse = await axios.post("/api/client/get-by-ids", {
-          ids: task.assignedClients,
+          ids: taskForDetails.assignedClients,
         });
         setTaskClients(clientsResponse.data?.clients || []);
       } else {
@@ -394,9 +463,9 @@ const TaskSummary = () => {
       }
 
       // Load prospects if assigned
-      if (task.assignedProspects?.length > 0) {
+      if (taskForDetails.assignedProspects?.length > 0) {
         const prospectsResponse = await axios.post("/api/prospect/get-by-ids", {
-          ids: task.assignedProspects,
+          ids: taskForDetails.assignedProspects,
         });
         setTaskProspects(prospectsResponse.data?.prospects || []);
       } else {
@@ -485,6 +554,11 @@ const TaskSummary = () => {
     if (filterPriority !== "all") {
       result = result.filter((task) => task.priority === filterPriority);
     }
+    result = result.filter((task) =>
+      activeTaskTab === "default"
+        ? task.taskMode === "default"
+        : task.taskMode !== "default"
+    );
 
     // Apply sorting
     if (sortConfig.key) {
@@ -514,13 +588,125 @@ const TaskSummary = () => {
 
     setFilteredTasks(result);
     setCurrentPage(1);
-  }, [tasks, filterStatus, filterPriority, sortConfig]);
+  }, [tasks, filterStatus, filterPriority, sortConfig, activeTaskTab]);
 
   // ✅ Pagination
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentTasks = filteredTasks.slice(indexOfFirstEntry, indexOfLastEntry);
   const totalPages = Math.ceil(filteredTasks.length / entriesPerPage);
+  const tableData = currentTasks.map((task) => ({ ...task, key: task._id }));
+  const tableColumns = [
+    {
+      title: "Task Category",
+      dataIndex: "type",
+      key: "type",
+      render: (val) => val || "-",
+      width: 120,
+    },
+    {
+      title: "Task Name",
+      key: "name",
+      width: 300,
+      render: (_, task) => (
+        <div>
+          <div className="fw-semibold text-dark">{task.name}</div>
+          {task.taskMode === "default" && (
+            <div className="mt-1">
+              <AntTag color="blue">
+                Window: {task.monthlyWindowFrom || "-"} - {task.monthlyWindowTo || "-"}
+              </AntTag>
+              <AntTag color={task.currentMonthStatus === "completed" ? "green" : "orange"}>
+                This Month: {task.currentMonthStatus}
+              </AntTag>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Company",
+      dataIndex: "company",
+      key: "company",
+      width: 160,
+      render: (val) => val || "-",
+    },
+    {
+      title: "Priority",
+      key: "priority",
+      width: 120,
+      render: (_, task) => (
+        <AntTag color={task.priority === "urgent" ? "red" : task.priority === "high" ? "orange" : task.priority === "medium" ? "blue" : "default"}>
+          {priorityConfig[task.priority]?.text || "MEDIUM"}
+        </AntTag>
+      ),
+    },
+    {
+      title: "Due / Timeline",
+      key: "dueDate",
+      width: 160,
+      render: (_, task) =>
+        task.taskMode === "default" ? (
+          <span className="text-muted small">Monthly recurring</span>
+        ) : (
+          <div>
+            <div className="small">{task.dueDate ? formatDate(task.dueDate) : "-"}</div>
+            <div className="small">{renderDaysLeft(task.daysLeft)}</div>
+          </div>
+        ),
+    },
+    {
+      title: "Status",
+      key: "status",
+      width: 120,
+      render: (_, task) => (
+        <AntTag color={task.status === "completed" ? "green" : task.status === "in-progress" ? "blue" : task.status === "overdue" ? "red" : "default"}>
+          {statusConfig[task.status]?.text || "PENDING"}
+        </AntTag>
+      ),
+    },
+    {
+      title: "Client / Prospect",
+      key: "entities",
+      width: 180,
+      render: (_, task) => (
+        <div>
+          <div className="small">C: {task.assignedClients?.length || 0}</div>
+          <div className="small">P: {task.assignedProspects?.length || 0}</div>
+          {task.taskMode === "default" && task.pendingPreviousMonths?.length > 0 && (
+            <AntTag color="red">Pending months: {task.pendingPreviousMonths.length}</AntTag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 190,
+      render: (_, task) => (
+        <AntSpace>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={() => navigate(`/rm/task/${task._id}`)}
+          >
+            <FaEye className="me-1" />
+            View
+          </Button>
+          <Button
+            variant="success"
+            size="sm"
+            onClick={() => openCompleteModalForTask(task)}
+            disabled={task.status === "completed"}
+          >
+            <FaCheckCircle className="me-1" />
+            Complete
+          </Button>
+        </AntSpace>
+      ),
+    },
+  ];
 
   // ✅ Calculate statistics
   const stats = {
@@ -532,6 +718,23 @@ const TaskSummary = () => {
     urgentPriority: tasks.filter((t) => t.priority === "urgent").length,
     withClients: tasks.filter((t) => t.assignedClients?.length > 0).length,
     withProspects: tasks.filter((t) => t.assignedProspects?.length > 0).length,
+  };
+  const tabLabel = activeTaskTab === "default" ? "Default Tasks" : "Assigned Tasks";
+  const tabVariant = activeTaskTab === "default" ? "info" : "primary";
+  const tabStats = {
+    total: filteredTasks.length,
+    dueSoon: filteredTasks.filter(
+      (task) => task.daysLeft !== null && task.daysLeft >= 0 && task.daysLeft <= 2
+    ).length,
+    overdue: filteredTasks.filter((task) => task.daysLeft !== null && task.daysLeft < 0)
+      .length,
+    completedThisMonth: filteredTasks.filter(
+      (task) => task.taskMode === "default" && task.currentMonthStatus === "completed"
+    ).length,
+    pendingMonths: filteredTasks.reduce(
+      (acc, task) => acc + (task.pendingPreviousMonths?.length || 0),
+      0
+    ),
   };
 
   // Loading state
@@ -555,6 +758,12 @@ const TaskSummary = () => {
     <div className="container-fluid mt-3">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 className="mb-1 fw-bold text-dark">Task Summary</h4>
+          <p className="text-muted small mb-0">
+            Better visibility for recurring default tasks and regular assignments.
+          </p>
+        </div>
         <div className="d-flex align-items-center gap-2">
           <Button
             variant="outline-primary"
@@ -570,11 +779,22 @@ const TaskSummary = () => {
       {/* Tasks Table */}
       <Card className="border-0 shadow-sm">
         <Card.Header className="bg-white border-0 py-3">
+          <Tabs
+            activeKey={activeTaskTab}
+            onSelect={(key) => setActiveTaskTab(key || "assigned")}
+            className="mb-3"
+          >
+            <Tab eventKey="assigned" title="Assigned Tasks" />
+            <Tab eventKey="default" title="Default Tasks" />
+          </Tabs>
           <Row className="align-items-center">
             <Col md={6}>
-              <h5 className="fw-bold text-dark mb-0">
-                Assigned Tasks ({filteredTasks.length})
-              </h5>
+              <div className="d-flex align-items-center gap-2">
+                <Badge bg={tabVariant} pill className="px-3 py-2">
+                  {tabLabel}
+                </Badge>
+                <h5 className="fw-bold text-dark mb-0">{filteredTasks.length}</h5>
+              </div>
             </Col>
             <Col md={6}>
               <div className="d-flex justify-content-end gap-2">
@@ -630,6 +850,46 @@ const TaskSummary = () => {
         </Card.Header>
 
         <Card.Body className="p-0">
+          <div className="px-3 py-3 border-bottom bg-light-subtle">
+            <Row className="g-2">
+              <Col xs={6} md={3} lg={2}>
+                <div className="bg-white border rounded p-2">
+                  <small className="text-muted d-block">Total</small>
+                  <span className="fw-bold">{tabStats.total}</span>
+                </div>
+              </Col>
+              <Col xs={6} md={3} lg={2}>
+                <div className="bg-white border rounded p-2">
+                  <small className="text-muted d-block">Due Soon</small>
+                  <span className="fw-bold text-warning">{tabStats.dueSoon}</span>
+                </div>
+              </Col>
+              <Col xs={6} md={3} lg={2}>
+                <div className="bg-white border rounded p-2">
+                  <small className="text-muted d-block">Overdue</small>
+                  <span className="fw-bold text-danger">{tabStats.overdue}</span>
+                </div>
+              </Col>
+              {activeTaskTab === "default" && (
+                <>
+                  <Col xs={6} md={3} lg={3}>
+                    <div className="bg-white border rounded p-2">
+                      <small className="text-muted d-block">Completed This Month</small>
+                      <span className="fw-bold text-success">
+                        {tabStats.completedThisMonth}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col xs={6} md={3} lg={3}>
+                    <div className="bg-white border rounded p-2">
+                      <small className="text-muted d-block">Pending Month Logs</small>
+                      <span className="fw-bold text-danger">{tabStats.pendingMonths}</span>
+                    </div>
+                  </Col>
+                </>
+              )}
+            </Row>
+          </div>
           {filteredTasks.length === 0 ? (
             <div className="text-center py-5">
               <FaTasks size={48} className="text-muted mb-3" />
@@ -642,179 +902,13 @@ const TaskSummary = () => {
             </div>
           ) : (
             <>
-              <div className="table-responsive">
-                <Table hover className="mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="px-3 py-3">Task Category</th>
-                      <th className="py-3 px-3">Task Name</th>
-                      <th className="py-3 px-3">Company</th>
-                      <th className="py-3 px-3">Priority</th>
-                      <th className="py-3 px-3">Due Date</th>
-                      <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3">Checklists</th>
-                      <th className="py-3 px-3">Progress</th>
-                      <th className="py-3 px-3">Client/Prospect</th>
-                      <th className="py-3 px-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTasks.map((task) => (
-                      <tr key={task._id}>
-                        <td className="py-3 px-3">
-                          <span className="text-dark">{task.type || "-"}</span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div>
-                            <h6 className="fw-semibold text-dark mb-1">
-                              {task.name}
-                            </h6>
-                            {task.remarks && (
-                              <small className="text-muted d-block">
-                                {task.remarks.length > 40
-                                  ? `${task.remarks.substring(0, 40)}...`
-                                  : task.remarks}
-                              </small>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="text-dark">
-                            {task.company || "-"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <Badge
-                            className={`px-3 py-1 ${
-                              priorityConfig[task.priority]?.className ||
-                              "bg-secondary text-white"
-                            }`}
-                            style={{
-                              backgroundColor:
-                                priorityConfig[task.priority]?.bg,
-                              color: priorityConfig[task.priority]?.textColor,
-                            }}
-                          >
-                            {priorityConfig[task.priority]?.text || "MEDIUM"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div>
-                            <div className="text-dark small">
-                              {task.dueDate ? formatDate(task.dueDate) : "-"}
-                            </div>
-                            <div className="small">
-                              {renderDaysLeft(task.daysLeft)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <Badge
-                            className={`px-3 py-1 ${
-                              statusConfig[task.status]?.className ||
-                              "bg-secondary text-white"
-                            }`}
-                            style={{
-                              backgroundColor: statusConfig[task.status]?.bg,
-                              color: statusConfig[task.status]?.textColor,
-                            }}
-                          >
-                            {statusConfig[task.status]?.text || "PENDING"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-3">
-                          <Button
-                            variant={
-                              task.checklists?.length > 0
-                                ? "outline-primary"
-                                : "outline-secondary"
-                            }
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTask(task);
-                              setSelectedChecklist(task.checklists || []);
-                              setShowChecklistModal(true);
-                            }}
-                            disabled={!task.checklists?.length}
-                            className="px-3"
-                          >
-                            <FaList className="me-1" />
-                            {task.checklists?.length || 0} items
-                          </Button>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="d-flex align-items-center">
-                            <ProgressBar
-                              now={task.progress || 0}
-                              className="flex-grow-1 me-2"
-                              style={{ height: "6px" }}
-                              variant={
-                                task.progress === 100 ? "success" : "primary"
-                              }
-                            />
-                            <span className="text-dark small fw-semibold">
-                              {task.progress || 0}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div>
-                            {task.assignedClients?.length > 0 && (
-                              <div className="mb-1">
-                                <Badge bg="success" className="me-1">
-                                  {task.assignedClients.length} Client(s)
-                                </Badge>
-                              </div>
-                            )}
-                            {task.assignedProspects?.length > 0 && (
-                              <div>
-                                <Badge bg="info">
-                                  {task.assignedProspects.length} Prospect(s)
-                                </Badge>
-                              </div>
-                            )}
-                            {task.assignedClients?.length === 0 &&
-                              task.assignedProspects?.length === 0 && (
-                                <span className="text-muted small">None</span>
-                              )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <div className="d-flex justify-content-center gap-2">
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              onClick={() => navigate(`/rm/task/${task._id}`)}
-                              title="View Details"
-                              className="px-3"
-                            >
-                              <FaEye className="me-1" />
-                              View
-                            </Button>
-
-                            {/* ✅ NEW: Complete Task Button */}
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedTask(task);
-                                setCompletionRemarks("");
-                                setShowCompleteModal(true);
-                              }}
-                              disabled={task.status === "completed"}
-                              title="Mark as Completed"
-                              className="px-3"
-                            >
-                              <FaCheckCircle className="me-1" />
-                              Complete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
+              <AntTable
+                columns={tableColumns}
+                dataSource={tableData}
+                pagination={false}
+                size="middle"
+                scroll={{ x: 1300 }}
+              />
 
               {/* Pagination */}
               {filteredTasks.length > 0 && totalPages > 1 && (
@@ -919,21 +1013,23 @@ const TaskSummary = () => {
                 </Form.Text>
               </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Check
-                  type="checkbox"
-                  id="forward-to-oe"
-                  label={
-                    <>
-                      <FaShareAlt className="me-2" />
-                      Also forward to OE
-                    </>
-                  }
-                  checked={forwardToOE}
-                  onChange={(e) => setForwardToOE(e.target.checked)}
-                />
-              </Form.Group>
-              {forwardToOE && (
+              {selectedTask?.taskMode !== "default" && (
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    id="forward-to-oe"
+                    label={
+                      <>
+                        <FaShareAlt className="me-2" />
+                        Also forward to OE
+                      </>
+                    }
+                    checked={forwardToOE}
+                    onChange={(e) => setForwardToOE(e.target.checked)}
+                  />
+                </Form.Group>
+              )}
+              {selectedTask?.taskMode !== "default" && forwardToOE && (
                 <>
                   <Form.Group className="mb-2">
                     <Form.Label>Select OE</Form.Label>
@@ -965,9 +1061,65 @@ const TaskSummary = () => {
 
               <Alert variant="warning">
                 <FaExclamationCircle className="me-2" />
-                <strong>Note:</strong> Once completed, this task will be removed
-                from your active tasks list.
+                <strong>Note:</strong>{" "}
+                {selectedTask?.taskMode === "default"
+                  ? "Default task complete karne par monthly log save hoga, task list me visible rahega."
+                  : "Assigned task complete karne par wo active list se remove ho jayega."}
               </Alert>
+              {selectedTask?.taskMode === "default" && (
+                <Alert variant="info">
+                  <strong>Default Task:</strong> completion month-wise save hogi,
+                  task list se remove nahi hoga.
+                </Alert>
+              )}
+              {selectedTask?.taskMode === "default" && (
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-semibold">
+                        Clients completed for
+                      </Form.Label>
+                      <Form.Select
+                        multiple
+                        value={selectedCompletionClients}
+                        onChange={(e) =>
+                          setSelectedCompletionClients(
+                            Array.from(e.target.selectedOptions).map((o) => o.value)
+                          )
+                        }
+                      >
+                        {(selectedTask.assignedClients || []).map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.personalDetails?.groupName || c.personalDetails?.name || "Client"}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-semibold">
+                        Prospects completed for
+                      </Form.Label>
+                      <Form.Select
+                        multiple
+                        value={selectedCompletionProspects}
+                        onChange={(e) =>
+                          setSelectedCompletionProspects(
+                            Array.from(e.target.selectedOptions).map((o) => o.value)
+                          )
+                        }
+                      >
+                        {(selectedTask.assignedProspects || []).map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.personalDetails?.groupName || p.personalDetails?.name || "Prospect"}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
             </div>
           )}
         </Modal.Body>
@@ -1067,13 +1219,15 @@ const TaskSummary = () => {
                           {selectedTask.product}
                         </span>
                       </div>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Duration</small>
-                        <span className="fw-semibold">
-                          {selectedTask.estimatedDays} day
-                          {selectedTask.estimatedDays !== 1 ? "s" : ""}
-                        </span>
-                      </div>
+                      {selectedTask.taskMode !== "default" && (
+                        <div className="mb-2">
+                          <small className="text-muted d-block">Duration</small>
+                          <span className="fw-semibold">
+                            {selectedTask.estimatedDays} day
+                            {selectedTask.estimatedDays !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
                       <div className="mb-2">
                         <small className="text-muted d-block">
                           Checklist Items
@@ -1209,10 +1363,9 @@ const TaskSummary = () => {
                 </Button>
                 <Button
                   variant="success"
-                  onClick={() => {
+                  onClick={async () => {
                     setShowTaskDetail(false);
-                    setCompletionRemarks("");
-                    setShowCompleteModal(true);
+                    await openCompleteModalForTask(selectedTask);
                   }}
                   disabled={selectedTask.status === "completed"}
                 >

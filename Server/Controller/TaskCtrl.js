@@ -110,6 +110,7 @@ export const createTask = async (req, res) => {
 
           return checklistItem;
         });
+        formChecklists = formChecklists.filter((item) => item.name);
       } catch (error) {
         console.error("❌ Error in formChecklists processing:", error);
       }
@@ -130,6 +131,13 @@ export const createTask = async (req, res) => {
       name: req.body.name,
       estimatedDays: parseInt(req.body.estimatedDays) || 1,
       templatePriority: req.body.templatePriority || "medium",
+      taskMode: req.body.taskMode === "default" ? "default" : "assigned",
+      monthlyWindowFrom: req.body.monthlyWindowFrom
+        ? parseInt(req.body.monthlyWindowFrom, 10)
+        : null,
+      monthlyWindowTo: req.body.monthlyWindowTo
+        ? parseInt(req.body.monthlyWindowTo, 10)
+        : null,
       descp: {
         text: req.body.descpText || "",
         image: image,
@@ -144,6 +152,25 @@ export const createTask = async (req, res) => {
     };
 
     console.log("📋 Saving task with formChecklists:", taskData.formChecklists);
+
+    if (
+      taskData.taskMode === "default" &&
+      (taskData.monthlyWindowFrom === null || taskData.monthlyWindowTo === null)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Default task requires monthly window (from/to day)",
+      });
+    }
+    if (
+      taskData.taskMode === "default" &&
+      taskData.monthlyWindowFrom > taskData.monthlyWindowTo
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Monthly window start day cannot be greater than end day",
+      });
+    }
 
     // ✅ Marketing aur Composite ke liye assignments field add karo
     if (type === "composite" || type === "marketing") {
@@ -296,6 +323,32 @@ export const updateTask = async (req, res) => {
       }),
       ...(req.body.templatePriority && {
         templatePriority: req.body.templatePriority,
+      }),
+      ...(req.body.taskMode && {
+        taskMode: req.body.taskMode === "default" ? "default" : "assigned",
+      }),
+      ...(req.body.monthlyWindowFrom !== undefined && {
+        monthlyWindowFrom: req.body.monthlyWindowFrom
+          ? parseInt(req.body.monthlyWindowFrom, 10)
+          : null,
+      }),
+      ...(req.body.monthlyWindowTo !== undefined && {
+        monthlyWindowTo: req.body.monthlyWindowTo
+          ? parseInt(req.body.monthlyWindowTo, 10)
+          : null,
+      }),
+      ...(req.body.taskMode && {
+        taskMode: req.body.taskMode === "default" ? "default" : "assigned",
+      }),
+      ...(req.body.monthlyWindowFrom !== undefined && {
+        monthlyWindowFrom: req.body.monthlyWindowFrom
+          ? parseInt(req.body.monthlyWindowFrom, 10)
+          : null,
+      }),
+      ...(req.body.monthlyWindowTo !== undefined && {
+        monthlyWindowTo: req.body.monthlyWindowTo
+          ? parseInt(req.body.monthlyWindowTo, 10)
+          : null,
       }),
       ...(req.body.email_descp !== undefined && {
         email_descp: req.body.email_descp,
@@ -507,12 +560,18 @@ export const assignCompositeTask = async (req, res) => {
         assignedAt: new Date(),
         priority: priority || task.templatePriority || "medium",
         remarks: remarks || "",
-        dueDate: dueDate
-          ? new Date(dueDate)
-          : new Date(
-              Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-            ),
+        dueDate:
+          task.taskMode === "default"
+            ? null
+            : dueDate
+            ? new Date(dueDate)
+            : new Date(
+                Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+              ),
         status: "pending",
+        taskMode: task.taskMode || "assigned",
+        monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+        monthlyWindowTo: task.monthlyWindowTo ?? null,
         // ✅ NEW: Add client/prospect references to each assignment
         assignedClients: validatedClients,
         assignedProspects: validatedProspects,
@@ -562,6 +621,9 @@ export const assignCompositeTask = async (req, res) => {
         whatsapp_descp: task.whatsapp_descp,
         checklists: task.checklists,
         formChecklists: task.formChecklists,
+        taskMode: task.taskMode || "assigned",
+        monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+        monthlyWindowTo: task.monthlyWindowTo ?? null,
         status: "assigned",
         parentTask: taskId,
         assignedTo: assignment.employeeId,
@@ -730,7 +792,10 @@ export const getAssignedTasks = async (req, res) => {
     // ✅ IMPORTANT: First find without populate
     const tasks = await TaskModel.find({
       assignedTo: employeeId,
-      status: { $in: ["assigned", "in-progress", "pending"] },
+      $or: [
+        { status: { $in: ["assigned", "in-progress", "pending"] } },
+        { taskMode: "default" },
+      ],
     })
       .populate({
         path: "parentTask",
@@ -775,6 +840,32 @@ export const getAssignedTasks = async (req, res) => {
       // ✅ Get client/prospect details
       const clientDetails = task.assignmentDetails?.assignedClients || [];
       const prospectDetails = task.assignmentDetails?.assignedProspects || [];
+      const completionLogs = Array.isArray(task.defaultTaskCompletions)
+        ? task.defaultTaskCompletions
+        : [];
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}`;
+      const completedMonthSet = new Set(
+        completionLogs.map((entry) => entry.monthKey).filter(Boolean)
+      );
+      const pendingPreviousMonths = [];
+      if (task.taskMode === "default") {
+        const startDate = new Date(task.createdAt || now);
+        startDate.setDate(1);
+        const cursor = new Date(startDate);
+        const guard = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        while (cursor < guard) {
+          const key = `${cursor.getFullYear()}-${String(
+            cursor.getMonth() + 1
+          ).padStart(2, "0")}`;
+          if (!completedMonthSet.has(key)) {
+            pendingPreviousMonths.push(key);
+          }
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      }
 
       return {
         id: task._id,
@@ -795,6 +886,14 @@ export const getAssignedTasks = async (req, res) => {
         status: task.status,
         estimatedDays:
           task.estimatedDays || task.parentTask?.estimatedDays || 1,
+        taskMode: task.taskMode || "assigned",
+        monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+        monthlyWindowTo: task.monthlyWindowTo ?? null,
+        defaultTaskCompletions: completionLogs,
+        currentMonthStatus: completedMonthSet.has(currentMonthKey)
+          ? "completed"
+          : "pending",
+        pendingPreviousMonths,
         assignmentDetails: task.assignmentDetails || {},
         cat: task.cat || { name: "General" },
         // ✅ IMPORTANT: Yeh fields frontend ke liye
@@ -1235,12 +1334,18 @@ export const assignMarketingTask = async (req, res) => {
       assignedAt: new Date(),
       priority: priority || task.templatePriority || "medium",
       remarks: remarks || "",
-      dueDate: dueDate
-        ? new Date(dueDate)
-        : new Date(
-            Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-          ),
+      dueDate:
+        task.taskMode === "default"
+          ? null
+          : dueDate
+          ? new Date(dueDate)
+          : new Date(
+              Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+            ),
       status: "pending",
+      taskMode: task.taskMode || "assigned",
+      monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+      monthlyWindowTo: task.monthlyWindowTo ?? null,
       // ✅ NEW: Add client/prospect references
       assignedClients: validatedClients,
       assignedProspects: validatedProspects,
@@ -1276,6 +1381,9 @@ export const assignMarketingTask = async (req, res) => {
       whatsapp_descp: task.whatsapp_descp,
       checklists: task.checklists,
       formChecklists: task.formChecklists,
+      taskMode: task.taskMode || "assigned",
+      monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+      monthlyWindowTo: task.monthlyWindowTo ?? null,
       status: "assigned",
       parentTask: taskId,
       assignedTo: employeeId,
@@ -1663,6 +1771,19 @@ export const updateMarketingTask = async (req, res) => {
       ...(req.body.templatePriority && {
         templatePriority: req.body.templatePriority,
       }),
+      ...(req.body.taskMode && {
+        taskMode: req.body.taskMode === "default" ? "default" : "assigned",
+      }),
+      ...(req.body.monthlyWindowFrom !== undefined && {
+        monthlyWindowFrom: req.body.monthlyWindowFrom
+          ? parseInt(req.body.monthlyWindowFrom, 10)
+          : null,
+      }),
+      ...(req.body.monthlyWindowTo !== undefined && {
+        monthlyWindowTo: req.body.monthlyWindowTo
+          ? parseInt(req.body.monthlyWindowTo, 10)
+          : null,
+      }),
       ...(req.body.email_descp !== undefined && {
         email_descp: req.body.email_descp,
       }),
@@ -1990,12 +2111,18 @@ export const assignServiceTask = async (req, res) => {
       assignedAt: new Date(),
       priority: priority || task.templatePriority || "medium",
       remarks: remarks || "",
-      dueDate: dueDate
-        ? new Date(dueDate)
-        : new Date(
-            Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
-          ),
+      dueDate:
+        task.taskMode === "default"
+          ? null
+          : dueDate
+          ? new Date(dueDate)
+          : new Date(
+              Date.now() + (task.estimatedDays || 1) * 24 * 60 * 60 * 1000
+            ),
       status: "pending",
+      taskMode: task.taskMode || "assigned",
+      monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+      monthlyWindowTo: task.monthlyWindowTo ?? null,
       // ✅ NEW: Add client/prospect references
       assignedClients: validatedClients,
       assignedProspects: validatedProspects,
@@ -2031,6 +2158,9 @@ export const assignServiceTask = async (req, res) => {
       whatsapp_descp: task.whatsapp_descp,
       checklists: task.checklists,
       formChecklists: task.formChecklists,
+      taskMode: task.taskMode || "assigned",
+      monthlyWindowFrom: task.monthlyWindowFrom ?? null,
+      monthlyWindowTo: task.monthlyWindowTo ?? null,
       status: "assigned",
       parentTask: taskId,
       assignedTo: employeeId,
@@ -2649,12 +2779,69 @@ export const updateEntityTaskStatus = async (req, res) => {
     }
 
     // Check if entity is assigned to this task
-    const isClient = task.assignmentDetails?.assignedClients?.some(
+    let isClient = task.assignmentDetails?.assignedClients?.some(
       (id) => id.toString() === entityId
     );
-    const isProspect = task.assignmentDetails?.assignedProspects?.some(
+    let isProspect = task.assignmentDetails?.assignedProspects?.some(
       (id) => id.toString() === entityId
     );
+    let entityType = isClient ? "client" : isProspect ? "prospect" : null;
+
+    // Default tasks can operate on RM allotted customers as fallback
+    if (!isClient && !isProspect && task.taskMode === "default") {
+      const entityDoc = await SusProsClient.findById(entityId)
+        .select("status assignedToRM personalDetails.allocatedRM")
+        .lean();
+
+      const assignedRmId = task.assignedTo?.toString();
+      const isAllottedByAssignedToRm =
+        entityDoc?.assignedToRM &&
+        assignedRmId &&
+        entityDoc.assignedToRM.toString() === assignedRmId;
+      const isAllottedByAllocatedRm =
+        entityDoc?.personalDetails?.allocatedRM &&
+        assignedRmId &&
+        entityDoc.personalDetails.allocatedRM.toString() === assignedRmId;
+      const isAllottedToThisRm =
+        isAllottedByAssignedToRm || isAllottedByAllocatedRm;
+
+      if (
+        entityDoc &&
+        isAllottedToThisRm &&
+        (entityDoc.status === "client" || entityDoc.status === "prospect")
+      ) {
+        entityType = entityDoc.status;
+        isClient = entityType === "client";
+        isProspect = entityType === "prospect";
+
+        // Keep task assignmentDetails in sync for future validations/reporting
+        if (!task.assignmentDetails) {
+          task.assignmentDetails = {};
+        }
+        if (!Array.isArray(task.assignmentDetails.assignedClients)) {
+          task.assignmentDetails.assignedClients = [];
+        }
+        if (!Array.isArray(task.assignmentDetails.assignedProspects)) {
+          task.assignmentDetails.assignedProspects = [];
+        }
+        if (
+          isClient &&
+          !task.assignmentDetails.assignedClients.some(
+            (id) => id.toString() === entityId
+          )
+        ) {
+          task.assignmentDetails.assignedClients.push(entityId);
+        }
+        if (
+          isProspect &&
+          !task.assignmentDetails.assignedProspects.some(
+            (id) => id.toString() === entityId
+          )
+        ) {
+          task.assignmentDetails.assignedProspects.push(entityId);
+        }
+      }
+    }
 
     if (!isClient && !isProspect) {
       return res.status(400).json({
@@ -2662,8 +2849,6 @@ export const updateEntityTaskStatus = async (req, res) => {
         message: "This entity is not assigned to this task",
       });
     }
-
-    const entityType = isClient ? "client" : "prospect";
 
     // 2. Update the task's status array
     const statusEntry = {
@@ -2698,7 +2883,6 @@ export const updateEntityTaskStatus = async (req, res) => {
     await task.save();
 
     // 3. Now update the client/prospect document with COMPLETE HISTORY
-    const SusProsClient = mongoose.model("testSchema");
     const Employee = mongoose.model("Employee");
 
     // Get employee details (optional)
@@ -3053,7 +3237,15 @@ export const getEntityTaskStatus = async (req, res) => {
 export const updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { status, remarks, employeeId, employeeName } = req.body;
+    const {
+      status,
+      remarks,
+      employeeId,
+      employeeName,
+      monthKey,
+      completedForClients = [],
+      completedForProspects = [],
+    } = req.body;
 
     console.log(`🔄 Updating task ${taskId} status to ${status}`);
 
@@ -3067,10 +3259,39 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
 
-    task.status = status;
-    if (status === "completed") task.completedAt = new Date();
-    if (remarks && task.assignmentDetails) {
-      task.assignmentDetails.completionRemarks = remarks;
+    const isDefaultTask = task.taskMode === "default";
+    if (isDefaultTask && status === "completed") {
+      const now = new Date();
+      const resolvedMonthKey =
+        monthKey ||
+        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const existingIndex = (task.defaultTaskCompletions || []).findIndex(
+        (entry) => entry.monthKey === resolvedMonthKey
+      );
+      const completionEntry = {
+        monthKey: resolvedMonthKey,
+        completedAt: now,
+        remarks: remarks || "",
+        completedBy: employeeId || undefined,
+        completedForClients: Array.isArray(completedForClients)
+          ? completedForClients
+          : [],
+        completedForProspects: Array.isArray(completedForProspects)
+          ? completedForProspects
+          : [],
+      };
+      if (existingIndex >= 0) {
+        task.defaultTaskCompletions[existingIndex] = completionEntry;
+      } else {
+        task.defaultTaskCompletions.push(completionEntry);
+      }
+      task.status = "assigned";
+    } else {
+      task.status = status;
+      if (status === "completed") task.completedAt = new Date();
+      if (remarks && task.assignmentDetails) {
+        task.assignmentDetails.completionRemarks = remarks;
+      }
     }
 
     await task.save();
@@ -3083,6 +3304,8 @@ export const updateTaskStatus = async (req, res) => {
         name: task.name,
         status: task.status,
         completedAt: task.completedAt,
+        taskMode: task.taskMode || "assigned",
+        defaultTaskCompletions: task.defaultTaskCompletions || [],
       },
     });
   } catch (error) {
@@ -3122,6 +3345,12 @@ export const forwardTaskToOE = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "Not authorized to forward this task",
+      });
+    }
+    if ((rmTask.taskMode || "assigned") === "default") {
+      return res.status(400).json({
+        success: false,
+        message: "Default tasks cannot be forwarded to OE",
       });
     }
 

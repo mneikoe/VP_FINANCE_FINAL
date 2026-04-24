@@ -503,3 +503,61 @@ exports.getAssignedSuspects = async (req, res) => {
     });
   }
 };
+
+// ✅ Get RM allotted customers (clients + prospects)
+exports.getAllottedCustomers = async (req, res) => {
+  try {
+    const { rmId } = req.query;
+    if (!rmId) {
+      return res.status(400).json({
+        success: false,
+        message: "rmId is required",
+      });
+    }
+
+    // Keep source aligned with Customer Master API:
+    // Customer master uses personalDetails.allocatedRM, so default-task lists must use the same.
+    let rmFilter = { role: "RM" };
+    if (mongoose.Types.ObjectId.isValid(rmId.trim())) {
+      rmFilter._id = rmId.trim();
+    } else {
+      rmFilter.$or = [
+        { name: { $regex: rmId.trim(), $options: "i" } },
+        { employeeCode: { $regex: rmId.trim(), $options: "i" } },
+      ];
+    }
+
+    const rm = await Employee.findOne(rmFilter).select("_id name employeeCode");
+    if (!rm) {
+      return res.status(200).json({
+        success: true,
+        data: { clients: [], prospects: [] },
+      });
+    }
+
+    const records = await TestSchema.find({
+      "personalDetails.allocatedRM": rm._id.toString(),
+      status: { $in: ["client", "prospect"] },
+    }).select(
+      "_id status personalDetails assignedToRM assignedToRMName assignedToRMCode"
+    );
+
+    const clients = records.filter((item) => item.status === "client");
+    const prospects = records.filter((item) => item.status === "prospect");
+
+    res.status(200).json({
+      success: true,
+      data: {
+        clients,
+        prospects,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching allotted customers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch allotted customers",
+      error: error.message,
+    });
+  }
+};

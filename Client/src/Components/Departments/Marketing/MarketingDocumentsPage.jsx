@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  AutoComplete,
   Button,
   Card,
   Form,
@@ -35,6 +36,7 @@ const MarketingDocumentsPage = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const selectedFinancialProduct = Form.useWatch("financialProduct", form);
+  const selectedDocumentType = Form.useWatch("documentType", form);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -90,6 +92,27 @@ const MarketingDocumentsPage = ({
       })),
     [companies]
   );
+
+  const selectedTypeMeta = useMemo(
+    () => documentTypes.find((doc) => doc?._id === selectedDocumentType),
+    [documentTypes, selectedDocumentType]
+  );
+
+  const documentNameOptions = useMemo(
+    () =>
+      (selectedTypeMeta?.documentNames || []).map((name) => ({
+        value: name,
+        label: name,
+      })),
+    [selectedTypeMeta]
+  );
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const dateObj = new Date(value);
+    if (Number.isNaN(dateObj.getTime())) return "-";
+    return dateObj.toLocaleString("en-IN");
+  };
 
   const onCreate = async (values) => {
     if (!selectedFile) {
@@ -172,6 +195,17 @@ const MarketingDocumentsPage = ({
       title: "Document Name",
       dataIndex: "documentName",
       key: "documentName",
+    },
+    {
+      title: "Last Uploaded",
+      dataIndex: "lastUploadedAt",
+      key: "lastUploadedAt",
+      render: (value, record) => formatDateTime(value || record?.createdAt),
+    },
+    {
+      title: "Total Uploads",
+      key: "uploadCount",
+      render: (_, record) => record?.uploadHistory?.length || 1,
     },
     {
       title: "Upload",
@@ -299,6 +333,7 @@ const MarketingDocumentsPage = ({
                   showSearch
                   placeholder="Select document type"
                   options={documentTypes.map((doc) => ({ label: doc.name, value: doc._id }))}
+                  onChange={() => form.setFieldValue("documentName", undefined)}
                 />
               </Form.Item>
 
@@ -308,7 +343,21 @@ const MarketingDocumentsPage = ({
                 rules={[{ required: true, message: "Enter document name" }]}
                 style={{ minWidth: 260 }}
               >
-                <Input placeholder="e.g. Product Brochure / Policy PDF" />
+                <AutoComplete
+                  options={documentNameOptions}
+                  placeholder={
+                    selectedDocumentType
+                      ? "Select or type document name"
+                      : "First select document type"
+                  }
+                  filterOption={(inputValue, option) =>
+                    String(option?.value || "")
+                      .toLowerCase()
+                      .includes(inputValue.toLowerCase())
+                  }
+                >
+                  <Input />
+                </AutoComplete>
               </Form.Item>
 
               <Form.Item label="Upload File" required style={{ minWidth: 240 }}>

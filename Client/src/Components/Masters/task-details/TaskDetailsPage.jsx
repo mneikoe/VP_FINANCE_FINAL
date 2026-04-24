@@ -53,6 +53,17 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import { format, parseISO } from "date-fns";
+import {
+  Card as AntCard,
+  Select as AntSelect,
+  Button as AntButton,
+  message,
+  Tag as AntTag,
+  Table as AntTable,
+  Space as AntSpace,
+  Modal as AntModal,
+  Input as AntInput,
+} from "antd";
 
 const TaskDetailsPage = () => {
   const { taskId } = useParams();
@@ -76,10 +87,15 @@ const TaskDetailsPage = () => {
   const [entityHistory, setEntityHistory] = useState([]);
   const [entityFullHistory, setEntityFullHistory] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedClientIds, setSelectedClientIds] = useState([]);
+  const [selectedProspectIds, setSelectedProspectIds] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("in-progress");
+  const [bulkRemarks, setBulkRemarks] = useState("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   // Get current user from localStorage
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-  const employeeId = currentUser?.id;
+  const employeeId = currentUser?.id || currentUser?._id;
   const employeeName = currentUser?.username || "Employee";
 
   // Status options
@@ -112,11 +128,26 @@ const TaskDetailsPage = () => {
       icon: FaTimes,
     },
   };
+  const buildEntityStatusMap = (taskData) => {
+    const map = {};
+    const statuses = Array.isArray(taskData?.clientProspectStatuses)
+      ? taskData.clientProspectStatuses
+      : [];
+    statuses.forEach((entry) => {
+      const id =
+        typeof entry?.entityId === "string"
+          ? entry.entityId
+          : entry?.entityId?._id || entry?.entityId?.toString?.();
+      if (id) {
+        map[id] = entry;
+      }
+    });
+    return map;
+  };
 
   // Fetch task details
   useEffect(() => {
     fetchTaskDetails();
-    fetchEntityStatuses();
   }, [taskId, refreshKey]);
 
   const fetchTaskDetails = async () => {
@@ -127,8 +158,29 @@ const TaskDetailsPage = () => {
       if (response.data.success) {
         let taskData = response.data.task;
 
-        // If client/prospect details are missing, fetch from assigned tasks
+        const isDefaultTask = (taskData.taskMode || "assigned") === "default";
+
+        // For default task: always use RM allotted customers (same as customer master).
+        if (isDefaultTask && employeeId) {
+          try {
+            const allottedRes = await axios.get("/api/rm/allotted-customers", {
+              params: { rmId: employeeId },
+            });
+            if (allottedRes.data?.success) {
+              taskData = {
+                ...taskData,
+                assignedClients: allottedRes.data.data?.clients || [],
+                assignedProspects: allottedRes.data.data?.prospects || [],
+              };
+            }
+          } catch (allottedError) {
+            console.error("Error fetching RM allotted customers:", allottedError);
+          }
+        }
+
+        // For non-default tasks, use previous fallback strategy
         if (
+          !isDefaultTask &&
           (!taskData.assignedClients ||
             taskData.assignedClients.length === 0) &&
           (!taskData.assignedProspects ||
@@ -159,10 +211,12 @@ const TaskDetailsPage = () => {
             } catch (error) {
               console.error("Error fetching assigned tasks:", error);
             }
+
           }
         }
 
         setTask(taskData);
+        setEntityStatuses(buildEntityStatusMap(taskData));
 
         // Load checklist status from localStorage
         const checklistStatus = {};
@@ -176,23 +230,6 @@ const TaskDetailsPage = () => {
       console.error("Error fetching task details:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchEntityStatuses = async () => {
-    try {
-      // Fetch entity statuses from backend
-      const response = await axios.get(`/api/Task/entity-status/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.data.success) {
-        setEntityStatuses(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching entity statuses:", error);
     }
   };
 
@@ -289,7 +326,7 @@ const TaskDetailsPage = () => {
     try {
       const entityId = selectedEntity._id || selectedEntity.id;
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const employeeId = currentUser?.id;
+      const employeeId = currentUser?.id || currentUser?._id;
       const employeeName = currentUser?.username || "Employee";
 
       if (!employeeId) {
@@ -312,7 +349,7 @@ const TaskDetailsPage = () => {
       );
 
       if (response.data.success) {
-        alert("Status updated successfully!");
+        message.success("Status updated successfully");
         setShowStatusModal(false);
         setRefreshKey((prev) => prev + 1);
         setSelectedFiles([]);
@@ -337,6 +374,45 @@ const TaskDetailsPage = () => {
       } else {
         alert("An unexpected error occurred.");
       }
+    }
+  };
+
+  const handleBulkStatusUpdate = async (type) => {
+    const targetIds = type === "client" ? selectedClientIds : selectedProspectIds;
+    if (!targetIds.length) {
+      message.warning(`Please select at least one ${type}`);
+      return;
+    }
+    if (!bulkStatus) {
+      message.warning("Please select a status");
+      return;
+    }
+    try {
+      setBulkUpdating(true);
+      await Promise.all(
+        targetIds.map((entityId) =>
+          axios.put(`/api/Task/entity/${entityId}/task/${taskId}/status`, {
+            status: bulkStatus,
+            remarks: bulkRemarks,
+            employeeId,
+            employeeName,
+            files: [],
+          })
+        )
+      );
+      message.success(`${targetIds.length} ${type}(s) updated to ${bulkStatus}`);
+      setBulkRemarks("");
+      if (type === "client") {
+        setSelectedClientIds([]);
+      } else {
+        setSelectedProspectIds([]);
+      }
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.error("Bulk status update error:", error);
+      message.error("Failed to update statuses");
+    } finally {
+      setBulkUpdating(false);
     }
   };
 
@@ -397,8 +473,8 @@ const TaskDetailsPage = () => {
 
     return (
       <Badge
-        bg={config.bg}
-        className="px-3 py-1 d-flex align-items-center gap-1"
+        className="px-3 py-1 d-inline-flex align-items-center gap-1"
+        style={{ backgroundColor: config.bg, color: config.color }}
       >
         <StatusIcon size={12} />
         <span>{config.text}</span>
@@ -441,6 +517,103 @@ const TaskDetailsPage = () => {
 
   const overallProgress = calculateOverallProgress();
   const daysLeft = calculateDaysLeft(task.assignmentDetails?.dueDate);
+  const isDefaultTask = task.taskMode === "default";
+  const clientColumns = [
+    {
+      title: "Group Code",
+      dataIndex: ["personalDetails", "groupCode"],
+      key: "groupCode",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Group Name",
+      dataIndex: ["personalDetails", "groupName"],
+      key: "groupName",
+      render: (val) => val || "Unnamed Client",
+    },
+    {
+      title: "Mobile",
+      dataIndex: ["personalDetails", "mobileNo"],
+      key: "mobileNo",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Email",
+      dataIndex: ["personalDetails", "emailId"],
+      key: "emailId",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Task Status",
+      key: "status",
+      render: (_, record) => getEntityStatusBadge(record),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <AntSpace>
+          <AntButton size="small" onClick={() => openStatusModal(record, "client")}>
+            Update
+          </AntButton>
+          <AntButton size="small" onClick={() => openHistoryModal(record)}>
+            History
+          </AntButton>
+        </AntSpace>
+      ),
+    },
+  ];
+  const prospectColumns = [
+    {
+      title: "Group Code",
+      dataIndex: ["personalDetails", "groupCode"],
+      key: "groupCode",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Name",
+      key: "name",
+      render: (_, record) =>
+        record.personalDetails?.name || record.personalDetails?.groupName || "Unnamed Prospect",
+    },
+    {
+      title: "Mobile",
+      dataIndex: ["personalDetails", "mobileNo"],
+      key: "mobileNo",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Email",
+      dataIndex: ["personalDetails", "emailId"],
+      key: "emailId",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Lead Source",
+      dataIndex: ["personalDetails", "leadSource"],
+      key: "leadSource",
+      render: (val) => val || "N/A",
+    },
+    {
+      title: "Task Status",
+      key: "status",
+      render: (_, record) => getEntityStatusBadge(record),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <AntSpace>
+          <AntButton size="small" onClick={() => openStatusModal(record, "prospect")}>
+            Update
+          </AntButton>
+          <AntButton size="small" onClick={() => openHistoryModal(record)}>
+            History
+          </AntButton>
+        </AntSpace>
+      ),
+    },
+  ];
 
   return (
     <Container fluid className="py-4 relative bottom-10">
@@ -463,7 +636,7 @@ const TaskDetailsPage = () => {
                   <FaSync className="me-1" />
                   Progress: {overallProgress}%
                 </Badge>
-                {daysLeft !== null && (
+                {!isDefaultTask && daysLeft !== null && (
                   <Badge
                     bg={
                       daysLeft < 0
@@ -563,32 +736,41 @@ const TaskDetailsPage = () => {
                     )}
                   </Col>
                   <Col sm={6}>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Due Date</small>
-                      <strong
-                        className={
-                          daysLeft !== null && daysLeft < 0 ? "text-danger" : ""
-                        }
-                      >
-                        {formatDate(task.assignmentDetails?.dueDate)}
-                      </strong>
-                    </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Days Left</small>
-                      <strong
-                        className={
-                          daysLeft !== null && daysLeft < 0
-                            ? "text-danger"
-                            : "text-success"
-                        }
-                      >
-                        {daysLeft !== null
-                          ? daysLeft < 0
-                            ? `${Math.abs(daysLeft)} days overdue`
-                            : `${daysLeft} days left`
-                          : "N/A"}
-                      </strong>
-                    </div>
+                    {!isDefaultTask ? (
+                      <>
+                        <div className="mb-3">
+                          <small className="text-muted d-block">Due Date</small>
+                          <strong
+                            className={
+                              daysLeft !== null && daysLeft < 0 ? "text-danger" : ""
+                            }
+                          >
+                            {formatDate(task.assignmentDetails?.dueDate)}
+                          </strong>
+                        </div>
+                        <div className="mb-3">
+                          <small className="text-muted d-block">Days Left</small>
+                          <strong
+                            className={
+                              daysLeft !== null && daysLeft < 0
+                                ? "text-danger"
+                                : "text-success"
+                            }
+                          >
+                            {daysLeft !== null
+                              ? daysLeft < 0
+                                ? `${Math.abs(daysLeft)} days overdue`
+                                : `${daysLeft} days left`
+                              : "N/A"}
+                          </strong>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mb-3">
+                        <small className="text-muted d-block">Task Type</small>
+                        <AntTag color="blue">Default Monthly Task</AntTag>
+                      </div>
+                    )}
                   </Col>
                 </Row>
                 {task.assignmentDetails?.remarks && (
@@ -785,6 +967,92 @@ const TaskDetailsPage = () => {
 
             <Tab eventKey="clients" title="Clients & Prospects">
               <div className="mt-3">
+                <AntCard
+                  size="small"
+                  className="mb-4"
+                  title="Bulk Status Update (Professional Flow)"
+                >
+                  <Row className="g-3 align-items-end">
+                    <Col md={4}>
+                      <label className="form-label fw-semibold mb-2">Select Clients</label>
+                      <AntSelect
+                        mode="multiple"
+                        style={{ width: "100%" }}
+                        value={selectedClientIds}
+                        onChange={setSelectedClientIds}
+                        placeholder="Choose clients"
+                        options={(task.assignedClients || []).map((c) => ({
+                          value: c._id || c.id,
+                          label:
+                            c.personalDetails?.groupName ||
+                            c.personalDetails?.name ||
+                            "Client",
+                        }))}
+                      />
+                    </Col>
+                    <Col md={4}>
+                      <label className="form-label fw-semibold mb-2">
+                        Select Prospects
+                      </label>
+                      <AntSelect
+                        mode="multiple"
+                        style={{ width: "100%" }}
+                        value={selectedProspectIds}
+                        onChange={setSelectedProspectIds}
+                        placeholder="Choose prospects"
+                        options={(task.assignedProspects || []).map((p) => ({
+                          value: p._id || p.id,
+                          label:
+                            p.personalDetails?.groupName ||
+                            p.personalDetails?.name ||
+                            "Prospect",
+                        }))}
+                      />
+                    </Col>
+                    <Col md={2}>
+                      <label className="form-label fw-semibold mb-2">Status</label>
+                      <AntSelect
+                        style={{ width: "100%" }}
+                        value={bulkStatus}
+                        onChange={setBulkStatus}
+                        options={statusOptions.map((item) => ({
+                          value: item.value,
+                          label: item.label,
+                        }))}
+                      />
+                    </Col>
+                    <Col md={2}>
+                      <AntButton
+                        type="primary"
+                        block
+                        loading={bulkUpdating}
+                        onClick={() => handleBulkStatusUpdate("client")}
+                      >
+                        Update Clients
+                      </AntButton>
+                    </Col>
+                  </Row>
+                  <Row className="g-3 mt-1">
+                    <Col md={10}>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        value={bulkRemarks}
+                        onChange={(e) => setBulkRemarks(e.target.value)}
+                        placeholder="Add remarks for selected client/prospect status update..."
+                      />
+                    </Col>
+                    <Col md={2} className="d-flex align-items-end">
+                      <AntButton
+                        block
+                        loading={bulkUpdating}
+                        onClick={() => handleBulkStatusUpdate("prospect")}
+                      >
+                        Update Prospects
+                      </AntButton>
+                    </Col>
+                  </Row>
+                </AntCard>
                 {/* Clients Table */}
                 <div className="mb-4">
                   <div className="d-flex justify-content-between align-items-center mb-3">
@@ -795,119 +1063,14 @@ const TaskDetailsPage = () => {
                   </div>
 
                   {task.assignedClients?.length > 0 ? (
-                    <div className="table-responsive">
-                      <Table hover className="mb-0">
-                        <thead className="table-light">
-                          <tr>
-                            <th>Group Code</th>
-                            <th>Group Name</th>
-                            <th>Mobile</th>
-                            <th>Email</th>
-                            <th>Task Status</th>
-                            <th className="text-center">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {task.assignedClients.map((client, index) => {
-                            const entityId = client._id || client.id;
-                            const statusData =
-                              entityStatuses[entityId] ||
-                              entityStatuses[entityId?.toString()];
-
-                            return (
-                              <tr key={index}>
-                                <td className="align-middle">
-                                  {client.personalDetails?.groupCode ? (
-                                    <Badge
-                                      bg="light"
-                                      text="dark"
-                                      className="border"
-                                    >
-                                      {client.personalDetails.groupCode}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted">N/A</span>
-                                  )}
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaUserFriends
-                                      className="text-success me-2"
-                                      size={16}
-                                    />
-                                    <div>
-                                      <div className="fw-semibold">
-                                        {client.personalDetails?.groupName ||
-                                          "Unnamed Client"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaMobileAlt
-                                      className="text-muted me-2"
-                                      size={14}
-                                    />
-                                    <span className="text-nowrap">
-                                      {client.personalDetails?.mobileNo ||
-                                        "N/A"}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaEnvelope
-                                      className="text-muted me-2"
-                                      size={14}
-                                    />
-                                    {client.personalDetails?.emailId ? (
-                                      <a
-                                        href={`mailto:${client.personalDetails.emailId}`}
-                                        className="text-decoration-none text-truncate d-inline-block"
-                                        style={{ maxWidth: "200px" }}
-                                        title={client.personalDetails.emailId}
-                                      >
-                                        {client.personalDetails.emailId}
-                                      </a>
-                                    ) : (
-                                      <span className="text-muted">N/A</span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  {getEntityStatusBadge(client)}
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex justify-content-center gap-2">
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      onClick={() =>
-                                        openStatusModal(client, "client")
-                                      }
-                                      title="Update Status"
-                                    >
-                                      <FaEdit className="me-1" />
-                                      Update
-                                    </Button>
-                                    <Button
-                                      variant="outline-info"
-                                      size="sm"
-                                      onClick={() => openHistoryModal(client)}
-                                      title="View History"
-                                    >
-                                      <FaHistory className="me-1" />
-                                      History
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
-                    </div>
+                    <AntTable
+                      rowKey={(record) => record._id || record.id}
+                      dataSource={task.assignedClients}
+                      columns={clientColumns}
+                      size="small"
+                      pagination={false}
+                      scroll={{ x: 900 }}
+                    />
                   ) : (
                     <Alert variant="info" className="border">
                       <div className="text-center py-4">
@@ -931,143 +1094,14 @@ const TaskDetailsPage = () => {
                   </div>
 
                   {task.assignedProspects?.length > 0 ? (
-                    <div className="table-responsive">
-                      <Table hover className="mb-0">
-                        <thead className="table-light">
-                          <tr>
-                            <th>#</th>
-                            <th>Group Code</th>
-                            <th>Group Name</th>
-                            <th>Mobile</th>
-                            <th>Email</th>
-                            <th>Lead Source</th>
-                            <th>Task Status</th>
-                            <th className="text-center">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {task.assignedProspects.map((prospect, index) => {
-                            const entityId = prospect._id || prospect.id;
-                            const statusData =
-                              entityStatuses[entityId] ||
-                              entityStatuses[entityId?.toString()];
-
-                            return (
-                              <tr key={index}>
-                                <td className="align-middle">
-                                  <div className="text-center">
-                                    <span className="fw-bold">{index + 1}</span>
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  {prospect.personalDetails?.groupCode ? (
-                                    <Badge
-                                      bg="light"
-                                      text="dark"
-                                      className="border"
-                                    >
-                                      {prospect.personalDetails.groupCode}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted">N/A</span>
-                                  )}
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaUsers
-                                      className="text-info me-2"
-                                      size={16}
-                                    />
-                                    <div>
-                                      <div className="fw-semibold">
-                                        {prospect.personalDetails?.name ||
-                                          "Unnamed Prospect"}
-                                      </div>
-                                      <small className="text-muted">
-                                        {prospect.personalDetails?.groupName ||
-                                          ""}
-                                      </small>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaMobileAlt
-                                      className="text-muted me-2"
-                                      size={14}
-                                    />
-                                    <span className="text-nowrap">
-                                      {prospect.personalDetails?.mobileNo ||
-                                        "N/A"}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex align-items-center">
-                                    <FaEnvelope
-                                      className="text-muted me-2"
-                                      size={14}
-                                    />
-                                    {prospect.personalDetails?.emailId ? (
-                                      <a
-                                        href={`mailto:${prospect.personalDetails.emailId}`}
-                                        className="text-decoration-none text-truncate d-inline-block"
-                                        style={{ maxWidth: "200px" }}
-                                        title={prospect.personalDetails.emailId}
-                                      >
-                                        {prospect.personalDetails.emailId}
-                                      </a>
-                                    ) : (
-                                      <span className="text-muted">N/A</span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="align-middle">
-                                  {prospect.personalDetails?.leadSource ? (
-                                    <Badge
-                                      bg="light"
-                                      text="dark"
-                                      className="border"
-                                    >
-                                      {prospect.personalDetails.leadSource}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted">N/A</span>
-                                  )}
-                                </td>
-                                <td className="align-middle">
-                                  {getEntityStatusBadge(prospect)}
-                                </td>
-                                <td className="align-middle">
-                                  <div className="d-flex justify-content-center gap-2">
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      onClick={() =>
-                                        openStatusModal(prospect, "prospect")
-                                      }
-                                      title="Update Status"
-                                    >
-                                      <FaEdit className="me-1" />
-                                      Update
-                                    </Button>
-                                    <Button
-                                      variant="outline-info"
-                                      size="sm"
-                                      onClick={() => openHistoryModal(prospect)}
-                                      title="View History"
-                                    >
-                                      <FaHistory className="me-1" />
-                                      History
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
-                    </div>
+                    <AntTable
+                      rowKey={(record) => record._id || record.id}
+                      dataSource={task.assignedProspects}
+                      columns={prospectColumns}
+                      size="small"
+                      pagination={false}
+                      scroll={{ x: 1100 }}
+                    />
                   ) : (
                     <Alert variant="info" className="border">
                       <div className="text-center py-4">
@@ -1288,143 +1322,102 @@ const TaskDetailsPage = () => {
 
       {/* Modals */}
       {/* Status Update Modal */}
-      <Modal
-        show={showStatusModal}
-        onHide={() => setShowStatusModal(false)}
-        size="lg"
-        centered
-      >
-        <Modal.Header closeButton className="border-bottom">
-          <Modal.Title className="fw-bold">
+      <AntModal
+        open={showStatusModal}
+        onCancel={() => setShowStatusModal(false)}
+        title={
+          <span>
             <FaUserEdit className="me-2" />
             Update {entityType === "client" ? "Client" : "Prospect"} Status
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedEntity && (
-            <div className="mb-4">
-              <h6 className="fw-bold mb-2">
-                {entityType === "client" ? "Client" : "Prospect"} Details:
-              </h6>
-              <div className="bg-light p-3 rounded">
-                <div className="row">
-                  <div className="col-md-6">
-                    <p className="mb-1">
-                      <strong>Name:</strong>{" "}
-                      {selectedEntity.personalDetails?.name}
-                    </p>
-                    <p className="mb-1">
-                      <strong>Mobile:</strong>{" "}
-                      {selectedEntity.personalDetails?.mobileNo || "N/A"}
-                    </p>
-                  </div>
-                  <div className="col-md-6">
-                    <p className="mb-1">
-                      <strong>Email:</strong>{" "}
-                      {selectedEntity.personalDetails?.emailId || "N/A"}
-                    </p>
-                    <p className="mb-0">
-                      <strong>Type:</strong> {entityType.toUpperCase()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>
-                <strong>Status *</strong>
-              </Form.Label>
-              <div className="d-flex flex-wrap gap-2">
-                {statusOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={
-                      entityStatus === option.value
-                        ? option.color
-                        : `outline-${option.color}`
-                    }
-                    onClick={() => setEntityStatus(option.value)}
-                    className="flex-grow-1"
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>
-                <strong>Remarks</strong>
-              </Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={entityRemarks}
-                onChange={(e) => setEntityRemarks(e.target.value)}
-                placeholder="Add remarks about this update..."
-                className="border"
-              />
-              <Form.Text className="text-muted">
-                Explain what was done or why the status is being changed.
-              </Form.Text>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>
-                <strong>Upload Documents (Optional)</strong>
-              </Form.Label>
-              <Form.Control
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="border"
-              />
-              <Form.Text className="text-muted">
-                Upload supporting documents, screenshots, or completed forms.
-              </Form.Text>
-            </Form.Group>
-
-            {selectedFiles.length > 0 && (
-              <div className="mb-3">
-                <strong>Selected Files:</strong>
-                <ListGroup className="mt-2">
-                  {selectedFiles.map((file, index) => (
-                    <ListGroup.Item
-                      key={index}
-                      className="d-flex justify-content-between align-items-center"
-                    >
-                      <span>{file.name}</span>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedFiles(
-                            selectedFiles.filter((_, i) => i !== index)
-                          );
-                        }}
-                      >
-                        <FaTimes />
-                      </Button>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              </div>
-            )}
-          </Form>
-        </Modal.Body>
-        <Modal.Footer className="border-top">
-          <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
+          </span>
+        }
+        width={760}
+        footer={[
+          <AntButton key="cancel" onClick={() => setShowStatusModal(false)}>
             Cancel
-          </Button>
-          <Button variant="primary" onClick={saveStatus}>
+          </AntButton>,
+          <AntButton key="save" type="primary" onClick={saveStatus}>
             <FaCheck className="me-1" />
             Save Status
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          </AntButton>,
+        ]}
+      >
+        {selectedEntity && (
+          <AntCard size="small" className="mb-3">
+            <Row className="g-2">
+              <Col md={6}>
+                <div>
+                  <strong>Name:</strong> {selectedEntity.personalDetails?.name || "N/A"}
+                </div>
+                <div>
+                  <strong>Mobile:</strong>{" "}
+                  {selectedEntity.personalDetails?.mobileNo || "N/A"}
+                </div>
+              </Col>
+              <Col md={6}>
+                <div>
+                  <strong>Email:</strong>{" "}
+                  {selectedEntity.personalDetails?.emailId || "N/A"}
+                </div>
+                <div>
+                  <strong>Type:</strong> {entityType.toUpperCase()}
+                </div>
+              </Col>
+            </Row>
+          </AntCard>
+        )}
+
+        <div className="mb-3">
+          <label className="form-label fw-semibold">Status *</label>
+          <AntSelect
+            style={{ width: "100%" }}
+            value={entityStatus}
+            onChange={setEntityStatus}
+            options={statusOptions.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-semibold">Remarks</label>
+          <AntInput.TextArea
+            rows={3}
+            value={entityRemarks}
+            onChange={(e) => setEntityRemarks(e.target.value)}
+            placeholder="Add remarks about this update..."
+          />
+          <div className="text-muted small mt-1">
+            Explain what was done or why the status is being changed.
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-semibold">Upload Documents (Optional)</label>
+          <Form.Control type="file" multiple onChange={handleFileSelect} className="border" />
+        </div>
+
+        {selectedFiles.length > 0 && (
+          <div className="mb-2">
+            <strong>Selected Files:</strong>
+            <div className="mt-2 d-flex flex-wrap gap-2">
+              {selectedFiles.map((file, index) => (
+                <AntTag
+                  key={`${file.name}-${index}`}
+                  closable
+                  onClose={(e) => {
+                    e.preventDefault();
+                    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+                  }}
+                >
+                  {file.name}
+                </AntTag>
+              ))}
+            </div>
+          </div>
+        )}
+      </AntModal>
 
       {/* History Modal */}
       <Modal

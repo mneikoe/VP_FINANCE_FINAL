@@ -47,6 +47,8 @@ const { Option } = Select;
 const AddTaskService = ({ on, data, onSuccess }) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const selectedTaskMode = Form.useWatch("taskMode", form) || "assigned";
+  const selectedProductId = Form.useWatch("cat", form);
 
   const flat = data?.task
     ? {
@@ -80,9 +82,11 @@ const AddTaskService = ({ on, data, onSuccess }) => {
   );
   const company = useSelector((state) => state.CompanyName.CompanyNames || []);
 
-  const filteredCompanies = company.filter(
-    (item) => item.financialProduct?._id === form.getFieldValue("cat")
-  );
+  const filteredCompanies = company.filter((item) => {
+    const productId =
+      item?.financialProduct?._id || item?.financialProduct || "";
+    return String(productId) === String(selectedProductId || "");
+  });
 
   useEffect(() => {
     dispatch(fetchFinancialProduct());
@@ -116,6 +120,9 @@ const AddTaskService = ({ on, data, onSuccess }) => {
         estimatedDays: flat?.estimatedDays || 1,
         reward: flat?.reward || "",
         templatePriority: flat?.templatePriority || "medium",
+        taskMode: flat?.taskMode || "assigned",
+        monthlyWindowFrom: flat?.monthlyWindowFrom || undefined,
+        monthlyWindowTo: flat?.monthlyWindowTo || undefined,
       });
 
       setEditorData({
@@ -192,9 +199,16 @@ const AddTaskService = ({ on, data, onSuccess }) => {
       formDataToSend.append("sub", values.sub || "");
       formDataToSend.append("name", values.name);
       formDataToSend.append("type", "service");
-      formDataToSend.append("estimatedDays", values.estimatedDays || 1);
+      if ((values.taskMode || "assigned") !== "default") {
+        formDataToSend.append("estimatedDays", values.estimatedDays || 1);
+      }
       formDataToSend.append("reward", values.reward || "");
       formDataToSend.append("templatePriority", values.templatePriority || "medium");
+      formDataToSend.append("taskMode", values.taskMode || "assigned");
+      if ((values.taskMode || "assigned") === "default") {
+        formDataToSend.append("monthlyWindowFrom", values.monthlyWindowFrom || "");
+        formDataToSend.append("monthlyWindowTo", values.monthlyWindowTo || "");
+      }
       formDataToSend.append("descpText", editorData.descp || "");
       formDataToSend.append("email_descp", editorData.email || "");
       formDataToSend.append("sms_descp", editorData.sms || "");
@@ -343,6 +357,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
               estimatedDays: 1,
               reward: "",
               templatePriority: "medium",
+              taskMode: "assigned",
             }}
           >
             <Card
@@ -358,7 +373,12 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                     label="Financial Product"
                     rules={[{ required: true, message: "Required" }]}
                   >
-                    <Select placeholder="Select Financial Product" size="middle" allowClear>
+                    <Select
+                      placeholder="Select Financial Product"
+                      size="middle"
+                      allowClear
+                      onChange={() => form.setFieldValue("sub", undefined)}
+                    >
                       {products.map((product) => (
                         <Option key={product._id} value={product._id}>
                           {product.name}
@@ -426,16 +446,27 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                 </Col>
 
                 <Col xs={24} md={8}>
-                  <Form.Item name="estimatedDays" label="Estimated Days">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      size="middle"
-                      prefix={<CalendarOutlined />}
-                    />
+                  <Form.Item name="taskMode" label="Task Type">
+                    <Select size="middle">
+                      <Option value="assigned">Assigned Task</Option>
+                      <Option value="default">Default Task</Option>
+                    </Select>
                   </Form.Item>
                 </Col>
+
+                {selectedTaskMode !== "default" && (
+                  <Col xs={24} md={8}>
+                    <Form.Item name="estimatedDays" label="Estimated Days">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        size="middle"
+                        prefix={<CalendarOutlined />}
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
 
                 <Col xs={24} md={8}>
                   <Form.Item
@@ -447,6 +478,28 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
               </Row>
+              {selectedTaskMode === "default" && (
+                <Row gutter={[12, 0]}>
+                  <Col xs={24} md={6}>
+                    <Form.Item
+                      name="monthlyWindowFrom"
+                      label="Monthly Window From"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input type="number" min={1} max={31} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={6}>
+                    <Form.Item
+                      name="monthlyWindowTo"
+                      label="Monthly Window To"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input type="number" min={1} max={31} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )}
             </Card>
 
             <Card

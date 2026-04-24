@@ -39,6 +39,7 @@ const Marketing = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("view");
+  const [taskModeTab, setTaskModeTab] = useState("assigned");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -138,6 +139,12 @@ const Marketing = () => {
     };
     return configs[priority] || configs.medium;
   };
+
+  const filteredTasks = tasks.filter((task) =>
+    taskModeTab === "default"
+      ? task.taskMode === "default"
+      : (task.taskMode || "assigned") !== "default"
+  );
 
   const columns = [
     {
@@ -406,9 +413,13 @@ const Marketing = () => {
                   <Spin size="large" />
                   <p style={{ marginTop: 16 }}>Loading marketing tasks...</p>
                 </div>
-              ) : tasks.length === 0 ? (
+              ) : filteredTasks.length === 0 ? (
                 <Empty
-                  description="No marketing tasks found"
+                  description={
+                    taskModeTab === "default"
+                      ? "No default marketing tasks found"
+                      : "No assigned marketing tasks found"
+                  }
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
                   <Button
@@ -421,25 +432,50 @@ const Marketing = () => {
                 </Empty>
               ) : (
                 <>
+                  <Card size="small" style={{ marginBottom: 16 }}>
+                    <Space>
+                      <Button
+                        type={taskModeTab === "assigned" ? "primary" : "default"}
+                        onClick={() => {
+                          setTaskModeTab("assigned");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Assigned Tasks (
+                        {tasks.filter((t) => (t.taskMode || "assigned") !== "default").length}
+                        )
+                      </Button>
+                      <Button
+                        type={taskModeTab === "default" ? "primary" : "default"}
+                        onClick={() => {
+                          setTaskModeTab("default");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Default Tasks ({tasks.filter((t) => t.taskMode === "default").length})
+                      </Button>
+                    </Space>
+                  </Card>
+
                   {/* Stats Summary */}
                   <div style={{ marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
                     <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
-                      Total Tasks: {tasks.length}
+                      Total Tasks: {filteredTasks.length}
                     </Tag>
                     <Tag color="pink" style={{ padding: "4px 12px", fontSize: 14 }}>
-                      Marketing Type
+                      {taskModeTab === "default" ? "Default Tasks" : "Assigned Tasks"}
                     </Tag>
                   </div>
 
                   <Table
                     columns={columns}
-                    dataSource={tasks}
+                    dataSource={filteredTasks}
                     rowKey="_id"
                     loading={loading}
                     pagination={{
                       current: currentPage,
                       pageSize: pageSize,
-                      total: tasks.length,
+                      total: filteredTasks.length,
                       onChange: (page, size) => {
                         setCurrentPage(page);
                         setPageSize(size);

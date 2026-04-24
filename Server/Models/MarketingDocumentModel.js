@@ -44,6 +44,17 @@ const marketingDocumentSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lastUploadedAt: {
+      type: Date,
+      default: null,
+    },
+    uploadHistory: [
+      {
+        fileUrl: { type: String, required: true },
+        fileOriginalName: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

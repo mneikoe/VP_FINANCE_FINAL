@@ -236,7 +236,10 @@ const Navbarfristn = () => {
         },
         {
           title: "KYC",
-          items: [{ name: "Document Type", to: "/kycdocument" }],
+          items: [
+            { name: "Document Type", to: "/kycdocument" },
+            { name: "Document Name Master", to: "/kyc-document-name-master" },
+          ],
         },
       ],
     },

@@ -76,6 +76,8 @@ const ServiceAssignments = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [taskTypeTab, setTaskTypeTab] = useState("assigned");
+  const isDefaultSelectedTask = selectedTask?.taskMode === "default";
 
   // Fetch service tasks
   const fetchServiceTasks = async () => {
@@ -173,7 +175,10 @@ const ServiceAssignments = () => {
       fetchEmployeesForRole(role);
     }
 
-    const dueDate = dayjs().add(task.estimatedDays || 1, "day");
+    const dueDate =
+      task.taskMode === "default"
+        ? null
+        : dayjs().add(task.estimatedDays || 1, "day");
 
     let selectedEmployee = null;
     if (task.assignments && task.assignments.length > 0) {
@@ -214,7 +219,10 @@ const ServiceAssignments = () => {
         employeeRole: assignForm.selectedRole,
         priority: assignForm.priority,
         remarks: assignForm.remarks,
-        dueDate: assignForm.dueDate.format("YYYY-MM-DD"),
+        dueDate:
+          selectedTask.taskMode === "default"
+            ? null
+            : assignForm.dueDate?.format("YYYY-MM-DD"),
         assignedBy: JSON.parse(localStorage.getItem("user")).id,
       });
 
@@ -266,8 +274,14 @@ const ServiceAssignments = () => {
     return null;
   };
 
+  const tabbedTasks = serviceTasks.filter((task) =>
+    taskTypeTab === "default"
+      ? task.taskMode === "default"
+      : (task.taskMode || "assigned") !== "default"
+  );
+
   // Filter and sort tasks
-  const filteredTasks = serviceTasks
+  const filteredTasks = tabbedTasks
     .filter((task) => {
       const matchesSearch =
         searchTerm === "" ||
@@ -414,12 +428,15 @@ const ServiceAssignments = () => {
       width: 120,
       align: "center",
       sorter: true,
-      render: (days) => (
+      render: (days, record) =>
+        record.taskMode === "default" ? (
+          <Text type="secondary">N/A</Text>
+        ) : (
         <Space>
           <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
           <Text>{days || 1} day{(days || 1) !== 1 ? "s" : ""}</Text>
         </Space>
-      ),
+        ),
     },
     {
       title: "Priority",
@@ -545,6 +562,25 @@ const ServiceAssignments = () => {
           </Button>
         </Space>
       </div>
+
+      <Card style={{ marginBottom: 16 }} bodyStyle={{ padding: "12px 20px" }}>
+        <Space>
+          <Button
+            type={taskTypeTab === "assigned" ? "primary" : "default"}
+            onClick={() => setTaskTypeTab("assigned")}
+          >
+            Assigned Tasks (
+            {serviceTasks.filter((t) => (t.taskMode || "assigned") !== "default").length}
+            )
+          </Button>
+          <Button
+            type={taskTypeTab === "default" ? "primary" : "default"}
+            onClick={() => setTaskTypeTab("default")}
+          >
+            Default Tasks ({serviceTasks.filter((t) => t.taskMode === "default").length})
+          </Button>
+        </Space>
+      </Card>
 
       {/* Search & Filter Bar */}
       <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: "16px 20px" }}>
@@ -743,12 +779,14 @@ const ServiceAssignments = () => {
                       <Space>
                         <Tag color="default">{assignForm.selectedRole}</Tag>
                       </Space>
-                      <Space>
-                        <ClockCircleOutlined />
-                        <Text type="secondary">
-                          {selectedTask.estimatedDays || 1} day(s)
-                        </Text>
-                      </Space>
+                      {!isDefaultSelectedTask && (
+                        <Space>
+                          <ClockCircleOutlined />
+                          <Text type="secondary">
+                            {selectedTask.estimatedDays || 1} day(s)
+                          </Text>
+                        </Space>
+                      )}
                       <Tag
                         color={
                           getPriorityConfig(selectedTask.templatePriority || "medium")
@@ -765,15 +803,17 @@ const ServiceAssignments = () => {
                     </Space>
                   </Space>
                 </Col>
-                <Col span={8} style={{ textAlign: "right" }}>
-                  <Space direction="vertical" size={2}>
-                    <Text type="secondary">Due Date</Text>
-                    <Text strong>
-                      <CalendarOutlined />{" "}
-                      {assignForm.dueDate?.format("DD/MM/YYYY")}
-                    </Text>
-                  </Space>
-                </Col>
+                {!isDefaultSelectedTask && (
+                  <Col span={8} style={{ textAlign: "right" }}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary">Due Date</Text>
+                      <Text strong>
+                        <CalendarOutlined />{" "}
+                        {assignForm.dueDate?.format("DD/MM/YYYY")}
+                      </Text>
+                    </Space>
+                  </Col>
+                )}
               </Row>
             </Card>
 
@@ -804,23 +844,25 @@ const ServiceAssignments = () => {
                     </Text>
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item label="Due Date" style={{ marginBottom: 0 }}>
-                    <DatePicker
-                      value={assignForm.dueDate}
-                      onChange={(date) =>
-                        setAssignForm({ ...assignForm, dueDate: date })
-                      }
-                      disabledDate={(current) =>
-                        current && current < dayjs().startOf("day")
-                      }
-                      style={{ width: "100%" }}
-                    />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Based on {selectedTask.estimatedDays || 1} day(s)
-                    </Text>
-                  </Form.Item>
-                </Col>
+                {!isDefaultSelectedTask && (
+                  <Col span={12}>
+                    <Form.Item label="Due Date" style={{ marginBottom: 0 }}>
+                      <DatePicker
+                        value={assignForm.dueDate}
+                        onChange={(date) =>
+                          setAssignForm({ ...assignForm, dueDate: date })
+                        }
+                        disabledDate={(current) =>
+                          current && current < dayjs().startOf("day")
+                        }
+                        style={{ width: "100%" }}
+                      />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Based on {selectedTask.estimatedDays || 1} day(s)
+                      </Text>
+                    </Form.Item>
+                  </Col>
+                )}
               </Row>
             </div>
 

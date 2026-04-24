@@ -36,6 +36,23 @@ const CompositeTaskSchema = new mongoose.Schema(
       enum: ["low", "medium", "high", "urgent"],
       default: "medium",
     },
+    taskMode: {
+      type: String,
+      enum: ["assigned", "default"],
+      default: "assigned",
+    },
+    monthlyWindowFrom: {
+      type: Number,
+      min: 1,
+      max: 31,
+      default: null,
+    },
+    monthlyWindowTo: {
+      type: Number,
+      min: 1,
+      max: 31,
+      default: null,
+    },
     descp: {
       text: { type: String, default: "" },
       image: { type: String, default: "" },

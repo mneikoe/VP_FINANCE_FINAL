@@ -1,9 +1,23 @@
 const fs = require("fs");
 const path = require("path");
 const MarketingDocument = require("../Models/MarketingDocumentModel");
+const Kycdocument = require("../Models/kycmodel/documentname");
 
 const buildPublicFilePath = (fileUrl) =>
   path.join(__dirname, "..", "public", fileUrl.replace(/^\/documents\//, "Documents/"));
+
+const syncDocumentNameWithType = async (documentTypeId, documentName) => {
+  if (!documentTypeId || !documentName) {
+    return;
+  }
+  const trimmedName = String(documentName).trim();
+  if (!trimmedName) {
+    return;
+  }
+  await Kycdocument.findByIdAndUpdate(documentTypeId, {
+    $addToSet: { documentNames: trimmedName },
+  });
+};
 
 exports.createMarketingDocument = async (req, res) => {
   try {
@@ -30,7 +44,17 @@ exports.createMarketingDocument = async (req, res) => {
       fileOriginalName: req.file.originalname,
       fileMimeType: req.file.mimetype,
       fileSize: req.file.size,
+      lastUploadedAt: new Date(),
+      uploadHistory: [
+        {
+          fileUrl,
+          fileOriginalName: req.file.originalname,
+          uploadedAt: new Date(),
+        },
+      ],
     });
+
+    await syncDocumentNameWithType(documentType, documentName);
 
     const populated = await MarketingDocument.findById(created._id)
       .populate("financialProduct", "name")
@@ -55,7 +79,7 @@ exports.getMarketingDocuments = async (req, res) => {
       .populate("financialProduct", "name")
       .populate("company", "companyName")
       .populate("documentType", "name")
-      .sort({ createdAt: -1 });
+      .sort({ lastUploadedAt: -1, createdAt: -1 });
     return res.status(200).json(docs);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch records", error: error.message });
@@ -88,7 +112,17 @@ exports.updateMarketingDocument = async (req, res) => {
       updateData.fileOriginalName = req.file.originalname;
       updateData.fileMimeType = req.file.mimetype;
       updateData.fileSize = req.file.size;
+      updateData.lastUploadedAt = new Date();
+      updateData.$push = {
+        uploadHistory: {
+          fileUrl: updateData.fileUrl,
+          fileOriginalName: req.file.originalname,
+          uploadedAt: new Date(),
+        },
+      };
     }
+
+    await syncDocumentNameWithType(updateData.documentType, updateData.documentName);
 
     const updated = await MarketingDocument.findByIdAndUpdate(id, updateData, {
       new: true,

@@ -87,12 +87,14 @@ const TaskSidebar = ({ task, checklistStatus, employeeName, setActiveTab }) => {
                   : task.depart || "N/A"}
               </strong>
             </ListGroup.Item>
-            <ListGroup.Item className="d-flex justify-content-between py-2 px-0 border-0">
-              <span className="text-muted">Estimated Days</span>
-              <strong className="text-dark">
-                {task.estimatedDays || 1} day(s)
-              </strong>
-            </ListGroup.Item>
+            {task.taskMode !== "default" && (
+              <ListGroup.Item className="d-flex justify-content-between py-2 px-0 border-0">
+                <span className="text-muted">Estimated Days</span>
+                <strong className="text-dark">
+                  {task.estimatedDays || 1} day(s)
+                </strong>
+              </ListGroup.Item>
+            )}
             <ListGroup.Item className="d-flex justify-content-between py-2 px-0 border-0">
               <span className="text-muted">Progress</span>
               <strong className="text-dark">{overallProgress}%</strong>

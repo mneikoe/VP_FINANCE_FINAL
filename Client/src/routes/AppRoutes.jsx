@@ -43,6 +43,7 @@ import ResumesShortlist from "../Components/Employee/HR/ResumesShortlist";
 import SelectedInterviewTable from "../Components/Employee/OfficeAdmin/SelectedInterviewTable";
 import JoiningData from "../Components/Employee/OfficeAdmin/JoiningData";
 import Kycdocument from "../Components/Masters/kycdocument/Kycdocument";
+import DocumentNameMaster from "../Components/Masters/kycdocument/DocumentNameMaster";
 // Office Components
 import FinancialProduct from "../Components/Offices/Financlal/FinancialProduct";
 import CompanyTabs from "../Components/Offices/Financlal/CompanyTabs";
@@ -208,6 +209,7 @@ const AppRoutes = () => {
         <Route path="/city" element={<City />} />
         <Route path="/composite" element={<Composite />} />
         <Route path="/kycdocument" element={<Kycdocument />} />
+        <Route path="/kyc-document-name-master" element={<DocumentNameMaster />} />
         <Route path="/task-composite" element={<CompositeAssignments />} />
         <Route path="/task-marketing" element={<MarketingAssignments />} />
         <Route path="/task-servicing" element={<ServiceAssignments />} />

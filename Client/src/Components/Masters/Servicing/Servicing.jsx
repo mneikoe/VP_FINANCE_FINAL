@@ -42,6 +42,7 @@ const Service = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState("");
+  const [taskModeTab, setTaskModeTab] = useState("assigned");
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
@@ -134,7 +135,13 @@ const Service = () => {
     return configs[priority] || configs.medium;
   };
 
-  const filteredTasks = tasks.filter((task) => {
+  const modeFilteredTasks = tasks.filter((task) =>
+    taskModeTab === "default"
+      ? task.taskMode === "default"
+      : (task.taskMode || "assigned") !== "default"
+  );
+
+  const filteredTasks = modeFilteredTasks.filter((task) => {
     if (!searchText) return true;
     const searchLower = searchText.toLowerCase();
     return (
@@ -422,6 +429,31 @@ const Service = () => {
         <div style={{ padding: "24px" }}>
           {activeTab === "view" && (
             <>
+              <Card size="small" style={{ marginBottom: 16 }}>
+                <Space>
+                  <Button
+                    type={taskModeTab === "assigned" ? "primary" : "default"}
+                    onClick={() => {
+                      setTaskModeTab("assigned");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Assigned Tasks (
+                    {tasks.filter((t) => (t.taskMode || "assigned") !== "default").length}
+                    )
+                  </Button>
+                  <Button
+                    type={taskModeTab === "default" ? "primary" : "default"}
+                    onClick={() => {
+                      setTaskModeTab("default");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Default Tasks ({tasks.filter((t) => t.taskMode === "default").length})
+                  </Button>
+                </Space>
+              </Card>
+
               {loading ? (
                 <div style={{ textAlign: "center", padding: "60px 0" }}>
                   <Spin size="large" />
@@ -451,7 +483,7 @@ const Service = () => {
                       Total Tasks: {filteredTasks.length}
                     </Tag>
                     <Tag color="orange" style={{ padding: "4px 12px", fontSize: 14 }}>
-                      Service Type
+                      {taskModeTab === "default" ? "Default Tasks" : "Assigned Tasks"}
                     </Tag>
                     {searchText && (
                       <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>

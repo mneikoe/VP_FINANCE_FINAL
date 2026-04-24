@@ -40,6 +40,37 @@ const IndividualTaskSchema = new mongoose.Schema(
       enum: ["composite", "marketing", "service", "individual"],
       default: "composite",
     },
+    taskMode: {
+      type: String,
+      enum: ["assigned", "default"],
+      default: "assigned",
+    },
+    monthlyWindowFrom: {
+      type: Number,
+      min: 1,
+      max: 31,
+      default: null,
+    },
+    monthlyWindowTo: {
+      type: Number,
+      min: 1,
+      max: 31,
+      default: null,
+    },
+    defaultTaskCompletions: [
+      {
+        monthKey: { type: String, required: true },
+        completedAt: { type: Date, default: Date.now },
+        remarks: { type: String, default: "" },
+        completedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+        completedForClients: [
+          { type: mongoose.Schema.Types.ObjectId, ref: "testSchema" },
+        ],
+        completedForProspects: [
+          { type: mongoose.Schema.Types.ObjectId, ref: "testSchema" },
+        ],
+      },
+    ],
     email_descp: { type: String, default: "" },
     sms_descp: { type: String, default: "" },
     whatsapp_descp: { type: String, default: "" },

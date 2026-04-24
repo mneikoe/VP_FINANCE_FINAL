@@ -14,6 +14,7 @@ router.post("/assign-suspects", rmController.assignSuspectsToRM);
 
 // Get assigned suspects for a specific RM
 router.get("/assigned-suspects", rmController.getAssignedSuspects);
+router.get("/allotted-customers", rmController.getAllottedCustomers);
 
 // Get RM statistics (you may want to update this too)
 router.get("/statistics", rmController.getRMStatistics);
