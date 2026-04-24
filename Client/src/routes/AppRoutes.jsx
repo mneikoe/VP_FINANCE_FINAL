@@ -109,6 +109,7 @@ import EmployeeList from "../Components/Employee/OfficeAdmin/EmployeeList";
 import CRMAdvertisementActivities from "../Components/CRM/CRMAdvertisementActivities";
 import CRMCreativityActivities from "../Components/CRM/CRMCreativityActivities";
 import CRMRelationshipActivities from "../Components/CRM/CRMRelationshipActivities";
+import MarketingDocumentsPage from "../Components/Departments/Marketing/MarketingDocumentsPage";
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -216,6 +217,16 @@ const AppRoutes = () => {
         <Route path="/lead-source" element={<LeadSource />} />
         <Route path="/marketing-task" element={<Marketing />} />
         <Route path="/servicing-task" element={<Servicing />} />
+        <Route path="/marketing-documents" element={<MarketingDocumentsPage />} />
+        <Route
+          path="/servicing-documents"
+          element={
+            <MarketingDocumentsPage
+              department="servicing"
+              title="Servicing Documents"
+            />
+          }
+        />
         {/* Customer - Only OA */}
         <Route path="/client" element={<ClientLeadTabs />} />
         <Route path="/client/:tabs" element={<ClientLeadTabs />} />

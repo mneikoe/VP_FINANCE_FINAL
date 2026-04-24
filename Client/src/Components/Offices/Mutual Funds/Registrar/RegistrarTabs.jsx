@@ -1,42 +1,29 @@
 import React, { useState } from "react";
 import Registrar from "./Registrar";
 import RegistrarDetail from "./RegistrarDetail";
+import OfficeModuleLayout from "../../common/OfficeModuleLayout";
 
 function RegistrarTabs() {
   const [activeTab, setActiveTab] = useState("add");
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add Registrar Name" },
+    { key: "view", label: "View Registrar Name" },
+  ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>MUTUAL FUND & REGISTRAR NAME</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add Registrar Name
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View Registrar Name
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="Mutual Fund Registrar"
+      subtitle="Manage registrar master entries used in mutual fund workflows."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <Registrar
             setActiveTab={setActiveTab}
@@ -46,8 +33,7 @@ function RegistrarTabs() {
         ) : (
           <RegistrarDetail setActiveTab={setActiveTab} setEditId={setEditId} />
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 

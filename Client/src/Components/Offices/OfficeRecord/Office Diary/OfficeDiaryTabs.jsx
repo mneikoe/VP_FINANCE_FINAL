@@ -1,42 +1,29 @@
 import React, { useState } from "react";
 import AddOfficeDiary from "./AddOfficeDiary";
 import OfficeDiaryDetail from "./OfficeDiaryDetail";
+import OfficeModuleLayout from "../../common/OfficeModuleLayout";
 
 function OfficeDiaryTabs() {
   const [activeTab, setActiveTab] = useState("add");
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add Diary Name" },
+    { key: "view", label: "View Diary Name" },
+  ];
 
   return (
-    <div style={{ padding: "" }}>
-      <h3>Office Diary</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add Dairy Name
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View Dairy Name
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="Office Diary"
+      subtitle="Manage office diary masters and review previously created entries."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <AddOfficeDiary
             setActiveTab={setActiveTab}
@@ -49,8 +36,7 @@ function OfficeDiaryTabs() {
             setEditId={setEditId}
           />
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 

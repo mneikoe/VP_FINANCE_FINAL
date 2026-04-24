@@ -1,42 +1,29 @@
 import React, { useState } from "react";
 import AddOfficePurchase from "./AddOfficePurchase";
 import OfficePurchaseDetail from "./OfficePurchaseDetail";
+import OfficeModuleLayout from "../common/OfficeModuleLayout";
 
 function OfficePurchase() {
   const [activeTab, setActiveTab] = useState("add");
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add Office Purchase" },
+    { key: "view", label: "View Office Purchase" },
+  ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>Office Purchase</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add office purchase
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View office purchase
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="Office Purchase"
+      subtitle="Track office purchase entries with streamlined add/view workflow."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <AddOfficePurchase
             setActiveTab={setActiveTab}
@@ -49,8 +36,7 @@ function OfficePurchase() {
             setEditId={setEditId}
           />
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 

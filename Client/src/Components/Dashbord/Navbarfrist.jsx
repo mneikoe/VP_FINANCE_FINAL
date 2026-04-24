@@ -316,23 +316,11 @@ const Navbarfristn = () => {
       sections: [
         {
           title: "Marketing",
-          items: [
-            { name: "Composite Data", to: "/marketing-composite" },
-            { name: "Life Insurance", to: "/marketing-life" },
-            { name: "Health Insurance", to: "/marketing-health" },
-            { name: "Mutual Fund", to: "/marketing-mutual" },
-            { name: "Real Estate", to: "/marketing-realestate" },
-          ],
+          items: [{ name: "Marketing Documents", to: "/marketing-documents" }],
         },
         {
           title: "Servicing",
-          items: [
-            { name: "Composite Data", to: "/servicing-composite" },
-            { name: "Life Insurance", to: "/servicing-life" },
-            { name: "Health Insurance", to: "/servicing-health" },
-            { name: "Mutual Fund", to: "/servicing-mutual" },
-            { name: "Real Estate", to: "/servicing-realestate" },
-          ],
+          items: [{ name: "Servicing Documents", to: "/servicing-documents" }],
         },
       ],
     },

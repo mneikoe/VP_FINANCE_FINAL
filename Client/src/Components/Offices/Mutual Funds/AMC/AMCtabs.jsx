@@ -1,42 +1,29 @@
 import React, { useState } from "react";
 import AMC from "./AMC";
 import AMCDetail from "./AMCDetail";
+import OfficeModuleLayout from "../../common/OfficeModuleLayout";
 
 function AMCtabs() {
   const [activeTab, setActiveTab] = useState("add");
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add AMC Name" },
+    { key: "view", label: "View AMC Name" },
+  ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>AMC NAME</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add AMC Name
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View AMC Name
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="AMC Master"
+      subtitle="Create and maintain AMC names for mutual fund mapping."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <AMC
             setActiveTab={setActiveTab}
@@ -46,8 +33,7 @@ function AMCtabs() {
         ) : (
           <AMCDetail setActiveTab={setActiveTab} setEditId={setEditId} />
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 

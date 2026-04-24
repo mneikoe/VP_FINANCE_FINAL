@@ -24,8 +24,6 @@ const FinancialProduct = () => {
     (state) => state.financialProduct.FinancialProducts
   );
 
-  console.log(products, "ldkjfsf");
-
   const [name, setName] = useState("");
   const [editId, setEditId] = useState(null);
 
@@ -64,11 +62,19 @@ const FinancialProduct = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="container mt-3">
+      <div className="card border-0 shadow-sm mb-3">
+        <div className="card-body py-3">
+          <h4 className="mb-1 fw-bold text-dark">Financial Product Master</h4>
+          <p className="mb-0 text-muted" style={{ fontSize: "0.88rem" }}>
+            Maintain product names used across office, department, and document workflows.
+          </p>
+        </div>
+      </div>
       <div className="row">
         {/* Form Section */}
         <div className="col-12 col-lg-6 mb-4">
-          <div className="card shadow-sm border">
+          <div className="card shadow-sm border-0">
             <div className="card-body">
               <h2 className="h5 text-center mb-4">
                 {editId ? "Update" : "Add"} Financial Product
@@ -95,7 +101,7 @@ const FinancialProduct = () => {
 
         {/* List Section */}
         <div className="col-12 col-lg-6 mb-4">
-          <div className="card shadow-sm border">
+          <div className="card shadow-sm border-0">
             <div className="card-body">
               <h2 className="h5 mb-4">Financial Product List</h2>
               <ul className="list-group">

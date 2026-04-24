@@ -1,43 +1,30 @@
 import React, { useState } from "react";
 import AddCompanyName from "./AddCompanyName";
 import CompanyDetail from "./CompanyDetail";
+import OfficeModuleLayout from "../common/OfficeModuleLayout";
 
 function CompanyTabs() {
   const [activeTab, setActiveTab] = useState("add");
 
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add Company Name" },
+    { key: "view", label: "View Company Name" },
+  ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>Financial Product & Company Name</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add Company Name
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View Company Name
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="Financial Product & Company Name"
+      subtitle="Maintain insurer/broker/company details mapped to financial products."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <div>
             {/* Add Company Name content */}
@@ -53,8 +40,7 @@ function CompanyTabs() {
             <CompanyDetail setActiveTab={setActiveTab} setEditId={setEditId} />
           </div>
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 

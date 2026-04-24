@@ -2,42 +2,29 @@ import React, { useState } from "react";
 
 import AddImpDocument from "./AddImpDocument";
 import ImpDocumentDetail from "./ImpDocumentDetail";
+import OfficeModuleLayout from "../../common/OfficeModuleLayout";
 
 function ImpDocument() {
   const [activeTab, setActiveTab] = useState("add");
   const [editId, setEditId] = useState(null);
+  const tabs = [
+    { key: "add", label: "Add Document" },
+    { key: "view", label: "View Document" },
+  ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>Important Document</h3>
-
-      <div style={{ display: "flex", borderBottom: "2px solid #ccc" }}>
-        <div
-          onClick={() => {
-            setEditId(null);
-            setActiveTab("add");
-          }}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "add" ? "3px solid #007bff" : "none",
-          }}
-        >
-          Add document
-        </div>
-        <div
-          onClick={() => setActiveTab("view")}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            borderBottom: activeTab === "view" ? "3px solid #007bff" : "none",
-          }}
-        >
-          View document
-        </div>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
+    <OfficeModuleLayout
+      title="Important Documents"
+      subtitle="Upload and manage critical office documents in one place."
+      activeTab={activeTab}
+      onTabChange={(tabKey) => {
+        if (tabKey === "add") {
+          setEditId(null);
+        }
+        setActiveTab(tabKey);
+      }}
+      tabs={tabs}
+    >
         {activeTab === "add" ? (
           <AddImpDocument
             setActiveTab={setActiveTab}
@@ -50,8 +37,7 @@ function ImpDocument() {
             setEditId={setEditId}
           />
         )}
-      </div>
-    </div>
+    </OfficeModuleLayout>
   );
 }
 
