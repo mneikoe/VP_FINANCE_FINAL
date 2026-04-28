@@ -352,7 +352,6 @@ const TestShema = new mongoose.Schema({
     },
   ],
   taskDetails: String,
-  assignedAt: Date,
   assignedAt: {
     type: Date,
     default: null,

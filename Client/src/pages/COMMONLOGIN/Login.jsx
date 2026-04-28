@@ -76,6 +76,9 @@ export default function Login() {
       case "RM":
         navigate("/rm/dashboard");
         break;
+      case "Accountant":
+        navigate("/accountant/dashboard");
+        break;
       default:
         navigate("/dashboard");
     }

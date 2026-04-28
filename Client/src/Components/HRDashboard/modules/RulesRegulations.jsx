@@ -56,8 +56,9 @@ const RulesRegulations = () => {
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingDocument, setEditingDocument] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   // Table sorting and pagination
   const [sortField, setSortField] = useState("createdAt");
@@ -319,7 +320,7 @@ const RulesRegulations = () => {
       };
 
       const response = await axios.put(
-        `/rules/${editingDocument._id}`,
+        `/api/rules/${editingDocument._id}`,
         updateData
       );
 
@@ -799,51 +800,19 @@ const RulesRegulations = () => {
                             >
                               <FaDownload size={12} />
                             </Button>
-                            <Dropdown>
-                              <Dropdown.Toggle
-                                variant="outline-secondary"
-                                size="sm"
-                                className="rounded-circle d-flex align-items-center justify-content-center"
-                                style={{ width: "32px", height: "32px" }}
-                              >
-                                <FaEllipsisV size={12} />
-                              </Dropdown.Toggle>
-                              <Dropdown.Menu>
-                                <Dropdown.Item
-                                  onClick={() => handleEditDocument(doc)}
-                                >
-                                  <FaEdit className="me-2" />
-                                  Edit Details
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  onClick={() =>
-                                    handleUpdateDocumentFile(doc._id)
-                                  }
-                                >
-                                  <FaUpload className="me-2" />
-                                  Update PDF File
-                                </Dropdown.Item>
-                                <Dropdown.Item>
-                                  <FaCopy className="me-2" />
-                                  Copy Link
-                                </Dropdown.Item>
-                                <Dropdown.Item>
-                                  <FaShareAlt className="me-2" />
-                                  Share
-                                </Dropdown.Item>
-                                <Dropdown.Divider />
-                                <Dropdown.Item
-                                  className="text-danger"
-                                  onClick={() => {
-                                    setDocumentToDelete(doc);
-                                    setShowDeleteModal(true);
-                                  }}
-                                >
-                                  <FaTrash className="me-2" />
-                                  Delete Document
-                                </Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              className="rounded-circle d-flex align-items-center justify-content-center border shadow-sm"
+                              style={{ width: "36px", height: "36px", backgroundColor: "#f8f9fa" }}
+                              onClick={() => {
+                                setSelectedDocument(doc);
+                                setShowActionModal(true);
+                              }}
+                              title="Actions"
+                            >
+                              <FaEllipsisV size={14} className="text-primary" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -1202,6 +1171,101 @@ const RulesRegulations = () => {
             )}
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Professional Action Modal (Popup) */}
+      <Modal
+        show={showActionModal}
+        onHide={() => setShowActionModal(false)}
+        centered
+        size="md"
+        className="action-modal"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="h5 fw-bold text-dark">
+            Document Actions
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          {selectedDocument && (
+            <div className="text-center mb-4">
+              <div className="bg-light rounded-circle p-3 d-inline-block mb-3">
+                <FaRegFilePdf size={40} className="text-danger" />
+              </div>
+              <h6 className="fw-bold mb-1">{selectedDocument.title}</h6>
+              <p className="text-muted small mb-0">{selectedDocument.category}</p>
+            </div>
+          )}
+          
+          <div className="d-grid gap-2">
+            <Row className="g-2">
+              <Col xs={6}>
+                <Button 
+                  variant="outline-primary" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleViewDocument(selectedDocument._id);
+                  }}
+                >
+                  <FaEye /> View
+                </Button>
+              </Col>
+              <Col xs={6}>
+                <Button 
+                  variant="outline-success" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleDownloadDocument(selectedDocument._id, selectedDocument.originalName);
+                  }}
+                >
+                  <FaDownload /> Download
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="outline-dark" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleEditDocument(selectedDocument);
+                  }}
+                >
+                  <FaEdit /> Edit Details
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="outline-info" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2 text-dark"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleUpdateDocumentFile(selectedDocument._id);
+                  }}
+                >
+                  <FaUpload /> Update PDF File
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <hr className="my-2" />
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="danger" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    setDocumentToDelete(selectedDocument);
+                    setShowDeleteModal(true);
+                  }}
+                >
+                  <FaTrash /> Delete Document
+                </Button>
+              </Col>
+            </Row>
+          </div>
+        </Modal.Body>
       </Modal>
 
       <style jsx>{`

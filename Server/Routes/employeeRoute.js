@@ -12,7 +12,10 @@ const {
   getClientsByEmployeeArea,
   getClientsByArea,
   getClientsByAllocatedRM,
+  uploadEmployeeDocument,
 } = require("../Controller/employeeController");
+
+const upload = require("../config/upload");
 
 const router = express.Router();
 
@@ -28,5 +31,8 @@ router.get("/getEmployeeAreas", getEmployeeAreas);
 router.get("/getClientsByEmployeeArea", getClientsByEmployeeArea);
 router.get("/getClientsByArea", getClientsByArea);
 router.get("/getClientsByAllocatedRM", getClientsByAllocatedRM);
+
+// ✅ Document upload route
+router.post("/upload-document", upload.single("file"), uploadEmployeeDocument);
 
 module.exports = router;

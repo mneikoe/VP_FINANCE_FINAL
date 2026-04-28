@@ -82,6 +82,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       icon: <FaUserPlus />,
     },
     {
+      name: "All Employees",
+      href: "/dashboard/all-employee",
+      icon: <FaUsers />,
+    },
+    {
       name: "Business Associates",
       href: "/dashboard/business-associates",
       icon: <FaUsers />,

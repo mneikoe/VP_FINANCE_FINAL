@@ -53,6 +53,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import { format, parseISO } from "date-fns";
+import { buildUploadUrl } from "../../../utils/uploadUrl";
 import {
   Card as AntCard,
   Select as AntSelect,
@@ -616,709 +617,476 @@ const TaskDetailsPage = () => {
   ];
 
   return (
-    <Container fluid className="py-4 relative bottom-10">
-      {/* Header */}
-      <div className="mb-4">
-        <Button variant="light" onClick={() => navigate(-1)} className="mb-3">
-          <FaArrowLeft className="me-2" />
-          Back to Tasks
-        </Button>
-
-        <Row className="mb-4">
-          <Col lg={8}>
-            <div>
-              <h2 className="fw-bold mb-2">{task.name}</h2>
-              <div className="d-flex gap-2 mb-3 flex-wrap">
-                <Badge bg="secondary" className="px-3 py-2">
-                  {task.type?.toUpperCase() || "TASK"}
-                </Badge>
-                <Badge bg="info" className="px-3 py-2">
-                  <FaSync className="me-1" />
-                  Progress: {overallProgress}%
-                </Badge>
-                {!isDefaultTask && daysLeft !== null && (
-                  <Badge
-                    bg={
-                      daysLeft < 0
-                        ? "danger"
-                        : daysLeft <= 2
-                        ? "warning"
-                        : "success"
-                    }
-                    className="px-3 py-2"
-                  >
-                    <FaCalendarAlt className="me-1" />
-                    {daysLeft < 0
-                      ? `${Math.abs(daysLeft)} days overdue`
-                      : `${daysLeft} days left`}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </Col>
-        </Row>
-
-        {/* Task Summary and Assignment Details Cards */}
-        <Row className="mb-4">
-          <Col lg={6}>
-            <Card className="h-100">
-              <Card.Header className="bg-light">
-                <h5 className="fw-bold mb-0">
-                  <FaBuilding className="me-2" />
-                  Task Summary
-                </h5>
-              </Card.Header>
-              <Card.Body>
-                <Row>
-                  <Col sm={6}>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Company</small>
-                      <strong>{task.company || task.sub || "N/A"}</strong>
-                    </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Product</small>
-                      <strong>{task.product || task.cat?.name || "N/A"}</strong>
-                    </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Checklists</small>
-                      <strong>
-                        {Object.values(checklistStatus).filter(Boolean).length}/
-                        {task.checklists?.length || 0}
-                      </strong>
-                    </div>
-                  </Col>
-                  <Col sm={6}>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Department</small>
-                      <strong>
-                        {Array.isArray(task.depart)
-                          ? task.depart.join(", ")
-                          : task.depart}
-                      </strong>
-                    </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Clients</small>
-                      <strong>{task.assignedClients?.length || 0}</strong>
-                    </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Prospects</small>
-                      <strong>{task.assignedProspects?.length || 0}</strong>
-                    </div>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col lg={6}>
-            <Card className="h-100">
-              <Card.Header className="bg-light">
-                <h5 className="fw-bold mb-0">
-                  <FaUserTie className="me-2" />
-                  Assignment Details
-                </h5>
-              </Card.Header>
-              <Card.Body>
-                <Row>
-                  <Col sm={6}>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Assigned To</small>
-                      <strong>{employeeName}</strong>
-                    </div>
-                    {task.assignmentDetails?.assignedBy && (
-                      <div className="mb-3">
-                        <small className="text-muted d-block">
-                          Assigned By
-                        </small>
-                        <strong>
-                          {task.assignmentDetails.assignedBy.name}
-                        </strong>
-                      </div>
-                    )}
-                  </Col>
-                  <Col sm={6}>
-                    {!isDefaultTask ? (
-                      <>
-                        <div className="mb-3">
-                          <small className="text-muted d-block">Due Date</small>
-                          <strong
-                            className={
-                              daysLeft !== null && daysLeft < 0 ? "text-danger" : ""
-                            }
-                          >
-                            {formatDate(task.assignmentDetails?.dueDate)}
-                          </strong>
-                        </div>
-                        <div className="mb-3">
-                          <small className="text-muted d-block">Days Left</small>
-                          <strong
-                            className={
-                              daysLeft !== null && daysLeft < 0
-                                ? "text-danger"
-                                : "text-success"
-                            }
-                          >
-                            {daysLeft !== null
-                              ? daysLeft < 0
-                                ? `${Math.abs(daysLeft)} days overdue`
-                                : `${daysLeft} days left`
-                              : "N/A"}
-                          </strong>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="mb-3">
-                        <small className="text-muted d-block">Task Type</small>
-                        <AntTag color="blue">Default Monthly Task</AntTag>
-                      </div>
-                    )}
-                  </Col>
-                </Row>
-                {task.assignmentDetails?.remarks && (
-                  <div className="mt-3 pt-3 border-top">
-                    <small className="text-muted d-block">Remarks</small>
-                    <p className="mb-0">{task.assignmentDetails.remarks}</p>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </div>
-
-      {/* Main Content */}
-      <Card>
-        <Card.Body>
-          <Tabs
-            activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k)}
-            className="mb-3"
+    <>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* --- Header Section --- */}
+        <div className="mb-8">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors border-0 bg-transparent p-0 cursor-pointer"
           >
-            <Tab eventKey="overview" title="Overview">
-              <div className="mt-3">
-                {/* Description */}
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">
-                    <FaFileAlt className="me-2" />
-                    Task Description
-                  </h5>
-                  <div className="bg-light p-3 rounded">
-                    {task.descp?.text || "No description provided."}
-                  </div>
-                  {task.descp?.image && (
-                    <div className="mt-3">
-                      <img
-                        src={`${import.meta.env.VITE_API_URL || ""}/uploads/${task.descp.image}`}
-                        alt="Task"
-                        className="img-fluid rounded"
-                        style={{ maxHeight: "300px" }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Checklists */}
-                {task.checklists && task.checklists.length > 0 && (
-                  <div className="mb-4">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h5 className="fw-bold mb-0">
-                        <FaListAlt className="me-2" />
-                        Checklists (
-                        {Object.values(checklistStatus).filter(Boolean).length}/
-                        {task.checklists.length})
-                      </h5>
-                      <ProgressBar
-                        now={
-                          (Object.values(checklistStatus).filter(Boolean)
-                            .length /
-                            task.checklists.length) *
-                          100
-                        }
-                        label={`${Math.round(
-                          (Object.values(checklistStatus).filter(Boolean)
-                            .length /
-                            task.checklists.length) *
-                            100
-                        )}%`}
-                        style={{ width: "200px", height: "10px" }}
-                      />
-                    </div>
-                    <ListGroup>
-                      {task.checklists.map((item, index) => (
-                        <ListGroup.Item key={index}>
-                          <div className="d-flex align-items-center">
-                            <Form.Check
-                              type="checkbox"
-                              checked={checklistStatus[index] || false}
-                              onChange={() => handleChecklistToggle(index)}
-                              className="me-3"
-                              id={`checklist-${index}`}
-                            />
-                            <label
-                              htmlFor={`checklist-${index}`}
-                              className={`mb-0 ${
-                                checklistStatus[index]
-                                  ? "text-decoration-line-through text-muted"
-                                  : ""
-                              }`}
-                              style={{ cursor: "pointer", flex: 1 }}
-                            >
-                              {item}
-                            </label>
-                            <Badge
-                              bg={checklistStatus[index] ? "success" : "light"}
-                              text={checklistStatus[index] ? "white" : "dark"}
-                            >
-                              {checklistStatus[index] ? "Completed" : "Pending"}
-                            </Badge>
-                          </div>
-                        </ListGroup.Item>
-                      ))}
-                    </ListGroup>
-                  </div>
+            <FaArrowLeft className="mr-2" size={14} />
+            Back to Tasks
+          </button>
+          
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="px-2.5 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-md uppercase tracking-wide border border-indigo-100">
+                  {task.type || "COMPOSITE"}
+                </span>
+                {!isDefaultTask && daysLeft !== null && (
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center border ${
+                    daysLeft < 0 ? "bg-red-50 text-red-700 border-red-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                  }`}>
+                    <FaClock className="mr-1.5" size={12} />
+                    {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`}
+                  </span>
                 )}
-
-                {/* Forms */}
-                {task.formChecklists && task.formChecklists.length > 0 && (
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3">
-                      <FaPaperclip className="me-2" />
-                      Required Forms
-                    </h5>
-                    <Row>
-                      {task.formChecklists.map((form, index) => (
-                        <Col md={6} key={index}>
-                          <Card className="mb-3">
-                            <Card.Body>
-                              <h6>{form.name}</h6>
-                              <div className="d-flex gap-2 mt-2">
-                                {form.downloadFormUrl && (
-                                  <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.downloadFormUrl}`}
-                                    target="_blank"
-                                  >
-                                    <FaDownload className="me-1" />
-                                    Download
-                                  </Button>
-                                )}
-                                {form.sampleFormUrl && (
-                                  <Button
-                                    variant="outline-secondary"
-                                    size="sm"
-                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.sampleFormUrl}`}
-                                    target="_blank"
-                                  >
-                                    <FaEye className="me-1" />
-                                    Sample
-                                  </Button>
-                                )}
-                              </div>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
-
-                {/* Communication Templates */}
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">
-                    <FaEnvelope className="me-2" />
-                    Communication Templates
-                  </h5>
-                  <Tabs defaultActiveKey="email" className="mb-3">
-                    <Tab eventKey="email" title="Email">
-                      <div className="bg-light p-3 rounded">
-                        <pre
-                          className="mb-0"
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          {task.email_descp || "No email template provided."}
-                        </pre>
-                      </div>
-                    </Tab>
-                    <Tab eventKey="sms" title="SMS">
-                      <div className="bg-light p-3 rounded">
-                        <pre
-                          className="mb-0"
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          {task.sms_descp || "No SMS template provided."}
-                        </pre>
-                      </div>
-                    </Tab>
-                    <Tab eventKey="whatsapp" title="WhatsApp">
-                      <div className="bg-light p-3 rounded">
-                        <pre
-                          className="mb-0"
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          {task.whatsapp_descp ||
-                            "No WhatsApp template provided."}
-                        </pre>
-                      </div>
-                    </Tab>
-                  </Tabs>
-                </div>
               </div>
-            </Tab>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{task.name || "Task Details"}</h1>
+            </div>
+          </div>
+        </div>
 
-            <Tab eventKey="clients" title="Clients & Prospects">
-              <div className="mt-3">
-                <AntCard
-                  size="small"
-                  className="mb-4"
-                  title="Bulk Status Update (Professional Flow)"
+        {/* --- Metrics Grid --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-start space-x-4 transition-shadow hover:shadow-md">
+            <div className="p-3 bg-indigo-50 rounded-lg text-indigo-500">
+              <FaSync size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-500 mb-1">Overall Progress</p>
+              <h4 className={`text-xl font-semibold ${overallProgress === 100 ? "text-green-600" : "text-blue-600"}`}>{overallProgress}%</h4>
+              <p className="text-xs text-gray-400 mt-1">Based on checklists & clients</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-start space-x-4 transition-shadow hover:shadow-md">
+            <div className="p-3 bg-blue-50 rounded-lg text-blue-500">
+              <FaBuilding size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-500 mb-1">Company & Product</p>
+              <h4 className="text-xl font-semibold text-gray-900">{task.company || task.sub || "N/A"}</h4>
+              <p className="text-xs text-gray-400 mt-1">{task.product || task.cat?.name || "N/A"}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-start space-x-4 transition-shadow hover:shadow-md">
+            <div className="p-3 bg-purple-50 rounded-lg text-purple-500">
+              <FaUsers size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-500 mb-1">Assigned Entities</p>
+              <h4 className="text-xl font-semibold text-gray-900">{(task.assignedClients?.length || 0) + (task.assignedProspects?.length || 0)}</h4>
+              <p className="text-xs text-gray-400 mt-1">{task.assignedClients?.length || 0} Clients, {task.assignedProspects?.length || 0} Prospects</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-start space-x-4 transition-shadow hover:shadow-md">
+            <div className="p-3 bg-green-50 rounded-lg text-green-500">
+              <FaUserTie size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-500 mb-1">Assigned To</p>
+              <h4 className="text-xl font-semibold text-gray-900">{employeeName}</h4>
+              <p className="text-xs text-gray-400 mt-1">Due: {!isDefaultTask ? formatDate(task.assignmentDetails?.dueDate) : 'Monthly Task'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* --- Tab Navigation --- */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="border-b border-gray-200">
+            <nav className="flex overflow-x-auto px-6" style={{ scrollbarWidth: 'none' }} aria-label="Tabs">
+              {['overview', 'clients', 'files', 'history'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`
+                    whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-0 bg-transparent
+                    ${activeTab === tab 
+                      ? 'border-indigo-500 text-indigo-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }
+                  `}
+                  style={activeTab === tab ? { borderBottomWidth: '2px', borderBottomStyle: 'solid', borderBottomColor: '#6366f1'} : {}}
                 >
-                  <Row className="g-3 align-items-end">
-                    <Col md={4}>
-                      <label className="form-label fw-semibold mb-2">Select Clients</label>
-                      <AntSelect
-                        mode="multiple"
-                        style={{ width: "100%" }}
-                        value={selectedClientIds}
-                        onChange={setSelectedClientIds}
-                        placeholder="Choose clients"
-                        options={(task.assignedClients || []).map((c) => ({
-                          value: c._id || c.id,
-                          label:
-                            c.personalDetails?.groupName ||
-                            c.personalDetails?.name ||
-                            "Client",
-                        }))}
-                      />
-                    </Col>
-                    <Col md={4}>
-                      <label className="form-label fw-semibold mb-2">
-                        Select Prospects
-                      </label>
-                      <AntSelect
-                        mode="multiple"
-                        style={{ width: "100%" }}
-                        value={selectedProspectIds}
-                        onChange={setSelectedProspectIds}
-                        placeholder="Choose prospects"
-                        options={(task.assignedProspects || []).map((p) => ({
-                          value: p._id || p.id,
-                          label:
-                            p.personalDetails?.groupName ||
-                            p.personalDetails?.name ||
-                            "Prospect",
-                        }))}
-                      />
-                    </Col>
-                    <Col md={2}>
-                      <label className="form-label fw-semibold mb-2">Status</label>
-                      <AntSelect
-                        style={{ width: "100%" }}
-                        value={bulkStatus}
-                        onChange={setBulkStatus}
-                        options={statusOptions.map((item) => ({
-                          value: item.value,
-                          label: item.label,
-                        }))}
-                      />
-                    </Col>
-                    <Col md={2}>
-                      <AntButton
-                        type="primary"
-                        block
-                        loading={bulkUpdating}
-                        onClick={() => handleBulkStatusUpdate("client")}
-                      >
-                        Update Clients
-                      </AntButton>
-                    </Col>
-                  </Row>
-                  <Row className="g-3 mt-1">
-                    <Col md={10}>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        value={bulkRemarks}
-                        onChange={(e) => setBulkRemarks(e.target.value)}
-                        placeholder="Add remarks for selected client/prospect status update..."
-                      />
-                    </Col>
-                    <Col md={2} className="d-flex align-items-end">
-                      <AntButton
-                        block
-                        loading={bulkUpdating}
-                        onClick={() => handleBulkStatusUpdate("prospect")}
-                      >
-                        Update Prospects
-                      </AntButton>
-                    </Col>
-                  </Row>
-                </AntCard>
-                {/* Clients Table */}
-                <div className="mb-4">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h5 className="fw-bold mb-0">
-                      <FaUserFriends className="me-2" />
-                      Assigned Clients ({task.assignedClients?.length || 0})
-                    </h5>
-                  </div>
+                  {tab === 'history' ? 'Activity History' : tab === 'clients' ? 'Clients & Prospects' : tab === 'files' ? 'Files & Attachments' : 'Overview'}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-                  {task.assignedClients?.length > 0 ? (
-                    <AntTable
-                      rowKey={(record) => record._id || record.id}
-                      dataSource={task.assignedClients}
-                      columns={clientColumns}
-                      size="small"
-                      pagination={false}
-                      scroll={{ x: 900 }}
-                    />
-                  ) : (
-                    <Alert variant="info" className="border">
-                      <div className="text-center py-4">
-                        <FaUserFriends size={48} className="text-info mb-3" />
-                        <h5 className="text-info mb-2">No clients assigned</h5>
-                        <p className="text-muted mb-0">
-                          This task is not assigned to any specific clients.
-                        </p>
-                      </div>
-                    </Alert>
-                  )}
-                </div>
-
-                {/* Prospects Table */}
-                <div className="mb-4">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h5 className="fw-bold mb-0">
-                      <FaUsers className="me-2" />
-                      Assigned Prospects ({task.assignedProspects?.length || 0})
-                    </h5>
-                  </div>
-
-                  {task.assignedProspects?.length > 0 ? (
-                    <AntTable
-                      rowKey={(record) => record._id || record.id}
-                      dataSource={task.assignedProspects}
-                      columns={prospectColumns}
-                      size="small"
-                      pagination={false}
-                      scroll={{ x: 1100 }}
-                    />
-                  ) : (
-                    <Alert variant="info" className="border">
-                      <div className="text-center py-4">
-                        <FaUsers size={48} className="text-info mb-3" />
-                        <h5 className="text-info mb-2">
-                          No prospects assigned
-                        </h5>
-                        <p className="text-muted mb-0">
-                          This task is not assigned to any specific prospects.
-                        </p>
-                      </div>
-                    </Alert>
-                  )}
-                </div>
-
-                {/* Assignment Remarks */}
-                {(task.clientAssignmentRemarks ||
-                  task.prospectAssignmentRemarks) && (
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3">
-                      <FaStickyNote className="me-2" />
-                      Assignment Remarks
-                    </h5>
-                    <Card className="border">
-                      <Card.Body>
-                        <Row>
-                          {task.clientAssignmentRemarks && (
-                            <Col md={6}>
-                              <div className="mb-3">
-                                <h6 className="fw-bold mb-2">
-                                  <FaUserFriends className="text-success me-2" />
-                                  Client Assignment Remarks
-                                </h6>
-                                <div className="bg-light p-3 rounded">
-                                  <p className="mb-0">
-                                    {task.clientAssignmentRemarks}
-                                  </p>
-                                </div>
-                              </div>
-                            </Col>
-                          )}
-
-                          {task.prospectAssignmentRemarks && (
-                            <Col md={6}>
-                              <div className="mb-3">
-                                <h6 className="fw-bold mb-2">
-                                  <FaUsers className="text-warning me-2" />
-                                  Prospect Assignment Remarks
-                                </h6>
-                                <div className="bg-light p-3 rounded">
-                                  <p className="mb-0">
-                                    {task.prospectAssignmentRemarks}
-                                  </p>
-                                </div>
-                              </div>
-                            </Col>
-                          )}
-                        </Row>
-                      </Card.Body>
-                    </Card>
-                  </div>
-                )}
-              </div>
-            </Tab>
-
-            <Tab eventKey="files" title="Files & Attachments">
-              <div className="mt-3">
-                <h5 className="fw-bold mb-3">Upload Files</h5>
-                <Card className="mb-4 border">
-                  <Card.Body>
-                    <Form>
-                      <Form.Group>
-                        <Form.Label>Upload Task Files</Form.Label>
-                        <Form.Control
-                          type="file"
-                          multiple
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files);
-                            const newFiles = files.map((file) => ({
-                              id: Date.now() + Math.random(),
-                              name: file.name,
-                              size: file.size,
-                              type: file.type,
-                              file,
-                              uploadedAt: new Date(),
-                            }));
-                            setUploadedFiles([...uploadedFiles, ...newFiles]);
-                          }}
+          {/* --- Tab Content Area --- */}
+          <div className="p-6 md:p-8">
+            {activeTab === 'overview' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* Description Column */}
+                <div className="lg:col-span-2 space-y-8">
+                  <section>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <FaFileAlt className="mr-2 text-gray-400" />
+                      Task Description
+                    </h3>
+                    <div className="prose prose-sm text-gray-600 bg-gray-50 rounded-lg p-5 border border-gray-100">
+                      <div dangerouslySetInnerHTML={{ __html: task.descp?.text || "<p>No description provided.</p>" }} />
+                    </div>
+                    {task.descp?.image && (
+                      <div className="mt-4">
+                        <img
+                          src={buildUploadUrl(task.descp.image)}
+                          alt="Task Document"
+                          className="rounded-lg border border-gray-200 shadow-sm max-h-80 object-cover"
                         />
-                        <Form.Text className="text-muted">
-                          Upload completed forms, documents, or screenshots.
-                        </Form.Text>
-                      </Form.Group>
-                    </Form>
-                  </Card.Body>
-                </Card>
+                      </div>
+                    )}
+                  </section>
+                  
+                  {/* Forms section */}
+                  {task.formChecklists && task.formChecklists.length > 0 && (
+                  <section>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <FaPaperclip className="mr-2 text-gray-400" />
+                      Required Forms
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {task.formChecklists.map((form, index) => (
+                        <div key={index} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                          <h6 className="font-medium text-gray-900 mb-3">{form.name}</h6>
+                          <div className="flex gap-2">
+                             {form.downloadFormUrl && (
+                                <a
+                                  href={buildUploadUrl(form.downloadFormUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center px-3 py-1.5 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md text-xs font-medium transition-colors no-underline"
+                                >
+                                  <FaDownload className="mr-1.5" /> Download
+                                </a>
+                              )}
+                              {form.sampleFormUrl && (
+                                <a
+                                  href={buildUploadUrl(form.sampleFormUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center px-3 py-1.5 border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md text-xs font-medium transition-colors no-underline"
+                                >
+                                  <FaEye className="mr-1.5" /> Sample
+                                </a>
+                              )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                  )}
+                  
+                  {/* Communication Templates */}
+                  {(task.email_descp || task.sms_descp || task.whatsapp_descp) && (
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <FaEnvelope className="mr-2 text-gray-400" />
+                        Communication Templates
+                      </h3>
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                         <Tabs defaultActiveKey="email" className="mb-4 text-sm font-medium">
+                            <Tab eventKey="email" title="Email">
+                              <pre className="p-4 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap border border-gray-100 mt-3">{task.email_descp || "No email template provided."}</pre>
+                            </Tab>
+                            <Tab eventKey="sms" title="SMS">
+                              <pre className="p-4 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap border border-gray-100 mt-3">{task.sms_descp || "No SMS template provided."}</pre>
+                            </Tab>
+                            <Tab eventKey="whatsapp" title="WhatsApp">
+                              <pre className="p-4 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap border border-gray-100 mt-3">{task.whatsapp_descp || "No WhatsApp template provided."}</pre>
+                            </Tab>
+                          </Tabs>
+                      </div>
+                    </section>
+                  )}
+                </div>
 
-                {uploadedFiles.length > 0 && (
-                  <div className="mb-4">
-                    <h6 className="fw-bold mb-3">Uploaded Files</h6>
-                    <ListGroup>
-                      {uploadedFiles.map((file) => (
-                        <ListGroup.Item key={file.id}>
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <strong>{file.name}</strong>
-                              <div className="text-muted small">
-                                {formatDate(file.uploadedAt)} •{" "}
-                                {(file.size / 1024).toFixed(2)} KB
+                {/* Sidebar Column (Checklists) */}
+                <div className="space-y-6">
+                  {task.checklists && task.checklists.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-gray-900 flex items-center">
+                        <FaListAlt className="mr-2 text-gray-400" /> Checklists
+                      </h3>
+                      <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                        {Object.values(checklistStatus).filter(Boolean).length} / {task.checklists.length}
+                      </span>
+                    </div>
+                    
+                    <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
+                      <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${(Object.values(checklistStatus).filter(Boolean).length / task.checklists.length) * 100}%` }}></div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {task.checklists.map((item, index) => (
+                        <label key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border border-transparent hover:border-gray-100 group mb-0">
+                          <input 
+                            type="checkbox" 
+                            checked={checklistStatus[index] || false}
+                            onChange={() => handleChecklistToggle(index)}
+                            className="mt-1 h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 transition-colors" 
+                          />
+                          <span className={`text-sm flex-1 ${checklistStatus[index] ? "text-gray-400 line-through" : "text-gray-700 group-hover:text-gray-900"}`}>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+            
+            {activeTab === 'clients' && (
+              <div className="space-y-8">
+                 {/* Keeping the Antd bulk update and tables, just wrapping them */}
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b border-gray-200">
+                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-0">Bulk Status Update (Professional Flow)</h3>
+                    </div>
+                    <div className="p-5">
+                      <Row className="g-3 align-items-end">
+                        <Col md={4}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Select Clients</label>
+                          <AntSelect
+                            mode="multiple"
+                            style={{ width: "100%" }}
+                            value={selectedClientIds}
+                            onChange={setSelectedClientIds}
+                            placeholder="Choose clients"
+                            options={(task.assignedClients || []).map((c) => ({
+                              value: c._id || c.id,
+                              label: c.personalDetails?.groupName || c.personalDetails?.name || "Client",
+                            }))}
+                          />
+                        </Col>
+                        <Col md={4}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Select Prospects</label>
+                          <AntSelect
+                            mode="multiple"
+                            style={{ width: "100%" }}
+                            value={selectedProspectIds}
+                            onChange={setSelectedProspectIds}
+                            placeholder="Choose prospects"
+                            options={(task.assignedProspects || []).map((p) => ({
+                              value: p._id || p.id,
+                              label: p.personalDetails?.groupName || p.personalDetails?.name || "Prospect",
+                            }))}
+                          />
+                        </Col>
+                        <Col md={2}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                          <AntSelect
+                            style={{ width: "100%" }}
+                            value={bulkStatus}
+                            onChange={setBulkStatus}
+                            options={statusOptions.map((item) => ({ value: item.value, label: item.label }))}
+                          />
+                        </Col>
+                        <Col md={2}>
+                          <AntButton type="primary" block loading={bulkUpdating} onClick={() => handleBulkStatusUpdate("client")}>
+                            Update Clients
+                          </AntButton>
+                        </Col>
+                      </Row>
+                      <Row className="g-3 mt-2">
+                        <Col md={10}>
+                          <Form.Control as="textarea" rows={2} value={bulkRemarks} onChange={(e) => setBulkRemarks(e.target.value)} placeholder="Add remarks for selected client/prospect status update..." className="text-sm border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md" />
+                        </Col>
+                        <Col md={2} className="d-flex align-items-end">
+                          <AntButton block loading={bulkUpdating} onClick={() => handleBulkStatusUpdate("prospect")}>
+                            Update Prospects
+                          </AntButton>
+                        </Col>
+                      </Row>
+                    </div>
+                 </div>
+
+                 <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <FaUserFriends className="mr-2 text-gray-400" /> Assigned Clients <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2.5 rounded-full text-sm">{task.assignedClients?.length || 0}</span>
+                    </h4>
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      {task.assignedClients?.length > 0 ? (
+                        <AntTable rowKey={(record) => record._id || record.id} dataSource={task.assignedClients} columns={clientColumns} size="small" pagination={false} scroll={{ x: 900 }} />
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <FaUserFriends size={40} className="mx-auto text-gray-300 mb-3" />
+                          <p className="text-sm mb-0">No clients assigned to this task.</p>
+                        </div>
+                      )}
+                    </div>
+                 </div>
+
+                 <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <FaUsers className="mr-2 text-gray-400" /> Assigned Prospects <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2.5 rounded-full text-sm">{task.assignedProspects?.length || 0}</span>
+                    </h4>
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      {task.assignedProspects?.length > 0 ? (
+                        <AntTable rowKey={(record) => record._id || record.id} dataSource={task.assignedProspects} columns={prospectColumns} size="small" pagination={false} scroll={{ x: 1100 }} />
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <FaUsers size={40} className="mx-auto text-gray-300 mb-3" />
+                          <p className="text-sm mb-0">No prospects assigned to this task.</p>
+                        </div>
+                      )}
+                    </div>
+                 </div>
+
+                 {/* Assignment Remarks */}
+                 {(task.clientAssignmentRemarks || task.prospectAssignmentRemarks) && (
+                   <div>
+                     <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                       <FaStickyNote className="mr-2 text-gray-400" /> Assignment Remarks
+                     </h4>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {task.clientAssignmentRemarks && (
+                          <div className="bg-white p-5 border border-gray-200 rounded-xl shadow-sm">
+                            <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center"><FaUserFriends className="text-green-500 mr-2" /> Client Remarks</h5>
+                            <p className="text-sm text-gray-600 mb-0">{task.clientAssignmentRemarks}</p>
+                          </div>
+                        )}
+                        {task.prospectAssignmentRemarks && (
+                          <div className="bg-white p-5 border border-gray-200 rounded-xl shadow-sm">
+                            <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center"><FaUsers className="text-amber-500 mr-2" /> Prospect Remarks</h5>
+                            <p className="text-sm text-gray-600 mb-0">{task.prospectAssignmentRemarks}</p>
+                          </div>
+                        )}
+                     </div>
+                   </div>
+                 )}
+              </div>
+            )}
+
+            {activeTab === 'files' && (
+              <div className="space-y-6">
+                 <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Files</h3>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+                      <Form.Control type="file" multiple onChange={(e) => {
+                          const files = Array.from(e.target.files);
+                          const newFiles = files.map((file) => ({ id: Date.now() + Math.random(), name: file.name, size: file.size, type: file.type, file, uploadedAt: new Date() }));
+                          setUploadedFiles([...uploadedFiles, ...newFiles]);
+                        }} 
+                        className="mb-2 w-full text-sm text-gray-500"
+                      />
+                      <p className="text-xs text-gray-500 mb-0">Upload completed forms, documents, or screenshots.</p>
+                    </div>
+                 </div>
+
+                 {uploadedFiles.length > 0 && (
+                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-0">Uploaded Files</h3>
+                      </div>
+                      <ul className="divide-y divide-gray-200 m-0 p-0 list-none">
+                        {uploadedFiles.map((file) => (
+                          <li key={file.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+                            <div className="flex items-center">
+                              <FaFileAlt className="text-gray-400 mr-3 text-xl" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 mb-0">{file.name}</p>
+                                <p className="text-xs text-gray-500 mb-0">{formatDate(file.uploadedAt)} • {(file.size / 1024).toFixed(2)} KB</p>
                               </div>
                             </div>
-                            <div>
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                className="me-2"
-                              >
-                                <FaEye />
-                              </Button>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => {
-                                  setUploadedFiles(
-                                    uploadedFiles.filter(
-                                      (f) => f.id !== file.id
-                                    )
-                                  );
-                                }}
-                              >
-                                <FaTimes />
-                              </Button>
+                            <div className="flex space-x-2">
+                              <button className="text-gray-400 hover:text-indigo-600 transition-colors bg-transparent border-0 p-1 cursor-pointer"><FaEye size={18} /></button>
+                              <button className="text-gray-400 hover:text-red-600 transition-colors bg-transparent border-0 p-1 cursor-pointer" onClick={() => setUploadedFiles(uploadedFiles.filter((f) => f.id !== file.id))}><FaTimes size={18} /></button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                   </div>
+                 )}
+              </div>
+            )}
+
+            {activeTab === 'history' && (
+              <div className="max-w-3xl mx-auto">
+                 <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden relative">
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center"><FaHistory className="mr-2 text-gray-400" /> Task Activity</h3>
+                      <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                        
+                        <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                             <FaBuilding size={14} />
+                          </div>
+                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-lg border border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-bold text-slate-900 text-sm">Task Created</div>
+                              <time className="text-xs font-medium text-indigo-500">{formatDate(task.createdAt)}</time>
                             </div>
                           </div>
-                        </ListGroup.Item>
-                      ))}
-                    </ListGroup>
-                  </div>
-                )}
-              </div>
-            </Tab>
-
-            <Tab eventKey="history" title="Activity History">
-              <div className="mt-3">
-                <h5 className="fw-bold mb-3">
-                  <FaHistory className="me-2" />
-                  Task Activity
-                </h5>
-                <ListGroup>
-                  <ListGroup.Item>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <strong>Task Created</strong>
-                      </div>
-                      <div className="text-muted">
-                        {formatDate(task.createdAt)}
-                      </div>
-                    </div>
-                  </ListGroup.Item>
-
-                  {task.assignmentDetails?.assignedAt && (
-                    <ListGroup.Item>
-                      <div className="d-flex justify-content-between">
-                        <div>
-                          <strong>Task Assigned</strong>
                         </div>
-                        <div className="text-muted">
-                          {formatDate(task.assignmentDetails.assignedAt)}
-                        </div>
-                      </div>
-                    </ListGroup.Item>
-                  )}
 
-                  {task.assignmentDetails?.dueDate && (
-                    <ListGroup.Item>
-                      <div className="d-flex justify-content-between">
-                        <div>
-                          <strong>Due Date Set</strong>
-                          <div className="text-muted small">
+                        {task.assignmentDetails?.assignedAt && (
+                        <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-indigo-50 text-indigo-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                             <FaUserTie size={14} />
+                          </div>
+                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-lg border border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-bold text-slate-900 text-sm">Task Assigned</div>
+                              <time className="text-xs font-medium text-indigo-500">{formatDate(task.assignmentDetails.assignedAt)}</time>
+                            </div>
+                          </div>
+                        </div>
+                        )}
+
+                        {task.assignmentDetails?.dueDate && (
+                        <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-amber-50 text-amber-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                             <FaCalendarAlt size={14} />
+                          </div>
+                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-lg border border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-bold text-slate-900 text-sm">Due Date Set</div>
+                              <time className="text-xs font-medium text-indigo-500">{formatDate(task.assignmentDetails.dueDate)}</time>
+                            </div>
                             {daysLeft !== null && (
-                              <span
-                                className={
-                                  daysLeft < 0 ? "text-danger" : "text-success"
-                                }
-                              >
-                                {daysLeft < 0
-                                  ? `${Math.abs(daysLeft)} days overdue`
-                                  : `${daysLeft} days left`}
-                              </span>
+                              <div className={`text-xs font-medium mt-1 ${daysLeft < 0 ? "text-red-500" : "text-emerald-500"}`}>
+                                {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`}
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="text-muted">
-                          {formatDate(task.assignmentDetails.dueDate)}
-                        </div>
-                      </div>
-                    </ListGroup.Item>
-                  )}
+                        )}
 
-                  {task.completedAt && (
-                    <ListGroup.Item>
-                      <div className="d-flex justify-content-between">
-                        <div>
-                          <strong>Task Completed</strong>
+                        {task.completedAt && (
+                        <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-emerald-50 text-emerald-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                             <FaCheckCircle size={14} />
+                          </div>
+                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-lg border border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-bold text-slate-900 text-sm">Task Completed</div>
+                              <time className="text-xs font-medium text-indigo-500">{formatDate(task.completedAt)}</time>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-muted">
-                          {formatDate(task.completedAt)}
-                        </div>
+                        )}
+
                       </div>
-                    </ListGroup.Item>
-                  )}
-                </ListGroup>
+                    </div>
+                 </div>
               </div>
-            </Tab>
-          </Tabs>
-        </Card.Body>
-      </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
 
       {/* Modals */}
       {/* Status Update Modal */}
@@ -1624,7 +1392,7 @@ const TaskDetailsPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Table,
   Button,
@@ -66,6 +66,7 @@ const getRoleTabFromInitialRole = (initialRole) => {
     telemarketer: "telemarketer",
     oe: "oe",
     "office executive": "oe",
+    accountant: "accountant",
   };
 
   return roleMap[normalized] || "telecaller";
@@ -73,6 +74,7 @@ const getRoleTabFromInitialRole = (initialRole) => {
 
 const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const initialTab = getRoleTabFromInitialRole(initialRole);
   const jobProfileRouteByRole = {
     oa: "/job-profile-target-admin",
@@ -81,6 +83,7 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
     telemarketer: "/job-profile-target-telemarketer",
     oe: "/job-profile-target-office-executive",
     hr: "/all-employee",
+    accountant: "/all-employee",
   };
 
   const [employees, setEmployees] = useState([]);
@@ -154,6 +157,16 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
       avatarBg: "#fafafa",
       avatarColor: "#595959",
     },
+    accountant: {
+      name: "Accountant",
+      icon: <DollarOutlined />,
+      color: "#eb2f96",
+      bgColor: "#fff0f6",
+      borderColor: "#eb2f96",
+      description: "Accounts and finance management",
+      avatarBg: "#fff0f6",
+      avatarColor: "#eb2f96",
+    },
   };
 
   const fetchEmployeesByRole = async (role) => {
@@ -212,6 +225,31 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
           }
           break;
 
+        case "oa":
+          try {
+            const oaResponse = await axiosInstance.get("/api/OA");
+            if (oaResponse.data?.OAs) {
+              responseData = oaResponse.data.OAs
+                .filter(oa => oa && typeof oa === 'object')
+                .map((oa) => ({
+                  _id: oa._id,
+                  name: oa.username || "Unnamed",
+                  employeeCode: oa.employeeCode || `OA-${oa._id?.slice(-4) || "0000"}`,
+                  emailId: oa.email || "-",
+                  mobileNo: oa.mobileno || "-",
+                  role: "OA",
+                  designation: oa.designation || "Office Admin",
+                  dateOfJoining: oa.dateOfJoining || oa.createdAt,
+                  source: "oa",
+                  status: oa.dateOfTermination ? "inactive" : "active",
+                  department: "Office Admin",
+                }));
+            }
+          } catch (err) {
+            console.error("OA fetch error:", err);
+          }
+          break;
+
         default:
           try {
             const employeeResponse = await axiosInstance.get(
@@ -243,40 +281,6 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
               }));
             }
 
-            if (String(role).toLowerCase() === "oa") {
-              const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
-              const loggedUserRole = String(loggedUser?.role || "").toLowerCase();
-
-              if (loggedUser?.id && loggedUserRole === "oa") {
-                const alreadyExists = responseData.some(
-                  (emp) => String(emp?._id) === String(loggedUser.id)
-                );
-
-                if (!alreadyExists) {
-                  responseData = [
-                    {
-                      _id: loggedUser.id,
-                      name: loggedUser.username || loggedUser.name || "Office Admin",
-                      employeeCode:
-                        loggedUser.employeeCode ||
-                        `OA-${String(loggedUser.id).slice(-4) || "0000"}`,
-                      emailId: loggedUser.email || "-",
-                      mobileNo: loggedUser.mobileno || loggedUser.mobileNo || "-",
-                      role: "OA",
-                      designation: "Office Admin",
-                      dateOfJoining: loggedUser.dateOfJoining || loggedUser.createdAt,
-                      source: "oa",
-                      status: "active",
-                      department: "Office Admin",
-                      presentAddress: "-",
-                      emergencyContact: "-",
-                      salary: "-",
-                    },
-                    ...responseData,
-                  ];
-                }
-              }
-            }
           } catch (err) {
             console.error("Employee fetch error:", err);
           }
@@ -317,7 +321,12 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
   }, [employees, searchText]);
 
   const handleViewDetails = (employee) => {
-    navigate(`/employee/${employee._id}`, {
+    const isDashboard = location.pathname.startsWith("/dashboard");
+    const targetPath = isDashboard 
+      ? `/dashboard/employee/${employee._id}` 
+      : `/employee/${employee._id}`;
+      
+    navigate(targetPath, {
       state: {
         employeeData: employee,
         source: employee.source,

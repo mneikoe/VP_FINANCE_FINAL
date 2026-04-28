@@ -208,7 +208,7 @@ const employeeSchema = new mongoose.Schema(
     // Role field
     role: {
       type: String,
-      enum: ["Telecaller", "Telemarketer", "OE", "HR", "RM", "OA"],
+      enum: ["Telecaller", "Telemarketer", "OE", "HR", "RM", "OA", "Accountant"],
       required: [true, "Role is required"],
     },
 
@@ -249,6 +249,16 @@ const employeeSchema = new mongoose.Schema(
     onTwelveMonthCompletion: {
       type: String,
       default: "",
+    },
+
+    // Job Profile and Target PDFs
+    jobProfile: {
+      path: { type: String, default: "" },
+      uploadDate: { type: Date, default: null },
+    },
+    target: {
+      path: { type: String, default: "" },
+      uploadDate: { type: Date, default: null },
     },
   },
   {

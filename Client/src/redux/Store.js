@@ -30,6 +30,10 @@ import authReducer from "./feature/auth/authSlice";
 import dashboardReducer from "./feature/showdashboarddata/dashboarddataSlice";
 import CREReducer from "./feature/CRE/CRESlice";
 import employeeReducer from "./feature/Employee/EmployeeSlice";
+import callingPurposeReducer from "./feature/CallingPurpose/CallingPurposeSlice";
+import bankReducer from "./feature/BankRedux/BankSlice";
+import incomeExpenseAccountReducer from "./feature/IncomeExpense/incomeExpenseAccountSlice";
+import entryReducer from "./feature/IncomeExpense/incomeExpenseEntrySlice";
 export const store = configureStore({
   reducer: {
     telecaller: telecallerReducer,
@@ -63,5 +67,9 @@ export const store = configureStore({
     kycdoc: documentSliceReducer,
     CRE: CREReducer,
     Employee: employeeReducer,
+    callingPurpose: callingPurposeReducer,
+    bank: bankReducer,
+    incomeExpenseAccount: incomeExpenseAccountReducer,
+    accountEntry: entryReducer,
   },
 });

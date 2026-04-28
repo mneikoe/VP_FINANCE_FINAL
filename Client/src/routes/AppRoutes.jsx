@@ -22,6 +22,7 @@ import Servicing from "../Components/Masters/Servicing/Servicing";
 import LeadType from "../Components/Masters/Leads/LeadType";
 import LeadOccupation from "../Components/Masters/Leads/LeadOccupation";
 import OccupationType from "../Components/Masters/Leads/OccupationType";
+import CallingPurpose from "../Components/Masters/Leads/CallingPurpose";
 import SuspectEditWrapper from "../Components/EmployeeDashboard/TelecallerDashboard/SuspectEditWrapper";
 // Customer Components
 import CustomerDetail from "../Components/Customer/Client/CustomerDetail";
@@ -111,6 +112,12 @@ import CRMAdvertisementActivities from "../Components/CRM/CRMAdvertisementActivi
 import CRMCreativityActivities from "../Components/CRM/CRMCreativityActivities";
 import CRMRelationshipActivities from "../Components/CRM/CRMRelationshipActivities";
 import MarketingDocumentsPage from "../Components/Departments/Marketing/MarketingDocumentsPage";
+import AccountantLayout from "../Components/Departments/AccountantDashboard/AccountantLayout"
+import AccountantDashboard from "../Components/Departments/AccountantDashboard/AccountantDashboard";
+import AddBank from "../Components/Departments/Masters/AddBank";
+import IncomeHead from "../Components/Departments/AccountDepartment/IncomeHead/IncomeHead"
+import ExpensesHead from "../Components/Departments/AccountDepartment/ExpensesHead/ExpensesHead"
+import Reports from "../Components/Departments/AccountantDashboard/Reports"
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -191,6 +198,22 @@ const AppRoutes = () => {
         <Route path="not-reachable" element={<StatusBasedLeadsPage />} />
       </Route>
 
+      <Route
+        path="/accountant/*"
+        element={
+          <ProtectedRoute allowedRoles={["Accountant"]}>
+            <AccountantLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="dashboard" element={<AccountantDashboard />} />
+        <Route path="income-head" element={<IncomeHead />} />
+        <Route path="expenses-head" element={<ExpensesHead />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="office-purchase" element={<OfficePurchase />} />
+        <Route path="banks" element={<AddBank />} />
+      </Route>
+
       {/* 🏢 OA (Office Admin) - Only OA can access Layout & all other routes */}
       <Route
         path="/"
@@ -215,6 +238,7 @@ const AppRoutes = () => {
         <Route path="/task-servicing" element={<ServiceAssignments />} />
         <Route path="/lead-type" element={<LeadType />} />
         <Route path="/occupation-type" element={<OccupationType />} />
+        <Route path="/calling-purpose" element={<CallingPurpose />} />
         <Route path="/lead-occupation" element={<LeadOccupation />} />
         <Route path="/lead-source" element={<LeadSource />} />
         <Route path="/marketing-task" element={<Marketing />} />
@@ -315,6 +339,10 @@ const AppRoutes = () => {
           element={<CRMRelationshipActivities />}
         />
         <Route path="/CRE" element={<CREDashboard />} />
+        {/* accounts department */}
+        <Route path="/income-head" element={<IncomeHead />} />
+        <Route path="/expenses-head" element={<ExpensesHead />} />
+        <Route path="/banks" element={<AddBank />} />
       </Route>
 
       {/* 🏦 RM Dashboard Routes - Only RM can access */}

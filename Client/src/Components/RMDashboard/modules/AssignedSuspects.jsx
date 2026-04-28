@@ -189,14 +189,7 @@ const AssignedTasks = ({ user }) => {
 
   return (
     <div style={{ padding: 20, background: "#f5f7fb", minHeight: "100vh" }}>
-      <Card style={{ marginBottom: 16 }}>
-        <Space direction="vertical" size={2}>
-          <Title level={3} style={{ margin: 0 }}>
-            <UserOutlined /> Assigned Suspects
-          </Title>
-          <Text type="secondary">Manage and track suspects assigned to you</Text>
-        </Space>
-      </Card>
+
 
       <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }} wrap>
         <Input

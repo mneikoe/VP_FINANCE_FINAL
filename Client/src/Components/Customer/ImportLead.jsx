@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from '../../config/axios';
 import { fetchLeadType } from "../../redux/feature/LeadType/LeadTypeThunx";
 import { fetchDetails } from "../../redux/feature/LeadSource/LeadThunx";
+import { fetchCallingPurposes } from "../../redux/feature/CallingPurpose/CallingPurposeThunx";
+
 
 const ImportLead = () => {
   const API_BASE_URL = import.meta.env.VITE_API_URL || "";
@@ -11,6 +13,8 @@ const ImportLead = () => {
   // Redux states से data लेना
   const { LeadType: leadTypes, loading: leadTypesLoading } = useSelector((state) => state.LeadType);
   const { leadsourceDetail, loading: leadSourceLoading } = useSelector((state) => state.leadsource);
+  const { callingPurposes, loading: callingPurposeLoading } = useSelector((state) => state.callingPurpose);
+
 
   const [formData, setFormData] = useState({
     callingPurpose: '',
@@ -26,7 +30,9 @@ const ImportLead = () => {
   useEffect(() => {
     dispatch(fetchLeadType());
     dispatch(fetchDetails());
+    dispatch(fetchCallingPurposes());
   }, [dispatch]);
+
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -103,8 +109,15 @@ const ImportLead = () => {
                     required
                   >
                     <option value="">Choose</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Servicing">Servicing</option>
+                    {callingPurposeLoading ? (
+                      <option disabled>Loading...</option>
+                    ) : (
+                      callingPurposes?.map((purpose) => (
+                        <option key={purpose._id} value={purpose.purposeName}>
+                          {purpose.purposeName}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 

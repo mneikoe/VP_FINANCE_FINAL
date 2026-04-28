@@ -11,6 +11,7 @@ import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/Occ
 import { toast } from "react-toastify";
 import axiosInstance from "/src/config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
+import { fetchCallingPurposes } from "../../../redux/feature/CallingPurpose/CallingPurposeThunx";
 import {
   splitGroupHeadName,
   joinGroupHeadName,
@@ -122,11 +123,15 @@ const PersonalDetailsFormForProspect = ({
   const { LeadType: leadTypes, loading } = useSelector(
     (state) => state.LeadType
   );
+  const { callingPurposes, loading: callingPurposeLoading } = useSelector(
+    (state) => state.callingPurpose
+  );
   const { leadsourceDetail } = useSelector((state) => state.leadsource);
 
   // ✅ COMPONENT MOUNT - ALL DATA FETCH
   useEffect(() => {
     dispatch(fetchLeadType());
+    dispatch(fetchCallingPurposes());
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
@@ -1205,11 +1210,15 @@ const PersonalDetailsFormForProspect = ({
               size="sm"
             >
               <option value="">-- Select Purpose --</option>
-              <option value="Follow-up">Follow-up</option>
-              <option value="Meeting Schedule">Meeting Schedule</option>
-              <option value="Query Resolution">Query Resolution</option>
-              <option value="Proposal Discussion">Proposal Discussion</option>
-              <option value="Other">Other</option>
+              {callingPurposeLoading ? (
+                <option disabled>Loading...</option>
+              ) : (
+                callingPurposes?.map((purpose) => (
+                  <option key={purpose._id} value={purpose.purposeName}>
+                    {purpose.purposeName}
+                  </option>
+                ))
+              )}
             </Form.Select>
           </Form.Group>
         </Col>

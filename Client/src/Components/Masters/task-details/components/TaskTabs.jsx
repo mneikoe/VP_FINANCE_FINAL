@@ -26,6 +26,7 @@ import {
   FaCalendarCheck,
 } from "react-icons/fa";
 import { formatDate } from "../../../../utils/formatter";
+import { buildUploadUrl } from "../../../../utils/uploadUrl";
 import EntitiesTable from "./EntitiesTable";
 
 const TaskTabs = ({
@@ -64,7 +65,7 @@ const TaskTabs = ({
                 {task.descp?.image && (
                   <div className="mt-3">
                     <img
-                      src={`${import.meta.env.VITE_API_URL || ""}/uploads/${task.descp.image}`}
+                      src={buildUploadUrl(task.descp.image)}
                       alt="Task"
                       className="img-fluid rounded border"
                       style={{ maxHeight: "300px" }}
@@ -158,7 +159,7 @@ const TaskTabs = ({
                             <div className="d-flex gap-2">
                               {form.downloadFormUrl && (
                                 <a
-                                  href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.downloadFormUrl}`}
+                                  href={buildUploadUrl(form.downloadFormUrl)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn btn-outline-primary btn-sm"
@@ -168,7 +169,7 @@ const TaskTabs = ({
                               )}
                               {form.sampleFormUrl && (
                                 <a
-                                  href={`${import.meta.env.VITE_API_URL || ""}/uploads/${form.sampleFormUrl}`}
+                                  href={buildUploadUrl(form.sampleFormUrl)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn btn-outline-secondary btn-sm"

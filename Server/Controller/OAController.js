@@ -87,4 +87,42 @@ const loginOA = async (req, res) => {
   }
 };
 
-module.exports = { registerOA, loginOA };
+// ✅ Get All OAs
+const getAllOA = async (req, res) => {
+  try {
+    const oas = await OA.find().select("-password");
+    res.json({
+      success: true,
+      message: "OAs fetched successfully",
+      OAs: oas,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching OAs",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Get OA By ID
+const getOAById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const oa = await OA.findById(id).select("-password");
+    if (!oa) {
+      return res.status(404).json({ message: "OA not found" });
+    }
+    res.json({
+      success: true,
+      message: "OA fetched successfully",
+      OA: oa,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching OA",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = { registerOA, loginOA, getAllOA, getOAById };

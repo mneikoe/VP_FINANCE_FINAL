@@ -8,6 +8,8 @@ import {
 } from "../../redux/feature/SuspectLead/SuspectLeadThunx";
 import { fetchLeadOccupationDetails } from "../../redux/feature/LeadOccupation/OccupationThunx";
 import { fetchDetails } from "../../redux/feature/LeadSource/LeadThunx";
+import { fetchCallingPurposes } from "../../redux/feature/CallingPurpose/CallingPurposeThunx";
+
 const initialFormState = {
   salutation: "",
   familyHead: "",
@@ -52,12 +54,18 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
   const leadOccupations = useSelector((state) => state.leadOccupation.details);
 
   const leadSources = useSelector((state) => state.leadsource.leadsourceDetail);
+  const { callingPurposes, loading: callingPurposeLoading } = useSelector(
+    (state) => state.callingPurpose
+  );
+
 
   useEffect(() => {
     const init = async () => {
       try {
         await dispatch(fetchLeadOccupationDetails()).unwrap();
         await dispatch(fetchDetails()).unwrap();
+        await dispatch(fetchCallingPurposes()).unwrap();
+
       } catch (error) {
         console.log(error);
       }
@@ -539,8 +547,16 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
               value={form.callingPurpose}
               onChange={handleChange}
             >
-              <option value="Servicing">Servicing</option>
-              <option value="Sales">Marketing</option>
+              <option value="">-- Select Purpose --</option>
+              {callingPurposeLoading ? (
+                <option disabled>Loading...</option>
+              ) : (
+                callingPurposes?.map((purpose) => (
+                  <option key={purpose._id} value={purpose.purposeName}>
+                    {purpose.purposeName}
+                  </option>
+                ))
+              )}
             </Form.Select>
           </Col>
           <Col md={6}>

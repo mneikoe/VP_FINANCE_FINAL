@@ -84,7 +84,17 @@ const telecallerSchema = new mongoose.Schema({
       enum: ["assigned", "completed", "cancelled"],
       default: "assigned"
     }
-  }]
+  }],
+
+  // Job Profile and Target PDFs
+  jobProfile: {
+    path: { type: String, default: "" },
+    uploadDate: { type: Date, default: null }
+  },
+  target: {
+    path: { type: String, default: "" },
+    uploadDate: { type: Date, default: null }
+  }
   
 }, { timestamps: true });
 

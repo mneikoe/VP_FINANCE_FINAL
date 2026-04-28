@@ -101,7 +101,9 @@ const EmployeeAddForm = () => {
     },
     { value: "OE", label: "👨‍💼 OE", designation: "Operation Executive" },
     { value: "HR", label: "👥 HR", designation: "HR Executive" },
+    { value: "OA", label: "🏢 OA", designation: "Office Admin" },
     { value: "RM", label: "🤵 RM", designation: "Relationship Manager" },
+    { value: "Accountant", label: "📊 Accountant", designation: "Accountant" },
   ];
 
   // Fetch areas and subareas on component mount
@@ -224,6 +226,7 @@ const EmployeeAddForm = () => {
           OE: "OE",
           HR: "HR",
           RM: "RM",
+          Accountant: "AC",
         };
 
         const roleCode = roleCodes[role] || "EMP";

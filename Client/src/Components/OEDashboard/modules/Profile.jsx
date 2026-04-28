@@ -13,6 +13,7 @@ import {
   FaMapMarkerAlt,
   FaUserTie,
   FaBuilding,
+  FaFilePdf,
 } from "react-icons/fa";
 
 const OEProfile = () => {
@@ -111,6 +112,8 @@ const OEProfile = () => {
       onFirstJoining: empData.onFirstJoining,
       onSixMonthCompletion: empData.onSixMonthCompletion,
       onTwelveMonthCompletion: empData.onTwelveMonthCompletion,
+      jobProfile: empData.jobProfile,
+      target: empData.target,
       status: empData.dateOfTermination ? "Inactive" : "Active",
     };
   };
@@ -312,6 +315,57 @@ const OEProfile = () => {
                   <p className="font-medium text-gray-800">
                     {formatDate(employee.dateOfJoining)}
                   </p>
+                </div>
+              </div>
+
+              {/* Job Profile and Target (View Only) */}
+              <div className="pt-3 mt-3 border-t border-gray-200 space-y-3">
+                <div className="flex items-start gap-2 text-sm">
+                  <FaFilePdf className="text-red-500 mt-1 text-xs" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500">Job Profile</p>
+                    {employee.jobProfile?.path ? (
+                      <div className="mt-1">
+                        <a 
+                          href={`${axios.defaults.baseURL || ""}${employee.jobProfile.path}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                        >
+                          <FaFilePdf size={10} /> View PDF
+                        </a>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Uploaded: {formatDate(employee.jobProfile.uploadDate)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">No PDF uploaded</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 text-sm">
+                  <FaFilePdf className="text-cyan-500 mt-1 text-xs" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500">Target Details</p>
+                    {employee.target?.path ? (
+                      <div className="mt-1">
+                        <a 
+                          href={`${axios.defaults.baseURL || ""}${employee.target.path}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-800 font-medium text-xs bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200"
+                        >
+                          <FaFilePdf size={10} /> View PDF
+                        </a>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Uploaded: {formatDate(employee.target.uploadDate)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">No PDF uploaded</p>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm">

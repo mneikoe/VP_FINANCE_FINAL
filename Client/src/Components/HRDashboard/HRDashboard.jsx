@@ -23,6 +23,10 @@ import InternshipStudents from "./modules/InternshipStudents.jsx";
 import RulesRegulations from "./modules/RulesRegulations.jsx";
 import FuturePlans from "./modules/FuturePlans.jsx";
 
+// Import Employee Management Components
+import EmployeeList from "../Employee/OfficeAdmin/EmployeeList";
+import EmployeeDetails from "../Employee/OfficeAdmin/EmployeeDetails";
+
 const HRDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -67,6 +71,10 @@ const HRDashboard = () => {
             />
             <Route path="/rules-regulations" element={<RulesRegulations />} />
             <Route path="/future-plans" element={<FuturePlans />} />
+
+            {/* Employee Management Routes */}
+            <Route path="/all-employee" element={<EmployeeList />} />
+            <Route path="/employee/:id" element={<EmployeeDetails />} />
 
             {/* Catch all route - redirect to dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

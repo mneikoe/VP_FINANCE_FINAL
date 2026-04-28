@@ -14,6 +14,7 @@ import {
   InputGroup,
   FormControl,
   Dropdown,
+  Table,
 } from "react-bootstrap";
 import {
   FaFilePdf,
@@ -37,6 +38,7 @@ import {
   FaChartLine,
   FaLock,
   FaLockOpen,
+  FaEllipsisV,
 } from "react-icons/fa";
 import axios from "axios";
 
@@ -58,6 +60,8 @@ const FuturePlans = () => {
   const [updating, setUpdating] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -746,89 +750,80 @@ const FuturePlans = () => {
               </p>
             </div>
           ) : (
-            <Row>
-              {filteredDocuments.map((doc) => (
-                <Col md={6} lg={4} key={doc._id} className="mb-4">
-                  <Card className="h-100 border">
-                    <Card.Body className="d-flex flex-column">
-                      {/* Document Header */}
-                      <div className="d-flex align-items-start mb-3">
-                        <div className="bg-light p-3 rounded me-3">
-                          <FaRegFilePdf size={24} className="text-primary" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <h6 className="mb-1 text-truncate" title={doc.title}>
-                            {doc.title}
-                          </h6>
-                          <div className="d-flex flex-wrap gap-1 mb-2">
-                            <Badge bg={getCategoryBadge(doc.category)}>
-                              {doc.category}
-                            </Badge>
-                            <Badge bg={getStatusBadge(doc.approvalStatus)}>
-                              {doc.approvalStatus}
-                            </Badge>
-                            <Badge bg={getPriorityBadge(doc.priority)}>
-                              {doc.priority}
-                            </Badge>
-                          </div>
-                          <small className="text-muted d-block">
-                            <FaCalendarAlt className="me-1" />
-                            {formatDate(doc.createdAt)}
-                            {doc.targetYear && ` • Target: ${doc.targetYear}`}
-                          </small>
-                        </div>
-                      </div>
-
-                      {/* Document Info */}
-                      <div className="mb-3">
-                        {doc.description && (
-                          <p
-                            className="text-muted small mb-2"
-                            style={{ fontSize: "0.85rem" }}
+            <div className="table-responsive">
+              <Table hover className="align-middle border-top">
+                <thead className="bg-light">
+                  <tr>
+                    <th style={{ width: '30%' }}>Plan Details</th>
+                    <th>Category</th>
+                    <th>Strategy & Year</th>
+                    <th>Priority</th>
+                    <th>Privacy</th>
+                    <th>Status</th>
+                    <th className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDocuments.map((doc) => (
+                    <tr key={doc._id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div 
+                            className="bg-light p-2 rounded me-3 d-flex align-items-center justify-content-center"
+                            style={{ width: "40px", height: "40px" }}
                           >
-                            {doc.description.length > 80
-                              ? doc.description.substring(0, 80) + "..."
-                              : doc.description}
-                          </p>
-                        )}
-                        <div className="d-flex flex-wrap gap-2 mb-2">
-                          <small className="text-muted">
-                            <FaChartLine className="me-1" />
-                            {doc.strategicArea}
-                          </small>
-                          <small className="text-muted">
-                            {getConfidentialityIcon(doc.confidentialLevel)}
-                            <span className="ms-1">
-                              {doc.confidentialLevel}
-                            </span>
-                          </small>
+                            <FaRegFilePdf className="text-danger" size={20} />
+                          </div>
+                          <div>
+                            <div className="fw-bold text-dark">{doc.title}</div>
+                            <div className="text-muted x-small text-truncate" style={{ maxWidth: '250px', fontSize: '0.75rem' }}>
+                              {doc.description || "No description provided"}
+                            </div>
+                          </div>
                         </div>
-                        <div className="d-flex justify-content-between small text-muted">
-                          <span>
-                            <FaFilePdf className="me-1" />
-                            {formatFileSize(doc.fileSize)}
-                          </span>
-                          <span>
-                            <FaDownload className="me-1" />
-                            {doc.downloadCount || 0} downloads
-                          </span>
+                      </td>
+                      <td>
+                        <Badge bg={getCategoryBadge(doc.category)} className="fw-normal">
+                          {doc.category}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className="d-flex flex-column">
+                          <small className="fw-medium">{doc.strategicArea}</small>
+                          <small className="text-muted">Target: {doc.targetYear || "N/A"}</small>
                         </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="d-flex justify-content-between mt-auto">
-                        <div className="d-flex gap-2">
+                      </td>
+                      <td>
+                        <Badge pill bg={getPriorityBadge(doc.priority)} className="fw-normal">
+                          {doc.priority}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center gap-1">
+                          {getConfidentialityIcon(doc.confidentialLevel)}
+                          <small className="text-muted">{doc.confidentialLevel}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <Badge bg={getStatusBadge(doc.approvalStatus)} className="fw-normal">
+                          {doc.approvalStatus}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className="d-flex justify-content-end gap-2">
                           <Button
-                            variant="outline-primary"
+                            variant="light"
                             size="sm"
+                            className="text-primary border"
                             onClick={() => handleViewDocument(doc._id)}
                             title="View in Browser"
                           >
                             <FaEye />
                           </Button>
                           <Button
-                            variant="outline-success"
+                            variant="light"
                             size="sm"
+                            className="text-success border"
                             onClick={() =>
                               handleDownloadDocument(doc._id, doc.originalName)
                             }
@@ -836,52 +831,26 @@ const FuturePlans = () => {
                           >
                             <FaDownload />
                           </Button>
+                          <Button
+                            variant="light"
+                            size="sm"
+                            className="rounded-circle d-flex align-items-center justify-content-center border shadow-sm"
+                            style={{ width: "36px", height: "36px", backgroundColor: "#f8f9fa" }}
+                            onClick={() => {
+                              setSelectedDocument(doc);
+                              setShowActionModal(true);
+                            }}
+                            title="Actions"
+                          >
+                            <FaEllipsisV size={14} className="text-primary" />
+                          </Button>
                         </div>
-                        <div className="d-flex gap-2">
-                          <Dropdown>
-                            <Dropdown.Toggle
-                              variant="outline-secondary"
-                              size="sm"
-                            >
-                              <FaEdit />
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item
-                                onClick={() => handleEditDocument(doc)}
-                              >
-                                Edit Details
-                              </Dropdown.Item>
-                              <Dropdown.Item
-                                onClick={() =>
-                                  handleUpdateDocumentFile(doc._id)
-                                }
-                              >
-                                Update PDF File
-                              </Dropdown.Item>
-                              <Dropdown.Item
-                                onClick={() => handleApproveDocument(doc)}
-                              >
-                                Update Approval Status
-                              </Dropdown.Item>
-                              <Dropdown.Divider />
-                              <Dropdown.Item
-                                className="text-danger"
-                                onClick={() => {
-                                  setDocumentToDelete(doc);
-                                  setShowDeleteModal(true);
-                                }}
-                              >
-                                Delete Document
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           )}
         </Card.Body>
       </Card>
@@ -1427,6 +1396,114 @@ const FuturePlans = () => {
             )}
           </Button>
         </Modal.Footer>
+      </Modal>
+      {/* Action Popup (Modal) for Future Plans */}
+      <Modal
+        show={showActionModal}
+        onHide={() => setShowActionModal(false)}
+        centered
+        size="md"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="h5 fw-bold text-dark">
+            Strategic Plan Actions
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          {selectedDocument && (
+            <div className="text-center mb-4">
+              <div className="bg-light rounded-circle p-3 d-inline-block mb-3">
+                <FaRegFilePdf size={40} className="text-danger" />
+              </div>
+              <h6 className="fw-bold mb-1">{selectedDocument.title}</h6>
+              <div className="d-flex justify-content-center gap-2 mt-2">
+                <Badge bg={getCategoryBadge(selectedDocument.category)}>{selectedDocument.category}</Badge>
+                <Badge bg={getStatusBadge(selectedDocument.approvalStatus)}>{selectedDocument.approvalStatus}</Badge>
+              </div>
+            </div>
+          )}
+          
+          <div className="d-grid gap-2">
+            <Row className="g-2">
+              <Col xs={6}>
+                <Button 
+                  variant="outline-primary" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleViewDocument(selectedDocument._id);
+                  }}
+                >
+                  <FaEye /> View
+                </Button>
+              </Col>
+              <Col xs={6}>
+                <Button 
+                  variant="outline-success" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleDownloadDocument(selectedDocument._id, selectedDocument.originalName);
+                  }}
+                >
+                  <FaDownload /> Download
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="outline-dark" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleEditDocument(selectedDocument);
+                  }}
+                >
+                  <FaEdit /> Edit Details
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="outline-info" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2 text-dark"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleUpdateDocumentFile(selectedDocument._id);
+                  }}
+                >
+                  <FaUpload /> Update PDF File
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="outline-secondary" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    handleApproveDocument(selectedDocument);
+                  }}
+                >
+                  <FaCheckCircle /> Approval Status
+                </Button>
+              </Col>
+              <Col xs={12}>
+                <hr className="my-2" />
+              </Col>
+              <Col xs={12}>
+                <Button 
+                  variant="danger" 
+                  className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => {
+                    setShowActionModal(false);
+                    setDocumentToDelete(selectedDocument);
+                    setShowDeleteModal(true);
+                  }}
+                >
+                  <FaTrash /> Delete Plan
+                </Button>
+              </Col>
+            </Row>
+          </div>
+        </Modal.Body>
       </Modal>
     </Container>
   );

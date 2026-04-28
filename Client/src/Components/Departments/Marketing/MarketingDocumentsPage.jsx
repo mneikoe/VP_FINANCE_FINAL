@@ -278,10 +278,31 @@ const MarketingDocumentsPage = ({
 
   return (
     <div style={{ padding: 16 }}>
-      <Card>
+      <style>{`
+        .custom-marketing-card {
+          background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 10px !important;
+        }
+        .custom-marketing-title {
+          color: #0d6efd !important;
+          font-weight: 700 !important;
+          margin-bottom: 4px !important;
+        }
+        .custom-marketing-table .ant-table-thead > tr > th {
+          background: #facc15 !important;
+          color: #111827 !important;
+          font-size: 0.74rem !important;
+          border-radius: 0 !important;
+        }
+        .custom-marketing-table .ant-table-cell {
+          font-size: 0.76rem !important;
+        }
+      `}</style>
+      <Card className="custom-marketing-card">
         <Space direction="vertical" size={14} style={{ width: "100%" }}>
           <div>
-            <Title level={4} style={{ marginBottom: 4 }}>
+            <Title level={4} className="custom-marketing-title">
               {title}
             </Title>
             <Text type="secondary">
@@ -395,6 +416,7 @@ const MarketingDocumentsPage = ({
           </Form>
 
           <Table
+            className="custom-marketing-table"
             rowKey="_id"
             columns={columns}
             dataSource={Array.isArray(rows) ? rows : []}

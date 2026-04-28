@@ -8,6 +8,8 @@ import {
   FaIdCardAlt,
   FaUsers,
   FaMoneyBillWave,
+  FaFilePdf,
+  FaUpload,
 } from "react-icons/fa";
 
 const EmployeeDetails = () => {
@@ -22,10 +24,50 @@ const EmployeeDetails = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
   const loggedInRole = String(loggedInUser?.role || "");
   const isOAViewer = loggedInRole === "OA";
+  const canUpload = loggedInRole === "HR" || loggedInRole === "OA";
+
+  const [uploadingJobProfile, setUploadingJobProfile] = useState(false);
+  const [uploadingTarget, setUploadingTarget] = useState(false);
 
   useEffect(() => {
     fetchEmployeeData();
   }, [id, location]);
+
+  const handleFileUpload = async (event, documentType) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file only.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("employeeId", id);
+    formData.append("role", employee.role);
+    formData.append("documentType", documentType);
+
+    if (documentType === "jobProfile") setUploadingJobProfile(true);
+    else setUploadingTarget(true);
+
+    try {
+      const response = await axiosInstance.post("/api/employee/upload-document", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (response.data.success) {
+        alert(`${documentType === "jobProfile" ? "Job Profile" : "Target"} uploaded successfully!`);
+        fetchEmployeeData(); // Refresh data
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload document.");
+    } finally {
+      if (documentType === "jobProfile") setUploadingJobProfile(false);
+      else setUploadingTarget(false);
+    }
+  };
   const fetchEmployeeData = async () => {
     setLoading(true);
     setError(null);
@@ -46,20 +88,27 @@ const EmployeeDetails = () => {
       // ✅ AGAR SOURCE "employee" HAI TO EMPLOYEE ROUTES SE FETCH KAREIN
       if (source === "employee") {
         await fetchFromEmployeeAPI();
+      } else if (source === "oa") {
+        await fetchFromOAAPI();
       } else {
         // Pehle HR try karein, phir Telecaller
         try {
           await fetchFromHRAPI();
         } catch (hrErr) {
-          console.log("❌ HR API failed, trying Telecaller API...");
+          console.log("❌ HR API failed, trying OA API...");
           try {
-            await fetchFromTelecallerAPI();
-          } catch (teleErr) {
-            console.log("❌ Telecaller API failed, trying Employee API...");
+            await fetchFromOAAPI();
+          } catch (oaErr) {
+            console.log("❌ OA API failed, trying Telecaller API...");
             try {
-              await fetchFromEmployeeAPI();
-            } catch (empErr) {
-              throw new Error("Employee not found in any system");
+              await fetchFromTelecallerAPI();
+            } catch (teleErr) {
+              console.log("❌ Telecaller API failed, trying Employee API...");
+              try {
+                await fetchFromEmployeeAPI();
+              } catch (empErr) {
+                throw new Error("Employee not found in any system");
+              }
             }
           }
         }
@@ -135,6 +184,10 @@ const EmployeeDetails = () => {
       panNo: empData.panNo,
       aadharNo: empData.aadharNo,
 
+      // Job Profile and Target PDFs
+      jobProfile: empData.jobProfile,
+      target: empData.target,
+
       // Source identifier
       source: "employee",
     };
@@ -150,6 +203,77 @@ const EmployeeDetails = () => {
     } else {
       throw new Error("HR not found");
     }
+  };
+
+  const fetchFromOAAPI = async () => {
+    const response = await axiosInstance.get(`/api/OA/${id}`);
+
+    if (response.data && response.data.success) {
+      console.log("✅ OA data found from OA API");
+      const oaData = mapOAToEmployee(response.data.OA);
+      setEmployee(oaData);
+    } else {
+      throw new Error("OA not found");
+    }
+  };
+
+  const mapOAToEmployee = (oaData) => {
+    return {
+      // ✅ COMMON FIELDS
+      _id: oaData._id,
+      name: oaData.username,
+      emailId: oaData.email,
+      mobileNo: oaData.mobileno,
+      role: "OA",
+
+      // Personal Details
+      employeeCode: oaData.employeeCode,
+      designation: oaData.designation,
+      gender: oaData.gender,
+      dob: oaData.dob,
+      marriageDate: oaData.marriageDate,
+
+      // Address Details
+      presentAddress: oaData.presentAddress,
+      permanentAddress: oaData.permanentAddress,
+      homeTown: oaData.homeTown,
+
+      // Contact Details
+      familyContactPerson: oaData.familyContactPerson,
+      familyContactMobile: oaData.familyContactMobile,
+      emergencyContactPerson: oaData.emergencyContactPerson,
+      emergencyContactMobile: oaData.emergencyContactMobile,
+
+      // Office Details
+      officeMobile: oaData.officeMobile,
+      officeEmail: oaData.officeEmail,
+      allottedLoginId: oaData.allottedLoginId,
+      allocatedWorkArea: oaData.allocatedWorkArea,
+      dateOfJoining: oaData.dateOfJoining,
+      dateOfTermination: oaData.dateOfTermination,
+
+      // Financial Details
+      salaryOnJoining: oaData.salaryOnJoining,
+      expenses: oaData.expenses,
+      incentives: oaData.incentives,
+
+      // Bank Details
+      bankName: oaData.bankName,
+      accountNo: oaData.accountNo,
+      ifscCode: oaData.ifscCode,
+      micr: oaData.micr,
+
+      // Identification
+      panNo: oaData.panNo,
+      aadharNo: oaData.aadharNo,
+
+      // Job Profile and Target PDFs
+      jobProfile: oaData.jobProfile,
+      target: oaData.target,
+
+      // Source identifier
+      source: "oa",
+    };
   };
 
   const fetchFromTelecallerAPI = async () => {
@@ -214,6 +338,10 @@ const EmployeeDetails = () => {
       panNo: hrData.panNo,
       aadharNo: hrData.aadharNo,
 
+      // Job Profile and Target PDFs
+      jobProfile: hrData.jobProfile,
+      target: hrData.target,
+
       // HR Specific
       hrResponsibilities: hrData.hrResponsibilities,
       managedEmployees: hrData.managedEmployees,
@@ -274,6 +402,10 @@ const EmployeeDetails = () => {
       panNo: telecallerData.panNo,
       aadharNo: telecallerData.aadharNo,
 
+      // Job Profile and Target PDFs
+      jobProfile: telecallerData.jobProfile,
+      target: telecallerData.target,
+
       // Source identifier
       source: "telecaller",
     };
@@ -331,7 +463,7 @@ const EmployeeDetails = () => {
           <Alert.Heading>Error</Alert.Heading>
           {error || "Employee not found"}
         </Alert>
-        <Button onClick={() => navigate("/all-employee")}>
+        <Button onClick={() => navigate(location.pathname.startsWith("/dashboard") ? "/dashboard/all-employee" : "/all-employee")}>
           ← Back to Employee List
         </Button>
       </div>
@@ -360,7 +492,7 @@ const EmployeeDetails = () => {
         </h1>
         <Button
           variant="outline-secondary"
-          onClick={() => navigate("/all-employee")}
+          onClick={() => navigate(location.pathname.startsWith("/dashboard") ? "/dashboard/all-employee" : "/all-employee")}
         >
           ← Back to List
         </Button>
@@ -408,6 +540,116 @@ const EmployeeDetails = () => {
                   <p className="detail-value">
                     {formatDate(employee.dateOfJoining)}
                   </p>
+                </div>
+              </div>
+
+              {/* Job Profile PDF */}
+              <div className="detail-item mt-2 pt-2 border-top">
+                <FaFilePdf className="detail-icon" style={{ color: "#d9534f" }} />
+                <div className="w-100">
+                  <p className="detail-label d-flex justify-content-between">
+                    Job Profile
+                  </p>
+                  {employee.jobProfile?.path ? (
+                    <div className="d-flex flex-column">
+                      <a 
+                        href={`${axiosInstance.defaults.baseURL}${employee.jobProfile.path}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-outline-danger py-1 px-3 mt-1 d-flex align-items-center gap-2 shadow-sm"
+                        style={{ fontSize: "0.75rem", width: "fit-content", borderRadius: "20px" }}
+                      >
+                        <FaFilePdf size={12} /> View Job Profile
+                      </a>
+                      <p className="detail-value mt-1" style={{ fontSize: "0.65rem", color: "#6c757d" }}>
+                        Uploaded: {formatDate(employee.jobProfile.uploadDate)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="detail-value text-muted" style={{ fontSize: "0.8rem" }}>No PDF uploaded</p>
+                  )}
+                  
+                  {canUpload && (
+                    <div className="mt-1">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => handleFileUpload(e, "jobProfile")}
+                        style={{ display: "none" }}
+                        id="jobProfileUpload"
+                      />
+                      <label 
+                        htmlFor="jobProfileUpload" 
+                        className="btn btn-sm py-1 px-3 mt-1 d-flex align-items-center gap-2"
+                        style={{ 
+                          fontSize: "0.7rem", 
+                          cursor: "pointer", 
+                          backgroundColor: "#f8f9fa",
+                          color: "#495057",
+                          border: "1px solid #ced4da",
+                          borderRadius: "20px",
+                          width: "fit-content"
+                        }}
+                      >
+                        {uploadingJobProfile ? "Uploading..." : <><FaUpload size={10} /> {employee.jobProfile?.path ? "Update Profile" : "Upload Profile"}</>}
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Target PDF */}
+              <div className="detail-item mt-2 pt-2 border-top">
+                <FaFilePdf className="detail-icon" style={{ color: "#5bc0de" }} />
+                <div className="w-100">
+                  <p className="detail-label d-flex justify-content-between">
+                    Target Details
+                  </p>
+                  {employee.target?.path ? (
+                    <div className="d-flex flex-column">
+                      <a 
+                        href={`${axiosInstance.defaults.baseURL}${employee.target.path}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-outline-info py-1 px-3 mt-1 d-flex align-items-center gap-2 shadow-sm text-dark"
+                        style={{ fontSize: "0.75rem", width: "fit-content", borderRadius: "20px" }}
+                      >
+                        <FaFilePdf size={12} /> View Target
+                      </a>
+                      <p className="detail-value mt-1" style={{ fontSize: "0.65rem", color: "#6c757d" }}>
+                        Uploaded: {formatDate(employee.target.uploadDate)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="detail-value text-muted" style={{ fontSize: "0.8rem" }}>No PDF uploaded</p>
+                  )}
+                  
+                  {canUpload && (
+                    <div className="mt-1">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => handleFileUpload(e, "target")}
+                        style={{ display: "none" }}
+                        id="targetUpload"
+                      />
+                      <label 
+                        htmlFor="targetUpload" 
+                        className="btn btn-sm py-1 px-3 mt-1 d-flex align-items-center gap-2"
+                        style={{ 
+                          fontSize: "0.7rem", 
+                          cursor: "pointer", 
+                          backgroundColor: "#f8f9fa",
+                          color: "#495057",
+                          border: "1px solid #ced4da",
+                          borderRadius: "20px",
+                          width: "fit-content"
+                        }}
+                      >
+                        {uploadingTarget ? "Uploading..." : <><FaUpload size={10} /> {employee.target?.path ? "Update Target" : "Upload Target"}</>}
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
               {isOAViewer && (

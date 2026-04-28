@@ -70,8 +70,10 @@ exports.addEmployee = async (req, res) => {
       await autoSaveToTelecaller(newEmployee);
     } else if (newEmployee.role === "HR") {
       await autoSaveToHR(newEmployee);
+    } else if (newEmployee.role === "OA") {
+      await autoSaveToOA(newEmployee);
     }
-    // ✅ Yahan aage aur roles add kar sakte ho: Telemarketer, OE, RM, OA
+    // ✅ Yahan aage aur roles add kar sakte ho: Telemarketer, OE, RM
 
     // ✅ IMMEDIATE LOGIN TEST
     const testMatch = await bcrypt.compare("123456", newEmployee.password);
@@ -275,6 +277,69 @@ const autoSaveToHR = async (employee) => {
     }
   } catch (autoSaveError) {
     console.log(`❌ HR AUTO-SAVE ERROR: ${autoSaveError.message}`);
+  }
+};
+
+// ✅ OA AUTO-SAVE FUNCTION
+const autoSaveToOA = async (employee) => {
+  try {
+    console.log(`🔄 AUTO-SAVE OA: Starting for ${employee.name}`);
+
+    const OA = require("../Models/OAModel");
+
+    const existingOA = await OA.findOne({
+      $or: [{ email: employee.emailId }, { employeeRef: employee._id }],
+    });
+
+    if (!existingOA) {
+      const oaData = {
+        // Basic info
+        username: employee.name,
+        email: employee.emailId,
+        mobileno: employee.mobileNo,
+        password: employee.password,
+        role: "OA",
+        employeeRef: employee._id,
+
+        // Complete employee data
+        employeeCode: employee.employeeCode,
+        designation: employee.designation,
+        gender: employee.gender,
+        dob: employee.dob,
+        marriageDate: employee.marriageDate,
+        presentAddress: employee.presentAddress,
+        permanentAddress: employee.permanentAddress,
+        homeTown: employee.homeTown,
+        familyContactPerson: employee.familyContactPerson,
+        familyContactMobile: employee.familyContactMobile,
+        emergencyContactPerson: employee.emergencyContactPerson,
+        emergencyContactMobile: employee.emergencyContactMobile,
+        officeMobile: employee.officeMobile,
+        officeEmail: employee.officeEmail,
+        allottedLoginId: employee.allottedLoginId,
+        allocatedWorkArea: employee.allocatedWorkArea,
+        dateOfJoining: employee.dateOfJoining,
+        dateOfTermination: employee.dateOfTermination,
+        salaryOnJoining: employee.salaryOnJoining,
+        expenses: employee.expenses,
+        incentives: employee.incentives,
+        bankName: employee.bankName,
+        accountNo: employee.accountNo,
+        ifscCode: employee.ifscCode,
+        micr: employee.micr,
+        panNo: employee.panNo,
+        aadharNo: employee.aadharNo,
+      };
+
+      const newOA = new OA(oaData);
+      await newOA.save();
+
+      console.log(`✅ OA AUTO-SAVE SUCCESS for ${employee.name}`);
+    } else {
+      console.log(`ℹ️ OA already exists for: ${employee.name}`);
+    }
+  } catch (autoSaveError) {
+    console.log(`❌ OA AUTO-SAVE ERROR: ${autoSaveError.message}`);
   }
 };
 
@@ -825,11 +890,81 @@ exports.getClientsByAllocatedRM = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("❌ Error fetching clients by RM:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Error fetching clients by RM",
       error: error.message,
+    });
+  }
+};
+
+// ✅ Upload Employee Document (Job Profile / Target)
+exports.uploadEmployeeDocument = async (req, res) => {
+  try {
+    const { employeeId, role, documentType } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    if (!employeeId || !role || !documentType) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    let Model;
+    const roleLower = role.toLowerCase();
+
+    if (roleLower === "hr") {
+      Model = require("../Models/HRModel");
+    } else if (roleLower === "telecaller") {
+      Model = require("../Models/telecallerModel");
+    } else if (roleLower === "oa") {
+      Model = require("../Models/OAModel");
+    } else {
+      Model = require("../Models/employeeModel");
+    }
+
+    const updateData = {};
+    const filePath = `/uploads/${file.filename}`; // Using /uploads as it's already configured in index.js
+    
+    if (documentType === "jobProfile") {
+      updateData.jobProfile = {
+        path: filePath,
+        uploadDate: new Date()
+      };
+    } else if (documentType === "target") {
+      updateData.target = {
+        path: filePath,
+        uploadDate: new Date()
+      };
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid document type" });
+    }
+
+    const updatedEmployee = await Model.findByIdAndUpdate(employeeId, updateData, { new: true });
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    // Also sync to employeeModel if it's not the primary model (for consistency)
+    if (Model !== require("../Models/employeeModel") && updatedEmployee.employeeRef) {
+      await require("../Models/employeeModel").findByIdAndUpdate(updatedEmployee.employeeRef, updateData);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${documentType === "jobProfile" ? "Job Profile" : "Target"} uploaded successfully`,
+      data: updatedEmployee
+    });
+  } catch (error) {
+    console.error("❌ Error uploading document:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error uploading document",
+      error: error.message
     });
   }
 };

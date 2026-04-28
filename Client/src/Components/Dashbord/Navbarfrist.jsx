@@ -232,6 +232,7 @@ const Navbarfristn = () => {
             { name: "Lead Name", to: "/lead-source" },
             { name: "Lead Occupation", to: "/lead-occupation" },
             { name: "Occupation Type", to: "/occupation-type" },
+            { name: "Calling Purpose", to: "/calling-purpose" },
           ],
         },
         {
@@ -324,6 +325,15 @@ const Navbarfristn = () => {
         {
           title: "Servicing",
           items: [{ name: "Servicing Documents", to: "/servicing-documents" }],
+        },
+        {
+          title: "Account Department",
+          items: [
+            { name: "Accountant Dashboard", to: "/accountant/dashboard" },
+            { name: "Income Head", to: "/income-head" },
+            { name: "Expenses Head", to: "/expenses-head" },
+            { name: "Manage Banks", to: "/banks" },
+          ],
         },
       ],
     },
@@ -554,6 +564,16 @@ const Navbarfristn = () => {
                       <span className="font-medium">Mobile: </span>
                       {loggedInUser.mobileno || loggedInUser.mobileNo || "-"}
                     </div>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-gray-100">
+                    <Link
+                      to={loggedInUser.role === "HR" ? `/dashboard/employee/${loggedInUser._id || loggedInUser.id}` : `/employee/${loggedInUser._id || loggedInUser.id}`}
+                      className="flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-xs font-medium text-blue-600 transition-all hover:bg-blue-100"
+                      onClick={() => setShowProfileCard(false)}
+                    >
+                      <FiUser size={14} />
+                      View My Profile
+                    </Link>
                   </div>
                 </div>
               )}

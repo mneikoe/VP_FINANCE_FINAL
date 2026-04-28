@@ -40,6 +40,7 @@ import {
 import { fetchFinancialProduct } from "../../../redux/feature/FinancialProduct/FinancialThunx";
 import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThunx";
 import axios from "axios";
+import { buildUploadUrl } from "../../../utils/uploadUrl";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -144,7 +145,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
       );
 
       if (flat?.descImage) {
-        setPreviewImage(`${import.meta.env.VITE_API_URL || ""}/uploads/${flat.descImage}`);
+        setPreviewImage(buildUploadUrl(flat.descImage));
       }
     }
   }, [data, form]);
@@ -706,7 +707,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                               {item.downloadFormUrl &&
                                 typeof item.downloadFormUrl === "string" && (
                                   <a
-                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.downloadFormUrl}`}
+                                    href={buildUploadUrl(item.downloadFormUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ display: "block", marginTop: 8 }}
@@ -737,7 +738,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                               {item.sampleFormUrl &&
                                 typeof item.sampleFormUrl === "string" && (
                                   <a
-                                    href={`${import.meta.env.VITE_API_URL || ""}/uploads/${item.sampleFormUrl}`}
+                                    href={buildUploadUrl(item.sampleFormUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ display: "block", marginTop: 8 }}

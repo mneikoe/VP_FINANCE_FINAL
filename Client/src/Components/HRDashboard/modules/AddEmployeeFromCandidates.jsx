@@ -171,7 +171,7 @@ const AddEmployeeFromCandidates = () => {
     marks +=
       parseInt(
         candidate.operationalActivities?.dataManagement ||
-          candidate.dataManagement
+        candidate.dataManagement
       ) || 0;
     marks +=
       parseInt(
@@ -583,8 +583,8 @@ const AddEmployeeFromCandidates = () => {
               }}
             >
               <FaFileAlt />
-              Ready for Employment
-              <span className="badge bg-light text-dark ms-2">
+              <span style={{ color: activeTab === "ready" ? "white" : "black" }}>Ready for Employment</span>
+              <span className="badge bg-light text-dark">
                 {candidates.length}
               </span>
             </button>
@@ -606,8 +606,8 @@ const AddEmployeeFromCandidates = () => {
               }}
             >
               <FaUserCheck />
-              Already Added as Employee
-              <span className="badge bg-light text-dark ms-2">
+              <span style={{ color: activeTab === "added" ? "white" : "black" }}>Already Added as Employee</span>
+              <span className="badge bg-light text-dark">
                 {addedEmployees.length}
               </span>
             </button>
@@ -633,12 +633,10 @@ const AddEmployeeFromCandidates = () => {
           </h2>
           <p className="mb-0" style={{ color: "black" }}>
             {activeTab === "ready"
-              ? `${candidates.length} candidate${
-                  candidates.length !== 1 ? "s" : ""
-                } ready for employment`
-              : `${addedEmployees.length} employee${
-                  addedEmployees.length !== 1 ? "s" : ""
-                } already added`}
+              ? `${candidates.length} candidate${candidates.length !== 1 ? "s" : ""
+              } ready for employment`
+              : `${addedEmployees.length} employee${addedEmployees.length !== 1 ? "s" : ""
+              } already added`}
           </p>
         </div>
         <div className="d-flex gap-2">

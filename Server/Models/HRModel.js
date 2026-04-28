@@ -87,6 +87,16 @@ const HRSchema = new mongoose.Schema({
     totalHired: { type: Number, default: 0 },
     totalInterviews: { type: Number, default: 0 },
     successRate: { type: Number, default: 0 }
+  },
+
+  // Job Profile and Target PDFs
+  jobProfile: {
+    path: { type: String, default: "" },
+    uploadDate: { type: Date, default: null }
+  },
+  target: {
+    path: { type: String, default: "" },
+    uploadDate: { type: Date, default: null }
   }
   
 }, { timestamps: true });

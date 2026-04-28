@@ -4,7 +4,7 @@ import MarketingTask from "../Models/MarketingTaskModel.js";
 import ServiceTask from "../Models/ServiceTaskModel.js";
 import IndividualTask from "../Models/IndividualTaskModel.js";
 
-const GetModelByType = (type) => {
+const GetModelByType = (type = "composite") => {
   console.log(`🔍 Getting model for type: ${type}`);
 
   const modelMap = {
@@ -27,3 +27,4 @@ const GetModelByType = (type) => {
 };
 
 export default GetModelByType;
+

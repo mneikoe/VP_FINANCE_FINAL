@@ -5,6 +5,7 @@ import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
 import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
+import { fetchCallingPurposes } from "../../../redux/feature/CallingPurpose/CallingPurposeThunx";
 import axiosInstance from "../../../config/axios";
 import {
   splitGroupHeadName,
@@ -95,6 +96,9 @@ const PersonalDetailsFormForSuspect = ({
   const { LeadType: leadTypes, loading } = useSelector(
     (state) => state.LeadType
   );
+  const { callingPurposes, loading: callingPurposeLoading } = useSelector(
+    (state) => state.callingPurpose
+  );
   const [occupationTypes, setOccupationTypes] = useState([]);
   const [occupations, setOccupations] = useState([]);
   const [whatsappEdited, setWhatsappEdited] = useState(false);
@@ -110,6 +114,7 @@ const PersonalDetailsFormForSuspect = ({
 
   useEffect(() => {
     dispatch(fetchLeadType());
+    dispatch(fetchCallingPurposes());
     dispatch(fetchDetails());
     dispatch(getAllOccupationTypes());
     dispatch(getAllOccupations());
@@ -1134,11 +1139,15 @@ const PersonalDetailsFormForSuspect = ({
               size="sm"
             >
               <option value="">-- Select Purpose --</option>
-              <option value="Follow-up">Follow-up</option>
-              <option value="Meeting Schedule">Meeting Schedule</option>
-              <option value="Query Resolution">Query Resolution</option>
-              <option value="Proposal Discussion">Proposal Discussion</option>
-              <option value="Other">Other</option>
+              {callingPurposeLoading ? (
+                <option disabled>Loading...</option>
+              ) : (
+                callingPurposes?.map((purpose) => (
+                  <option key={purpose._id} value={purpose.purposeName}>
+                    {purpose.purposeName}
+                  </option>
+                ))
+              )}
             </Form.Select>
           </Form.Group>
         </Col>

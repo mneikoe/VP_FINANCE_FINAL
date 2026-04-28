@@ -65,6 +65,7 @@ const CompanyNameRoute = require("./Routes/CompanyNameRoute");
 const RegistrarRoute = require("./Routes/RegistrarRoute");
 const AMCRoute = require("./Routes/AMCRoute");
 const LeadTypeRoute = require("./Routes/LeadTypeRoute");
+const CallingPurposeRoute = require("./Routes/CallingPurposeRoute");
 const OccupationTypeRoute = require("./Routes/OccupationTypeRoute");
 const OfficeDiaryRoute = require("./Routes/OfficeDiaryRoute");
 const OfficePurchaseRoute = require("./Routes/OfficePurchaseRoute");
@@ -82,6 +83,11 @@ const internshipRoutes = require("./Routes/internshipRoutes");
 const RMRoutes = require("./Routes/RMRoutes");
 const CRMActivityRoute = require("./Routes/CRMActivityRoute");
 const MarketingDocumentRoute = require("./Routes/MarketingDocumentRoute");
+const AccountantRoutes = require("./Routes/accountantRoutes");
+const bankRoutes = require("./Routes/BankRoutes");
+const incomeExpenseAccountRoute = require("./Routes/IncomeExpenseAccountRoute");
+const incomeExpenseRoutes = require("./Routes/IncomeExpenseRoute");
+const IncomeExpenseReportRoute = require("./Routes/IncomeExpenseReportRoute");
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -101,6 +107,10 @@ app.use(
   express.static(path.join(__dirname, "public/joining-letters"))
 );
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Backward compatibility:
+// Some older task/form uploads were stored in public/Images but referenced as /uploads/<file>.
+// Keep this fallback so existing task attachments continue to open.
+app.use("/uploads", express.static(path.join(__dirname, "public/Images")));
 app.use("/documents", express.static(path.join(__dirname, "public/Documents")));
 app.use("/images", express.static("public/images"));
 app.use("/Images", express.static(path.join(__dirname, "public/Images")));
@@ -148,6 +158,7 @@ app.use("/api/leadarea", LeadAreaRoute);
 app.use("/api/leadsubarea", LeadSubAreaRoute);
 app.use("/api/leadcity", LeadCityRoute);
 app.use("/api/leadType", LeadTypeRoute);
+app.use("/api/calling-purpose", CallingPurposeRoute);
 app.use("/api/leadSource", LeadSourceRoute);
 app.use("/api/occupation/types", OccupationTypeRoute);
 app.use("/api/occupation", LeadOccupationRoute);
@@ -159,6 +170,11 @@ app.use("/api/internships", internshipRoutes);
 app.use("/api/rm", RMRoutes);
 app.use("/api/crm-activities", CRMActivityRoute);
 app.use("/api/marketing-documents", MarketingDocumentRoute);
+app.use("/api/accountant", AccountantRoutes);
+app.use("/api/banks", bankRoutes);
+app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
+app.use("/api/income-expense", incomeExpenseRoutes);
+app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
