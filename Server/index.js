@@ -88,6 +88,7 @@ const bankRoutes = require("./Routes/BankRoutes");
 const incomeExpenseAccountRoute = require("./Routes/IncomeExpenseAccountRoute");
 const incomeExpenseRoutes = require("./Routes/IncomeExpenseRoute");
 const IncomeExpenseReportRoute = require("./Routes/IncomeExpenseReportRoute");
+const NotificationRoute = require("./Routes/NotificationRoute");
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -175,6 +176,7 @@ app.use("/api/banks", bankRoutes);
 app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
 app.use("/api/income-expense", incomeExpenseRoutes);
 app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
+app.use("/api/notifications", NotificationRoute);
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));

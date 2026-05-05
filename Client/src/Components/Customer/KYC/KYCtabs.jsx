@@ -19,7 +19,7 @@ const KYCtabs = () => {
             setActiveTab("add");
           }}
         >
-          Add KYC
+          Add Document Master
         </button>
         <button
           className={`btn btn-${
@@ -27,7 +27,7 @@ const KYCtabs = () => {
           }`}
           onClick={() => setActiveTab("display")}
         >
-          Display KYC
+          Display Document Master
         </button>
       </div>
 

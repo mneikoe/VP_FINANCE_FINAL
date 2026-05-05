@@ -9,7 +9,7 @@ import { fetchDetails } from "../../../redux/feature/LeadSource/LeadThunx";
 import { getAllOccupations } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { toast } from "react-toastify";
-import axiosInstance from "/src/config/axios";
+import axiosInstance from "../../../config/axios";
 import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
 import { fetchCallingPurposes } from "../../../redux/feature/CallingPurpose/CallingPurposeThunx";
 import {
@@ -110,6 +110,7 @@ const PersonalDetailsFormForProspect = ({
   const [filteredResiSubAreas, setFilteredResiSubAreas] = useState([]);
   const [filteredOfficeSubAreas, setFilteredOfficeSubAreas] = useState([]);
   const [rms, setRms] = useState([]);
+  const [filteredRms, setFilteredRms] = useState(null); // null = no filter (show all)
   const [cres, setCres] = useState([]);
 
   useEffect(() => {
@@ -172,7 +173,7 @@ const PersonalDetailsFormForProspect = ({
   // ✅ FETCH RMs (RELATIONSHIP MANAGERS) - COMPOSITEASSIGNMENTS STYLE
   const fetchRMs = async () => {
     try {
-      const response = await axiosInstance.get("/api/employee/getAllEmployees");
+      const response = await axiosInstance.get("/api/employee/getAllEmployees?limit=1000");
       let allEmployees = [];
 
       // Response structure check - CompositeAssignments की तरह
@@ -509,6 +510,30 @@ const PersonalDetailsFormForProspect = ({
       });
     }
   };
+
+  // ✅ Filter RMs by pincode (workPincode OR managedAreas[].pincode)
+  const filterRMsByPincode = (pincode) => {
+    if (!pincode || String(pincode).length !== 6) {
+      setFilteredRms(null);
+      return;
+    }
+    const matched = rms.filter((rm) => {
+      const directMatch = String(rm.workPincode || "").trim() === String(pincode).trim();
+      const managedMatch =
+        Array.isArray(rm.managedAreas) &&
+        rm.managedAreas.some(
+          (a) => String(a.pincode || "").trim() === String(pincode).trim()
+        );
+      return directMatch || managedMatch;
+    });
+    setFilteredRms(matched.length > 0 ? matched : null);
+  };
+
+  // ✅ Trigger RM filter when relevant pincode or rms list changes
+  useEffect(() => {
+    const pin = formData.preferredAddressType === "office" ? formData.officePincode : formData.resiPincode;
+    filterRMsByPincode(pin);
+  }, [formData.resiPincode, formData.officePincode, formData.preferredAddressType, rms]);
 
   const handleMobileWhatsappChange = (e) => {
     const { name, value } = e.target;
@@ -1163,38 +1188,46 @@ const PersonalDetailsFormForProspect = ({
           </Form.Group>
         </Col>
         <Col md={3}>
-          <Form.Group controlId="leadOccupation">
-            <Form.Label>Lead Occupation</Form.Label>
+          <Form.Group controlId="leadOccupationType">
+            <Form.Label>Occupation Type</Form.Label>
             <Form.Select
-              name="leadOccupation"
-              value={formData.leadOccupation ?? ""}
-              onChange={handleChange}
+              name="leadOccupationType"
+              value={formData.leadOccupationType ?? ""}
+              onChange={(e) => {
+                handleChange(e);
+                // Reset occupation name when type changes
+                setFormData((prev) => ({ ...prev, leadOccupationType: e.target.value, leadOccupation: "" }));
+              }}
               size="sm"
             >
-              <option value="">Select Lead Occupation</option>
-              {occupations.map((occupation) => (
-                <option key={occupation._id} value={occupation.occupationName}>
-                  {occupation.occupationName}
+              <option value="">-- Select Type --</option>
+              {Array.isArray(alldetailsForTypes) && alldetailsForTypes.map((type) => (
+                <option key={type._id} value={type.occupationType}>
+                  {type.occupationType}
                 </option>
               ))}
             </Form.Select>
           </Form.Group>
         </Col>
         <Col md={3}>
-          <Form.Group controlId="leadOccupationType">
-            <Form.Label>Lead Occupation Type</Form.Label>
+          <Form.Group controlId="leadOccupation">
+            <Form.Label>Occupation Name</Form.Label>
             <Form.Select
-              name="leadOccupationType"
-              value={formData.leadOccupationType ?? ""}
+              name="leadOccupation"
+              value={formData.leadOccupation ?? ""}
               onChange={handleChange}
               size="sm"
+              disabled={!formData.leadOccupationType}
             >
-              <option value="">Select Lead Occupation Type</option>
-              {occupationTypes.map((type) => (
-                <option key={type._id} value={type.occupationType}>
-                  {type.occupationType}
-                </option>
-              ))}
+              <option value="">{formData.leadOccupationType ? "-- Select Occupation --" : "Select type first"}</option>
+              {Array.isArray(alldetails) && alldetails
+                .filter((occ) => occ?.occupationType?.occupationType === formData.leadOccupationType)
+                .map((occ) => (
+                  <option key={occ._id} value={occ.occupationName}>
+                    {occ.occupationName}
+                  </option>
+                ))
+              }
             </Form.Select>
           </Form.Group>
         </Col>
@@ -1263,10 +1296,10 @@ const PersonalDetailsFormForProspect = ({
               onChange={handleChange}
               size="sm"
             >
-              <option value="">-- Select RM --</option>
-              {rms.map((rm) => (
+              <option value="">{filteredRms ? `-- ${filteredRms.length} Suggested RMs found --` : "-- Select RM --"}</option>
+              {(filteredRms || rms).map((rm) => (
                 <option key={rm._id} value={rm._id}>
-                   {rm.employeeCode || rm.designation} - {rm.name}
+                   {rm.employeeCode || rm.designation} - {rm.name} {filteredRms ? "(Suggested)" : ""}
                 </option>
               ))}
             </Form.Select>

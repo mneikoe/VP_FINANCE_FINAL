@@ -7,8 +7,11 @@ import {
   updateSuspectLead,
 } from "../../redux/feature/SuspectLead/SuspectLeadThunx";
 import { fetchLeadOccupationDetails } from "../../redux/feature/LeadOccupation/OccupationThunx";
+import { getAllOccupations } from "../../redux/feature/LeadOccupation/OccupationThunx";
+import { getAllOccupationTypes } from "../../redux/feature/OccupationType/OccupationThunx";
 import { fetchDetails } from "../../redux/feature/LeadSource/LeadThunx";
 import { fetchCallingPurposes } from "../../redux/feature/CallingPurpose/CallingPurposeThunx";
+import axiosInstance from "../../config/axiosConfig";
 
 const initialFormState = {
   salutation: "",
@@ -40,6 +43,7 @@ const initialFormState = {
   occupationType: "",
   callingPurpose: "",
   name: "",
+  allocatedRM: "", // Added allocatedRM to state
 };
 
 const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
@@ -50,14 +54,17 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
   );
   const [form, setForm] = useState(initialFormState);
 
-  // --------------------------lead cource and lead occupation -----------------------------
+  // lead source, lead occupation, calling purpose
   const leadOccupations = useSelector((state) => state.leadOccupation.details);
-
+  const { alldetails: allOccupations } = useSelector((state) => state.leadOccupation);
+  const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
   const leadSources = useSelector((state) => state.leadsource.leadsourceDetail);
   const { callingPurposes, loading: callingPurposeLoading } = useSelector(
     (state) => state.callingPurpose
   );
 
+  const [rms, setRms] = useState([]);
+  const [filteredRms, setFilteredRms] = useState(null);
 
   useEffect(() => {
     const init = async () => {
@@ -65,14 +72,57 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
         await dispatch(fetchLeadOccupationDetails()).unwrap();
         await dispatch(fetchDetails()).unwrap();
         await dispatch(fetchCallingPurposes()).unwrap();
-
+        dispatch(getAllOccupationTypes());
+        dispatch(getAllOccupations());
+        fetchRMs(); // Fetch RMs on init
       } catch (error) {
         console.log(error);
       }
     };
-
     init();
   }, []);
+
+  const fetchRMs = async () => {
+    try {
+      const response = await axiosInstance.get("/api/employee/getAllEmployees");
+      let allEmployees = [];
+      if (response.data && response.data.success) allEmployees = response.data.data;
+      else if (Array.isArray(response.data)) allEmployees = response.data;
+
+      const rmEmployees = allEmployees.filter((emp) => {
+        const isActive = !emp.dateOfTermination && (emp.status === "active" || emp.status === "Active" || !emp.status);
+        const empRole = (emp.role || emp.designation || "").toLowerCase();
+        return isActive && (empRole.includes("rm") || empRole.includes("relationship") || empRole.includes("manager"));
+      });
+      setRms(rmEmployees);
+    } catch (error) {
+      console.error("Error fetching RMs:", error);
+    }
+  };
+
+  const filterRMsByPincode = (pincode) => {
+    if (!pincode || String(pincode).length !== 6) {
+      setFilteredRms(null);
+      return;
+    }
+    const matched = rms.filter((rm) => {
+      const directMatch = String(rm.workPincode || "").trim() === String(pincode).trim();
+      const managedMatch = Array.isArray(rm.managedAreas) &&
+        rm.managedAreas.some((a) => String(a.pincode || "").trim() === String(pincode).trim());
+      return directMatch || managedMatch;
+    });
+    setFilteredRms(matched.length > 0 ? matched : null);
+  };
+
+  // ✅ Trigger RM filter when pincode or rms list changes
+  useEffect(() => {
+    const pin = form.preferredAddressType === "office" ? form.officePincode : form.resiPincode;
+    if (pin && pin.length === 6) {
+      filterRMsByPincode(pin);
+    } else {
+      setFilteredRms(null);
+    }
+  }, [form.resiPincode, form.officePincode, form.preferredAddressType, rms]);
 
   // console.log(leadSource);
 
@@ -105,6 +155,10 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
       else if (value === "5 to 25 lakh") grade = 2;
       else if (value === "2.5 to 5 lakh") grade = 3;
       updatedForm.grade = grade;
+    }
+
+    if (name === "resiPincode" || name === "officePincode") {
+      // filtering handled by useEffect
     }
 
     setForm(updatedForm);
@@ -180,6 +234,7 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
           leadOccupation: form.leadOccupation,
           occupationType: form.occupationType,
           callingPurpose: form.callingPurpose,
+          allocatedRM: form.allocatedRM, // Added to submission
         },
       };
 
@@ -503,40 +558,49 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
             />
           </Col>
 
-          {/* Lead Occupation */}
+          {/* Occupation Type */}
           <Col md={3}>
-            <Form.Label htmlFor="leadOccupation">Lead Occupation</Form.Label>
+            <Form.Label htmlFor="occupationType">Occupation Type</Form.Label>
+            <Form.Select
+              id="occupationType"
+              name="occupationType"
+              value={form.occupationType}
+              onChange={(e) => {
+                const { name, value } = e.target;
+                setForm((prev) => ({ ...prev, [name]: value, leadOccupation: "" }));
+              }}
+            >
+              <option value="">-- Select Type --</option>
+              {Array.isArray(alldetailsForTypes) && alldetailsForTypes.map((type) => (
+                <option key={type._id} value={type.occupationType}>
+                  {type.occupationType}
+                </option>
+              ))}
+            </Form.Select>
+          </Col>
+
+          {/* Lead Occupation (filtered by type) */}
+          <Col md={3}>
+            <Form.Label htmlFor="leadOccupation">Occupation Name</Form.Label>
             <Form.Select
               id="leadOccupation"
               name="leadOccupation"
               value={form.leadOccupation}
               onChange={handleChange}
+              disabled={!form.occupationType}
             >
-              <option value="">Select Lead Occupation</option>
-              {leadOccupations.map(
-                (occupation) => (
-                  console.log(occupation, "occupation"),
-                  (
-                    <option key={occupation._id} value={occupation.leadName}>
-                      {occupation.leadName}
-                    </option>
-                  )
-                )
-              )}
+              <option value="">{form.occupationType ? "-- Select Occupation --" : "Select type first"}</option>
+              {Array.isArray(allOccupations) && allOccupations
+                .filter((occ) => occ?.occupationType?.occupationType === form.occupationType)
+                .map((occ) => (
+                  <option key={occ._id} value={occ.occupationName}>
+                    {occ.occupationName}
+                  </option>
+                ))
+              }
             </Form.Select>
           </Col>
 
-          {/* Occupation Type */}
-          <Col md={3}>
-            <Form.Label htmlFor="occupationType">Occupation Type</Form.Label>
-            <Form.Control
-              id="occupationType"
-              name="occupationType"
-              value={form.occupationType}
-              onChange={handleChange}
-              placeholder="Enter occupation type"
-            />
-          </Col>
         </Row>
 
         <Row className="mb-3">
@@ -564,6 +628,24 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
             <Form.Select name="name" value={form.name} onChange={handleChange}>
               <option value="LIC">LIC</option>
               <option value="Portfolio Management">Portfolio Management</option>
+            </Form.Select>
+          </Col>
+        </Row>
+
+        <Row className="mb-3">
+          <Col md={12}>
+            <Form.Label className="text-primary fw-bold">Allocated RM (Suggested by Pincode)</Form.Label>
+            <Form.Select
+              name="allocatedRM"
+              value={form.allocatedRM}
+              onChange={handleChange}
+            >
+              <option value="">{filteredRms ? `-- ${filteredRms.length} Suggested RMs found --` : "-- Select RM --"}</option>
+              {(filteredRms || rms).map((rm) => (
+                <option key={rm._id} value={rm._id}>
+                  {rm.employeeCode || rm.designation} - {rm.name} {filteredRms ? "(Suggested)" : ""}
+                </option>
+              ))}
             </Form.Select>
           </Col>
         </Row>

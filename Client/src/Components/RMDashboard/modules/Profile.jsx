@@ -155,9 +155,8 @@ const RMProfile = () => {
       return `${months} month${months !== 1 ? "s" : ""}`;
     }
 
-    return `${years} year${years !== 1 ? "s" : ""} ${months} month${
-      months !== 1 ? "s" : ""
-    }`;
+    return `${years} year${years !== 1 ? "s" : ""} ${months} month${months !== 1 ? "s" : ""
+      }`;
   };
 
   const tabs = [
@@ -165,8 +164,9 @@ const RMProfile = () => {
     { id: 1, label: "Official", icon: FaUsers },
     { id: 2, label: "Address", icon: FiMapPin },
     { id: 3, label: "Bank", icon: FaMoneyBillWave },
-    { id: 4, label: "Employment", icon: FaBriefcase },
-    { id: 5, label: "Emergency", icon: FaShieldAlt },
+    // { id: 4, label: "Employment", icon: FaBriefcase },
+    // { id: 5, label: "Emergency", icon: FaShieldAlt },
+    { id: 4, label: "HR Actions", icon: FaBriefcase }
   ];
 
   if (loading) {
@@ -203,13 +203,13 @@ const RMProfile = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-gray-800">RM Profile</h1>
-          <Badge bg="primary" className="text-xs px-2 py-1">
+          <h1 className="text-xl font-semibold text-gray-800">Employee Profile</h1>
+          {/* <Badge bg="primary" className="text-xs px-2 py-1">
             {employee.role}
           </Badge>
           <Badge bg="success" className="text-xs px-2 py-1">
             Relationship Manager
-          </Badge>
+          </Badge> */}
         </div>
         <Button
           variant="outline-secondary"
@@ -227,16 +227,14 @@ const RMProfile = () => {
         <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="space-y-3">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 truncate">
+              <h5 className="text-md font-semibold text-gray-800 truncate">
                 {employee.name || "N/A"}
-              </h2>
+              </h5>
               <div className="flex flex-wrap gap-1 mt-1">
                 <Badge bg="primary" className="text-xs px-2 py-0.5">
                   {employee.employeeCode || "N/A"}
                 </Badge>
-                <Badge bg="secondary" className="text-xs px-2 py-0.5">
-                  {employee.designation || "RM"}
-                </Badge>
+
               </div>
             </div>
 
@@ -253,7 +251,7 @@ const RMProfile = () => {
               <div className="flex items-center gap-2 text-sm">
                 <FiPhone className="text-gray-500 text-xs" />
                 <div>
-                  <p className="text-xs text-gray-500">Phone</p>
+                  <p className="text-xs text-gray-500">Mobile No.</p>
                   <p className="font-medium text-gray-800">
                     {employee.mobileNo || "N/A"}
                   </p>
@@ -271,16 +269,25 @@ const RMProfile = () => {
               <div className="flex items-center gap-2 text-sm">
                 <FaBusinessTime className="text-gray-500 text-xs" />
                 <div>
-                  <p className="text-xs text-gray-500">Experience</p>
+                  <p className="text-xs text-gray-500">Alloted Area</p>
                   <p className="font-medium text-gray-800">
-                    {calculateExperience(employee.dateOfJoining)}
+                    {employee.allotedArea || "N/A"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <FaBusinessTime className="text-gray-500 text-xs" />
+                <div>
+                  <p className="text-xs text-gray-500">Total Customers</p>
+                  <p className="font-medium text-gray-800">
+                    {employee.totalCustomers || "N/A"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <FaCalendarAlt className="text-gray-500 text-xs" />
                 <div>
-                  <p className="text-xs text-gray-500">Date of Joining</p>
+                  <p className="text-xs text-gray-500">Date of Allotment</p>
                   <p className="font-medium text-gray-800">
                     {formatDate(employee.dateOfJoining)}
                   </p>
@@ -295,9 +302,9 @@ const RMProfile = () => {
                     <p className="text-xs text-gray-500">Job Profile</p>
                     {employee.jobProfile?.path ? (
                       <div className="mt-1">
-                        <a 
-                          href={`${axios.defaults.baseURL || ""}${employee.jobProfile.path}`} 
-                          target="_blank" 
+                        <a
+                          href={`${axios.defaults.baseURL || ""}${employee.jobProfile.path}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
                         >
@@ -319,9 +326,9 @@ const RMProfile = () => {
                     <p className="text-xs text-gray-500">Target Details</p>
                     {employee.target?.path ? (
                       <div className="mt-1">
-                        <a 
-                          href={`${axios.defaults.baseURL || ""}${employee.target.path}`} 
-                          target="_blank" 
+                        <a
+                          href={`${axios.defaults.baseURL || ""}${employee.target.path}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-800 font-medium text-xs bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200"
                         >
@@ -337,15 +344,7 @@ const RMProfile = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FaIdCardAlt className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Status</p>
-                  <Badge bg="success" className="text-xs px-2 py-0.5">
-                    {employee.status || "Active"}
-                  </Badge>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -372,12 +371,9 @@ const RMProfile = () => {
                 <FaIdCardAlt className="text-green-600 text-sm" />
               </div>
               <div>
-                <h3 className="text-xs font-medium text-gray-500">
-                  Employee Code
+                <h3 className="text-sm font-semibold text-gray-800">
+                  {employee.name || "N/A"}
                 </h3>
-                <p className="text-sm font-semibold text-gray-800">
-                  {employee.employeeCode || "N/A"}
-                </p>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3">
@@ -385,7 +381,7 @@ const RMProfile = () => {
                 <FaBusinessTime className="text-purple-600 text-sm" />
               </div>
               <div>
-                <h3 className="text-xs font-medium text-gray-500">Work Area</h3>
+                <h3 className="text-xs font-medium text-gray-500">Alloted Area</h3>
                 <p className="text-sm font-semibold text-gray-800 truncate">
                   {employee.allocatedWorkArea || "N/A"}
                 </p>
@@ -400,11 +396,10 @@ const RMProfile = () => {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all ${
-                    tabIndex === tab.id
-                      ? "border-blue-500 text-blue-600 bg-blue-50"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all ${tabIndex === tab.id
+                    ? "border-blue-500 text-blue-600 bg-blue-50"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
                   onClick={() => setTabIndex(tab.id)}
                 >
                   <tab.icon className="text-xs" />
@@ -418,9 +413,7 @@ const RMProfile = () => {
               {/* Personal Details */}
               {tabIndex === 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Personal Information
-                  </h3>
+
                   <Row>
                     <Col md={6}>
                       <div className="space-y-3">
@@ -511,6 +504,12 @@ const RMProfile = () => {
                               {employee.aadharNo || "N/A"}
                             </span>
                           </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Driving License No:</span>
+                            <span className="font-medium text-gray-800">
+                              {employee.drivingLicenseNo || "N/A"}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </Col>
@@ -521,9 +520,7 @@ const RMProfile = () => {
               {/* Official Details */}
               {tabIndex === 1 && (
                 <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Official Information
-                  </h3>
+
                   <Row>
                     <Col md={6}>
                       <div className="space-y-3">
@@ -564,6 +561,12 @@ const RMProfile = () => {
                             {formatDate(employee.dateOfTermination)}
                           </span>
                         </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Home Town:</span>
+                          <span className="font-medium text-gray-800">
+                            {employee.homeTown || "N/A"}
+                          </span>
+                        </div>
                       </div>
                     </Col>
                     <Col md={6}>
@@ -588,12 +591,7 @@ const RMProfile = () => {
                               {employee.allocatedWorkArea || "N/A"}
                             </span>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Home Town:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.homeTown || "N/A"}
-                            </span>
-                          </div>
+
                         </div>
 
                         <div className="space-y-3">
@@ -630,14 +628,12 @@ const RMProfile = () => {
               {/* Address Details */}
               {tabIndex === 2 && (
                 <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Address Information
-                  </h3>
+
                   <Row>
                     <Col md={6}>
                       <div className="space-y-3">
                         <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Present Address
+                          Present Local Address
                         </h5>
                         <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm min-h-[80px]">
                           {employee.presentAddress || "Not specified"}
@@ -661,9 +657,7 @@ const RMProfile = () => {
               {/* Bank Details */}
               {tabIndex === 3 && (
                 <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Bank Information
-                  </h3>
+
                   <Row>
                     <Col md={6}>
                       <div className="space-y-3">
@@ -674,6 +668,12 @@ const RMProfile = () => {
                           <span className="text-gray-600">Bank Name:</span>
                           <span className="font-medium text-gray-800">
                             {employee.bankName || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Branch Name:</span>
+                          <span className="font-medium text-gray-800">
+                            {employee.branchName || "N/A"}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
@@ -701,7 +701,7 @@ const RMProfile = () => {
               )}
 
               {/* Employment Details */}
-              {tabIndex === 4 && (
+              {/* {tabIndex === 4 && (
                 <div className="space-y-4">
                   <h3 className="text-base font-semibold text-gray-800">
                     Employment Documents & Assets
@@ -779,9 +779,8 @@ const RMProfile = () => {
                           <span className="text-gray-600">Drawer Key:</span>
                           <span className="font-medium text-gray-800">
                             {employee.drawerKeyName
-                              ? `${employee.drawerKeyName} (${
-                                  employee.drawerKeyNumber || "No number"
-                                })`
+                              ? `${employee.drawerKeyName} (${employee.drawerKeyNumber || "No number"
+                              })`
                               : "Not assigned"}
                           </span>
                         </div>
@@ -797,7 +796,7 @@ const RMProfile = () => {
                 </div>
               )}
 
-              {/* Emergency Contacts */}
+           
               {tabIndex === 5 && (
                 <div className="space-y-4">
                   <h3 className="text-base font-semibold text-gray-800">
@@ -852,7 +851,7 @@ const RMProfile = () => {
                     </Col>
                   </Row>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

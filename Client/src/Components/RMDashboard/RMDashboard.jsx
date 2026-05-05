@@ -170,16 +170,23 @@ const RMDashboard = () => {
       icon: <FaUserTie size={14} />,
     },
     {
-      name: "Area of Work",
-      href: "/rm/area-of-work",
-      icon: <FaMapMarkedAlt size={14} />,
+      name: "Assigned Suspects",
+      href: "/rm/assigned-suspects",
+      icon: <FaBriefcase size={14} />,
+      count: assignedSuspects.length,
     },
-
     {
       name: "Task Summary",
       href: "/rm/task-summary",
       icon: <FaTasks size={14} />,
     },
+
+    {
+      name: "Area of Work",
+      href: "/rm/area-of-work",
+      icon: <FaMapMarkedAlt size={14} />,
+    },
+
 
     {
       name: "Salary History",
@@ -191,12 +198,7 @@ const RMDashboard = () => {
       href: "/rm/incentive-history",
       icon: <FaHistory size={14} />,
     },
-    {
-      name: "Assigned Suspects",
-      href: "/rm/assigned-suspects",
-      icon: <FaBriefcase size={14} />,
-      count: assignedSuspects.length,
-    },
+
   ];
 
   const isActive = (href) => {
@@ -248,11 +250,10 @@ const RMDashboard = () => {
                   <button
                     key={item.name}
                     onClick={() => navigate(item.href)}
-                    className={`flex items-center px-3 py-1.5 mx-0.5 rounded-xl text-xs font-medium transition-all duration-200 ${
-                      isActive(item.href)
-                        ? "bg-black text-white shadow-sm"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
+                    className={`flex items-center px-3 py-1.5 mx-0.5 rounded-xl text-xs font-medium transition-all duration-200 ${isActive(item.href)
+                      ? "bg-black text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      }`}
                   >
                     <span className="mr-1.5">{item.icon}</span>
                     <div className="text-[10px]  leading-tight">
@@ -313,11 +314,10 @@ const RMDashboard = () => {
                     navigate(item.href);
                     setMobileMenuOpen(false);
                   }}
-                  className={`flex items-center w-full px-3 py-2.5 rounded-md text-sm font-medium ${
-                    isActive(item.href)
-                      ? "bg-black text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  className={`flex items-center w-full px-3 py-2.5 rounded-md text-sm font-medium ${isActive(item.href)
+                    ? "bg-black text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                    }`}
                 >
                   <span className="mr-3">{item.icon}</span>
                   <span className="flex-1 text-left">{item.name}</span>

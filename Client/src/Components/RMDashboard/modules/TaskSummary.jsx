@@ -90,7 +90,7 @@ const TaskSummary = () => {
   const [showClientsModal, setShowClientsModal] = useState(false);
   const [activeTaskTab, setActiveTaskTab] = useState("assigned");
 
-  // ✅ NEW: Complete Task Modal State
+  // ✅ Complete Task Modal State
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionRemarks, setCompletionRemarks] = useState("");
   const [completingTask, setCompletingTask] = useState(false);
@@ -102,6 +102,15 @@ const TaskSummary = () => {
   const [forwardRemark, setForwardRemark] = useState("");
   const [oeList, setOeList] = useState([]);
   const [loadingOE, setLoadingOE] = useState(false);
+
+  // ✅ NEW: Standalone Forward-to-OE Modal State
+  const [showForwardOEModal, setShowForwardOEModal] = useState(false);
+  const [forwardOETaskId, setForwardOETaskId] = useState(null);
+  const [forwardOETask, setForwardOETask] = useState(null);
+  const [forwardOESelectedOE, setForwardOESelectedOE] = useState("");
+  const [forwardOERemark, setForwardOERemark] = useState("");
+  const [forwardOEStatus, setForwardOEStatus] = useState("keep");
+  const [forwardOESubmitting, setForwardOESubmitting] = useState(false);
 
   // Get current user
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -305,7 +314,7 @@ const TaskSummary = () => {
     }
   };
 
-  // ✅ Fetch OE list when Complete modal opens (for Forward to OE)
+  // ✅ Fetch OE list
   const fetchOEList = async () => {
     setLoadingOE(true);
     try {
@@ -324,6 +333,48 @@ const TaskSummary = () => {
       setOeList([]);
     } finally {
       setLoadingOE(false);
+    }
+  };
+
+  // ✅ NEW: Open standalone Forward-to-OE Modal
+  const openForwardOEModal = async (task) => {
+    setForwardOETask(task);
+    setForwardOETaskId(task._id);
+    setForwardOERemark("");
+    setForwardOEStatus("keep");
+    setForwardOESelectedOE("");
+    setShowForwardOEModal(true);
+    // Fetch OE list if not loaded
+    if (oeList.length === 0) fetchOEList();
+  };
+
+  // ✅ NEW: Submit standalone RM → OE forward
+  const handleRMForwardToOE = async () => {
+    if (!forwardOETaskId || !forwardOESelectedOE) {
+      alert("Please select an OE to forward the task to.");
+      return;
+    }
+    setForwardOESubmitting(true);
+    try {
+      const response = await axios.post("/api/Task/rm-forward-to-oe", {
+        taskId: forwardOETaskId,
+        oeId: forwardOESelectedOE,
+        remark: forwardOERemark,
+        status: forwardOEStatus,
+        rmId: employeeId,
+        employeeId: employeeId,
+      });
+      if (response.data?.success) {
+        alert("✅ Task forwarded to OE successfully!");
+        setShowForwardOEModal(false);
+        fetchTasks();
+      } else {
+        alert("Failed: " + (response.data?.message || "Unknown error"));
+      }
+    } catch (error) {
+      alert("Error: " + (error.response?.data?.message || error.message));
+    } finally {
+      setForwardOESubmitting(false);
     }
   };
 
@@ -680,12 +731,24 @@ const TaskSummary = () => {
       ),
     },
     {
+      title: "Forwarded",
+      key: "forwarded",
+      width: 110,
+      render: (_, task) => (
+        task.forwardedFromRM?.forwardedAt ? (
+          <span className="badge bg-primary" style={{ fontSize: "10px" }}>
+            <FaShareAlt className="me-1" />Fwd'd to OE
+          </span>
+        ) : null
+      ),
+    },
+    {
       title: "Actions",
       key: "actions",
       fixed: "right",
-      width: 190,
+      width: 240,
       render: (_, task) => (
-        <AntSpace>
+        <AntSpace wrap>
           <Button
             variant="outline-primary"
             size="sm"
@@ -703,6 +766,17 @@ const TaskSummary = () => {
             <FaCheckCircle className="me-1" />
             Complete
           </Button>
+          {task.taskMode !== "default" && (
+            <Button
+              variant="outline-info"
+              size="sm"
+              onClick={() => openForwardOEModal(task)}
+              title="Forward this task to an OE"
+            >
+              <FaShareAlt className="me-1" />
+              Fwd OE
+            </Button>
+          )}
         </AntSpace>
       ),
     },
@@ -1147,6 +1221,219 @@ const TaskSummary = () => {
                 <FaCheckCircle className="me-2" />
                 Mark as Completed
               </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ✅ NEW: Standalone Forward-to-OE Modal */}
+      <Modal
+        show={showForwardOEModal}
+        onHide={() => setShowForwardOEModal(false)}
+        centered
+        size="lg"
+        scrollable
+      >
+        <Modal.Header
+          closeButton
+          style={{ background: "linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)", color: "white" }}
+        >
+          <Modal.Title className="d-flex align-items-center gap-2">
+            <FaShareAlt />
+            Forward Task to OE
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body className="p-0">
+          {forwardOETask && (
+            <>
+              {/* Task Info Banner */}
+              <div className="bg-light border-bottom px-4 py-3">
+                <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h6 className="fw-bold text-dark mb-1">{forwardOETask.name}</h6>
+                    <div className="d-flex flex-wrap gap-2">
+                      <Badge bg="light" text="dark" className="border">{forwardOETask.company}</Badge>
+                      <Badge bg="info" text="dark">{forwardOETask.type || "Task"}</Badge>
+                      <Badge className={priorityConfig[forwardOETask.priority]?.className || "bg-secondary text-white"}>
+                        {priorityConfig[forwardOETask.priority]?.text || "MEDIUM"}
+                      </Badge>
+                      <Badge className={statusConfig[forwardOETask.status]?.className || "bg-secondary text-white"}>
+                        Current: {statusConfig[forwardOETask.status]?.text || forwardOETask.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  {forwardOETask.dueDate && (
+                    <Badge bg="warning" text="dark">
+                      <FaCalendarAlt className="me-1" />Due: {formatDate(forwardOETask.dueDate)}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Clients & Prospects Section */}
+              {((forwardOETask.assignedClients?.length > 0) || (forwardOETask.assignedProspects?.length > 0)) && (
+                <div className="px-4 pt-3 pb-2">
+                  <h6 className="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                    <FaUsers /> Associated Clients & Prospects
+                    <Badge bg="secondary" pill>
+                      {(forwardOETask.assignedClients?.length || 0) + (forwardOETask.assignedProspects?.length || 0)}
+                    </Badge>
+                  </h6>
+                  <Row className="g-2">
+                    {(forwardOETask.assignedClients || []).length > 0 && (
+                      <Col md={6}>
+                        <Card className="border-success h-100">
+                          <Card.Header className="bg-success text-white py-2 d-flex align-items-center gap-2">
+                            <FaUserTie size={12} />
+                            <small className="fw-bold">Clients ({forwardOETask.assignedClients.length})</small>
+                          </Card.Header>
+                          <ListGroup variant="flush" style={{ maxHeight: 160, overflowY: "auto" }}>
+                            {(forwardOETask.assignedClients || []).map((c, i) => (
+                              <ListGroup.Item key={i} className="py-2 px-3">
+                                <div className="d-flex align-items-center gap-2">
+                                  <FaIdCard size={11} className="text-muted flex-shrink-0" />
+                                  <div>
+                                    <div className="fw-semibold small">
+                                      {c?.personalDetails?.groupName || c?.personalDetails?.name || `Client ${i + 1}`}
+                                    </div>
+                                    {c?.personalDetails?.mobileNo && (
+                                      <div className="text-muted" style={{ fontSize: 11 }}>
+                                        <FaPhone size={9} className="me-1" />{c.personalDetails.mobileNo}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </ListGroup.Item>
+                            ))}
+                          </ListGroup>
+                        </Card>
+                      </Col>
+                    )}
+                    {(forwardOETask.assignedProspects || []).length > 0 && (
+                      <Col md={6}>
+                        <Card className="border-primary h-100">
+                          <Card.Header className="bg-primary text-white py-2 d-flex align-items-center gap-2">
+                            <FaUserFriends size={12} />
+                            <small className="fw-bold">Prospects ({forwardOETask.assignedProspects.length})</small>
+                          </Card.Header>
+                          <ListGroup variant="flush" style={{ maxHeight: 160, overflowY: "auto" }}>
+                            {(forwardOETask.assignedProspects || []).map((p, i) => (
+                              <ListGroup.Item key={i} className="py-2 px-3">
+                                <div className="d-flex align-items-center gap-2">
+                                  <FaIdCard size={11} className="text-muted flex-shrink-0" />
+                                  <div>
+                                    <div className="fw-semibold small">
+                                      {p?.personalDetails?.groupName || p?.personalDetails?.name || `Prospect ${i + 1}`}
+                                    </div>
+                                    {p?.personalDetails?.mobileNo && (
+                                      <div className="text-muted" style={{ fontSize: 11 }}>
+                                        <FaPhone size={9} className="me-1" />{p.personalDetails.mobileNo}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </ListGroup.Item>
+                            ))}
+                          </ListGroup>
+                        </Card>
+                      </Col>
+                    )}
+                  </Row>
+                </div>
+              )}
+
+              {/* Form Fields */}
+              <div className="px-4 py-3">
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold small">
+                        <FaUserTie className="me-1 text-primary" />
+                        Select OE <span className="text-danger">*</span>
+                      </Form.Label>
+                      {loadingOE ? (
+                        <div className="d-flex align-items-center gap-2 p-2 border rounded">
+                          <Spinner size="sm" animation="border" />
+                          <small className="text-muted">Loading OE list...</small>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          value={forwardOESelectedOE}
+                          onChange={(e) => setForwardOESelectedOE(e.target.value)}
+                          isInvalid={!forwardOESelectedOE}
+                        >
+                          <option value="">-- Select OE --</option>
+                          {oeList.map((oe) => (
+                            <option key={oe._id} value={oe._id}>
+                              {oe.name} ({oe.oeType === "onfield" ? "On Field" : "In House"})
+                              {oe.employeeCode ? ` [${oe.employeeCode}]` : ""}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )}
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold small">
+                        <FaFlag className="me-1 text-warning" />
+                        Task Status after Forwarding
+                      </Form.Label>
+                      <Form.Select
+                        value={forwardOEStatus}
+                        onChange={(e) => setForwardOEStatus(e.target.value)}
+                      >
+                        <option value="keep">Keep Current Status</option>
+                        <option value="in-progress">Mark as In Progress</option>
+                        <option value="completed">Mark as Completed</option>
+                        <option value="pending">Mark as Pending</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold small">
+                        <FaStickyNote className="me-1 text-secondary" />
+                        Remark for OE
+                      </Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        placeholder="Add your remarks, instructions, or notes for the OE..."
+                        value={forwardOERemark}
+                        onChange={(e) => setForwardOERemark(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Alert variant="info" className="mt-3 mb-0 py-2">
+                  <FaInfoCircle className="me-2" />
+                  <strong>Note:</strong> The complete task (with all clients &amp; prospects) will be forwarded to the selected OE. The OE can then view, act, and forward it back to an RM if needed.
+                </Alert>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer className="border-top">
+          <Button
+            variant="light"
+            onClick={() => setShowForwardOEModal(false)}
+            disabled={forwardOESubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleRMForwardToOE}
+            disabled={forwardOESubmitting || !forwardOESelectedOE}
+          >
+            {forwardOESubmitting ? (
+              <><Spinner animation="border" size="sm" className="me-2" />Forwarding...</>
+            ) : (
+              <><FaShareAlt className="me-2" />Forward to OE</>
             )}
           </Button>
         </Modal.Footer>

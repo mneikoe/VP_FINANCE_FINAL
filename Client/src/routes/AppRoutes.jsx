@@ -118,6 +118,7 @@ import AddBank from "../Components/Departments/Masters/AddBank";
 import IncomeHead from "../Components/Departments/AccountDepartment/IncomeHead/IncomeHead"
 import ExpensesHead from "../Components/Departments/AccountDepartment/ExpensesHead/ExpensesHead"
 import Reports from "../Components/Departments/AccountantDashboard/Reports"
+import NotificationManager from "../Components/NotificationManager/NotificationManager"
 
 // 🔒 ProtectedRoute Component (Strict Role Check)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -343,6 +344,7 @@ const AppRoutes = () => {
         <Route path="/income-head" element={<IncomeHead />} />
         <Route path="/expenses-head" element={<ExpensesHead />} />
         <Route path="/banks" element={<AddBank />} />
+        <Route path="/notification-manager" element={<NotificationManager />} />
       </Route>
 
       {/* 🏦 RM Dashboard Routes - Only RM can access */}

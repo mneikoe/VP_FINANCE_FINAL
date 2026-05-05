@@ -7,6 +7,7 @@ import Employee from "../Models/employeeModel.js";
 import SusProsClient from "../Models/SusProsClientSchema.js";
 import Telecaller from "../Models/telecallerModel.js";
 import HR from "../Models/HRModel.js";
+import notificationService from "../utils/notificationService.js";
 // createTask function mein sirf formChecklists part update karo:
 export const createTask = async (req, res) => {
   try {
@@ -713,6 +714,25 @@ export const assignCompositeTask = async (req, res) => {
       }
     }
 
+    // 📱 Fire-and-forget: Send WhatsApp notifications to all assigned employees
+    for (const assignment of validAssignments) {
+      const emp = await Employee.findById(assignment.employeeId).select("name mobileNo officeMobile").lean();
+      if (emp) {
+        const assignerEmp = await Employee.findById(assignedBy).select("name").lean();
+        notificationService.trigger("TASK_ASSIGNED", {
+          recipientPhone: emp.officeMobile || emp.mobileNo,
+          recipientName: emp.name,
+          recipientId: emp._id,
+          name: emp.name,
+          taskName: task.name,
+          dueDate: assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString("en-IN") : "N/A",
+          priority: assignment.priority || "medium",
+          assignedBy: assignerEmp?.name || "Admin",
+          remarks: assignment.remarks || "",
+        }).catch(err => console.error("📱 Notification error (TASK_ASSIGNED):", err.message));
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: `Task assigned to ${validAssignments.length} employee(s) ${
@@ -901,6 +921,9 @@ export const getAssignedTasks = async (req, res) => {
         assignedProspects: prospectDetails,
         clientCount: clientDetails.length,
         prospectCount: prospectDetails.length,
+        // ✅ Forwarding chain
+        forwardedFromRM: task.forwardedFromRM || null,
+        oeForwardedToRM: task.oeForwardedToRM || null,
       };
     });
 
@@ -3296,6 +3319,23 @@ export const updateTaskStatus = async (req, res) => {
 
     await task.save();
 
+    // 📱 Fire-and-forget: Notify on task completion
+    if (status === "completed" && task.assignmentDetails?.assignedBy) {
+      const assignedByEmp = await Employee.findById(task.assignmentDetails.assignedBy).select("name mobileNo officeMobile").lean();
+      const completedByEmp = await Employee.findById(task.assignedTo).select("name").lean();
+      if (assignedByEmp) {
+        notificationService.trigger("TASK_COMPLETED", {
+          recipientPhone: assignedByEmp.officeMobile || assignedByEmp.mobileNo,
+          recipientName: assignedByEmp.name,
+          recipientId: assignedByEmp._id,
+          taskName: task.name,
+          completedBy: completedByEmp?.name || "Employee",
+          completedAt: new Date().toLocaleDateString("en-IN"),
+          remarks: remarks || "No remarks",
+        }).catch(err => console.error("📱 Notification error (TASK_COMPLETED):", err.message));
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: `Task marked as ${status}`,
@@ -3409,6 +3449,17 @@ export const forwardTaskToOE = async (req, res) => {
     });
     await oeTask.save();
 
+    // 📱 Fire-and-forget: Notify OE about forwarded task
+    notificationService.trigger("TASK_FORWARDED_TO_OE", {
+      recipientPhone: oeEmployee.officeMobile || oeEmployee.mobileNo,
+      recipientName: oeEmployee.name,
+      recipientId: oeEmployee._id,
+      name: oeEmployee.name,
+      taskName: rmTask.name,
+      forwardedBy: (await Employee.findById(rmId).select("name").lean())?.name || "RM",
+      remark: remark || "No remark",
+    }).catch(err => console.error("📱 Notification error (TASK_FORWARDED_TO_OE):", err.message));
+
     res.status(200).json({
       success: true,
       message: "Task completed and forwarded to OE",
@@ -3518,42 +3569,147 @@ export const getOEAssignedTasks = async (req, res) => {
   }
 };
 
-// ✅ OE forward back to RM: update status, add remark and files
-export const oeForwardToRM = async (req, res) => {
+// ✅ RM Forward to OE (Standalone - any status, no forced completion)
+export const rmForwardToOE = async (req, res) => {
   try {
-    const { taskId, status, remark } = req.body;
-    const oeId = req.body.oeId || req.body.employeeId;
-    const files = req.body.files || req.files?.files || [];
+    const { taskId, oeId, remark, status } = req.body;
+    const rmId = req.body.rmId || req.body.employeeId;
 
-    if (!taskId || !oeId) {
+    if (!taskId || !oeId || !rmId) {
       return res.status(400).json({
         success: false,
-        message: "taskId and oeId are required",
+        message: "taskId, oeId and rmId are required",
       });
     }
 
     const IndividualTask = GetModelByType("individual");
-    const task = await IndividualTask.findById(taskId);
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "Task not found",
-      });
+
+    const rmTask = await IndividualTask.findById(taskId)
+      .populate("assignmentDetails.assignedClients", "personalDetails status")
+      .populate("assignmentDetails.assignedProspects", "personalDetails status");
+
+    if (!rmTask) {
+      return res.status(404).json({ success: false, message: "Task not found" });
     }
-    if (task.assignedTo?.toString() !== oeId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to forward this task",
-      });
+    if (rmTask.assignedTo?.toString() !== rmId.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized to forward this task" });
+    }
+    if ((rmTask.taskMode || "assigned") === "default") {
+      return res.status(400).json({ success: false, message: "Default tasks cannot be forwarded to OE" });
     }
 
+    const oeEmployee = await Employee.findById(oeId);
+    if (!oeEmployee || oeEmployee.role !== "OE") {
+      return res.status(400).json({ success: false, message: "Invalid OE selected" });
+    }
+
+    // Update RM task status if provided
+    if (status && status !== "keep") {
+      rmTask.status = status;
+      if (status === "completed") rmTask.completedAt = new Date();
+    }
+
+    // Mark that it was forwarded from RM
+    rmTask.forwardedFromRM = {
+      forwardedAt: new Date(),
+      forwardedBy: rmId,
+      remark: remark || "",
+    };
+    await rmTask.save();
+
+    // Create a new IndividualTask for OE with all client/prospect info
+    const oeTask = new IndividualTask({
+      cat: rmTask.cat,
+      sub: rmTask.sub,
+      depart: rmTask.depart,
+      name: rmTask.name,
+      estimatedDays: rmTask.estimatedDays,
+      descp: rmTask.descp,
+      email_descp: rmTask.email_descp,
+      sms_descp: rmTask.sms_descp,
+      whatsapp_descp: rmTask.whatsapp_descp,
+      checklists: rmTask.checklists,
+      formChecklists: rmTask.formChecklists || [],
+      type: rmTask.type || "composite",
+      taskMode: rmTask.taskMode || "assigned",
+      status: "assigned",
+      parentTask: rmTask.parentTask,
+      assignedTo: oeId,
+      assignmentDetails: {
+        priority: rmTask.assignmentDetails?.priority || "medium",
+        remarks: rmTask.assignmentDetails?.remarks,
+        dueDate: rmTask.assignmentDetails?.dueDate,
+        assignedBy: rmId,
+        assignedAt: new Date(),
+        assignedClients: rmTask.assignmentDetails?.assignedClients?.map
+          ? rmTask.assignmentDetails.assignedClients.map((c) => c._id || c)
+          : (rmTask.assignmentDetails?.assignedClients || []),
+        assignedProspects: rmTask.assignmentDetails?.assignedProspects?.map
+          ? rmTask.assignmentDetails.assignedProspects.map((p) => p._id || p)
+          : (rmTask.assignmentDetails?.assignedProspects || []),
+      },
+      forwardedFromRM: {
+        forwardedAt: new Date(),
+        forwardedBy: rmId,
+        remark: remark || "",
+      },
+      createdBy: rmId,
+    });
+    await oeTask.save();
+
+    // 📱 Fire-and-forget: Notify OE about forwarded task (standalone forward)
+    notificationService.trigger("TASK_FORWARDED_TO_OE", {
+      recipientPhone: oeEmployee.officeMobile || oeEmployee.mobileNo,
+      recipientName: oeEmployee.name,
+      recipientId: oeEmployee._id,
+      name: oeEmployee.name,
+      taskName: rmTask.name,
+      forwardedBy: (await Employee.findById(rmId).select("name").lean())?.name || "RM",
+      remark: remark || "No remark",
+    }).catch(err => console.error("📱 Notification error (TASK_FORWARDED_TO_OE):", err.message));
+
+    res.status(200).json({
+      success: true,
+      message: `Task forwarded to OE (${oeEmployee.name}) successfully`,
+      data: { rmTaskId: rmTask._id, oeTaskId: oeTask._id },
+    });
+  } catch (error) {
+    console.error("❌ Error in rmForwardToOE:", error);
+    res.status(500).json({ success: false, message: "Failed to forward task to OE", error: error.message });
+  }
+};
+
+// ✅ OE forward back to RM (with RM picker - creates new IndividualTask for chosen RM)
+export const oeForwardToRM = async (req, res) => {
+  try {
+    const { taskId, status, remark, rmId: targetRmId } = req.body;
+    const oeId = req.body.oeId || req.body.employeeId;
+    const files = req.body.files || req.files?.files || [];
+
+    if (!taskId || !oeId) {
+      return res.status(400).json({ success: false, message: "taskId and oeId are required" });
+    }
+
+    const IndividualTask = GetModelByType("individual");
+    const task = await IndividualTask.findById(taskId)
+      .populate("assignmentDetails.assignedClients", "personalDetails status")
+      .populate("assignmentDetails.assignedProspects", "personalDetails status");
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
+    if (task.assignedTo?.toString() !== oeId.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized to forward this task" });
+    }
+
+    // Update OE task status
     if (status) {
       task.status = status;
       if (status === "completed") task.completedAt = new Date();
     }
     if (task.assignmentDetails && remark) task.assignmentDetails.completionRemarks = remark;
 
-    const fileList = Array.isArray(files) ? files : (files.length ? [files] : []);
+    const fileList = Array.isArray(files) ? files : files.length ? [files] : [];
     const uploadedFiles = fileList.map((f) => ({
       filename: f.filename || f.name,
       originalName: f.originalname || f.name || f.filename,
@@ -3567,20 +3723,82 @@ export const oeForwardToRM = async (req, res) => {
     };
     await task.save();
 
+    // If a specific RM is selected, create a new task for that RM
+    if (targetRmId) {
+      const rmEmployee = await Employee.findById(targetRmId);
+      if (!rmEmployee || rmEmployee.role !== "RM") {
+        return res.status(400).json({ success: false, message: "Invalid RM selected" });
+      }
+
+      const rmTask = new IndividualTask({
+        cat: task.cat,
+        sub: task.sub,
+        depart: task.depart,
+        name: task.name,
+        estimatedDays: task.estimatedDays,
+        descp: task.descp,
+        email_descp: task.email_descp,
+        sms_descp: task.sms_descp,
+        whatsapp_descp: task.whatsapp_descp,
+        checklists: task.checklists,
+        formChecklists: task.formChecklists || [],
+        type: task.type || "composite",
+        taskMode: task.taskMode || "assigned",
+        status: "assigned",
+        parentTask: task.parentTask,
+        assignedTo: targetRmId,
+        assignmentDetails: {
+          priority: task.assignmentDetails?.priority || "medium",
+          remarks: task.assignmentDetails?.remarks,
+          dueDate: task.assignmentDetails?.dueDate,
+          assignedBy: oeId,
+          assignedAt: new Date(),
+          assignedClients: task.assignmentDetails?.assignedClients?.map
+            ? task.assignmentDetails.assignedClients.map((c) => c._id || c)
+            : (task.assignmentDetails?.assignedClients || []),
+          assignedProspects: task.assignmentDetails?.assignedProspects?.map
+            ? task.assignmentDetails.assignedProspects.map((p) => p._id || p)
+            : (task.assignmentDetails?.assignedProspects || []),
+        },
+        // Track OE → RM forwarding history
+        oeForwardedToRM: {
+          forwardedAt: new Date(),
+          remark: remark || "",
+          files: uploadedFiles,
+        },
+        createdBy: oeId,
+      });
+      await rmTask.save();
+
+      // 📱 Fire-and-forget: Notify RM about forwarded task from OE
+      notificationService.trigger("TASK_FORWARDED_TO_RM", {
+        recipientPhone: rmEmployee.officeMobile || rmEmployee.mobileNo,
+        recipientName: rmEmployee.name,
+        recipientId: rmEmployee._id,
+        name: rmEmployee.name,
+        taskName: task.name,
+        forwardedBy: (await Employee.findById(oeId).select("name").lean())?.name || "OE",
+        remark: remark || "No remark",
+      }).catch(err => console.error("📱 Notification error (TASK_FORWARDED_TO_RM):", err.message));
+
+      return res.status(200).json({
+        success: true,
+        message: `Task forwarded to RM (${rmEmployee.name}) successfully`,
+        data: { oeTaskId: task._id, rmTaskId: rmTask._id },
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: "Task forwarded to RM",
+      message: "Task status updated and forwarded",
       data: { taskId: task._id, status: task.status },
     });
   } catch (error) {
     console.error("❌ Error oeForwardToRM:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to forward task to RM",
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Failed to forward task to RM", error: error.message });
   }
 };
+
 
 // ✅ Employee Report List: OA panel jaisa - Telecaller/HR ke liye Telecaller & HR models se fetch
 export const getEmployeeReportList = async (req, res) => {

@@ -116,8 +116,11 @@ router.put(
   TaskController.updateTaskStatus
 );
 
-// RM complete + forward to OE
+// RM complete + forward to OE (old - marks completed)
 router.post("/forward-to-oe", TaskController.forwardTaskToOE);
+
+// RM forward to OE with any status (standalone, no forced completion)
+router.post("/rm-forward-to-oe", TaskController.rmForwardToOE);
 
 // OA Employee Report
 router.get("/report/list", TaskController.getEmployeeReportList);

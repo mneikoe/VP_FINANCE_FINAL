@@ -33,14 +33,14 @@ const Navbarfristn = () => {
 
 
 
-    // 🔔 Notification State
-    const [notifications, setNotifications] = useState([
-      { id: 1, text: "New client added", read: false },
-      { id: 2, text: "Task assigned to you", read: false },
-      { id: 3, text: "Meeting scheduled", read: true },
-    ]);
+  // 🔔 Notification State
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "New client added", read: false },
+    { id: 2, text: "Task assigned to you", read: false },
+    { id: 3, text: "Meeting scheduled", read: true },
+  ]);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -126,9 +126,8 @@ const Navbarfristn = () => {
           <div className="flex items-center">
             <span className="text-[11px] font-medium tracking-wide">{label}</span>
             <FiChevronDown
-              className={`ml-0.5 text-[10px] transition-transform duration-200 ${
-                isOpen ? "rotate-180" : ""
-              }`}
+              className={`ml-0.5 text-[10px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                }`}
             />
           </div>
           {isOpen && (
@@ -173,7 +172,7 @@ const Navbarfristn = () => {
   // Mobile Menu Section
   const MobileMenuSection = ({ title, items }) => {
     const [isOpen, setIsOpen] = useState(false);
-    
+
     return (
       <div className="border-b border-gray-100 last:border-0">
         <button
@@ -182,9 +181,8 @@ const Navbarfristn = () => {
         >
           <span>{title}</span>
           <FiChevronDown
-            className={`text-gray-400 transition-transform duration-200 ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+              }`}
           />
         </button>
         {isOpen && (
@@ -208,7 +206,7 @@ const Navbarfristn = () => {
   // Menu configuration
   const menuConfig = {
     masters: {
-      width: "640px",
+      width: "780px",
       sections: [
         {
           title: "Task Master",
@@ -219,10 +217,10 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Location Master",
+          title: "Area Master",
           items: [
-            { name: "Add Location", to: "/area" },
-            { name: "Add Sub Location", to: "/sub-area" },
+            { name: "Add Area", to: "/area" },
+            { name: "Add Sub Area", to: "/sub-area" },
           ],
         },
         {
@@ -230,16 +228,23 @@ const Navbarfristn = () => {
           items: [
             { name: "Lead Source", to: "/lead-type" },
             { name: "Lead Name", to: "/lead-source" },
-            { name: "Lead Occupation", to: "/lead-occupation" },
+
             { name: "Occupation Type", to: "/occupation-type" },
+            { name: "Lead Occupation", to: "/lead-occupation" },
             { name: "Calling Purpose", to: "/calling-purpose" },
           ],
         },
         {
-          title: "KYC",
+          title: "Document Master",
           items: [
             { name: "Document Type", to: "/kycdocument" },
             { name: "Document Name Master", to: "/kyc-document-name-master" },
+          ],
+        },
+        {
+          title: "Financial Master",
+          items: [
+            { name: "Financial Product List", to: "/financial-product-list" },
           ],
         },
       ],
@@ -279,7 +284,7 @@ const Navbarfristn = () => {
           items: [
             { name: "Job Profile & Target", to: "/job-profile-target-admin" },
             { name: "All Employee", to: "/all-employee" },
-           
+
           ],
         },
         {
@@ -326,24 +331,16 @@ const Navbarfristn = () => {
           title: "Servicing",
           items: [{ name: "Servicing Documents", to: "/servicing-documents" }],
         },
-        {
-          title: "Account Department",
-          items: [
-            { name: "Accountant Dashboard", to: "/accountant/dashboard" },
-            { name: "Income Head", to: "/income-head" },
-            { name: "Expenses Head", to: "/expenses-head" },
-            { name: "Manage Banks", to: "/banks" },
-          ],
-        },
+
       ],
     },
-  office: {
+    office: {
       width: "480px",
       sections: [
         {
           title: "Financial",
           items: [
-            { name: "Financial Product List", to: "/financial-product-list" },
+            { name: "Financial Product View", to: "/financial-product-list?mode=view" },
             { name: "Company Name", to: "/company-name" },
             { name: "MF Registrar", to: "/mutual-fund/registrar" },
             { name: "MF AMC Name", to: "/mutual-fund/amc" },
@@ -356,6 +353,12 @@ const Navbarfristn = () => {
             { name: "Office Diary", to: "/office-diary" },
             { name: "Office Purchase", to: "/office-purchase" },
             { name: "Important Documents", to: "/important-documents" },
+          ],
+        },
+        {
+          title: "Communication",
+          items: [
+            { name: "📱 Notification Manager", to: "/notification-manager" },
           ],
         },
       ],
@@ -414,7 +417,7 @@ const Navbarfristn = () => {
     masters: { ...menuConfig.masters, icon: FiLayers, label: "Masters" },
     customers: { ...menuConfig.customers, icon: FiUser, label: "Customers" },
     employee: { ...menuConfig.employee, icon: FiUsers, label: "Employee" },
-    depart: { ...menuConfig.departments, icon: FiBriefcase, label: "Dept" },
+    depart: { ...menuConfig.departments, icon: FiBriefcase, label: "Department" },
     office: { ...menuConfig.office, icon: FiHome, label: "Office" },
     crm: { ...menuConfig.crm, icon: FiMessageSquare, label: "CRM" },
     task: { ...menuConfig.task, icon: FiCheckSquare, label: "Task" },
@@ -518,9 +521,8 @@ const Navbarfristn = () => {
                       notifications.map((item) => (
                         <div
                           key={item.id}
-                          className={`rounded-md px-2 py-1.5 text-xs ${
-                            item.read ? "bg-gray-50 text-gray-500" : "bg-blue-50 text-blue-700"
-                          }`}
+                          className={`rounded-md px-2 py-1.5 text-xs ${item.read ? "bg-gray-50 text-gray-500" : "bg-blue-50 text-blue-700"
+                            }`}
                         >
                           {item.text}
                         </div>

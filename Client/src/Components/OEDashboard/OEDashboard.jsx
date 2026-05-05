@@ -317,14 +317,8 @@ const OEDashboard = () => {
             path="/incentive-history"
             element={<PlaceholderComponent title="Incentive History" />}
           />
-          <Route
-            path="/task/details/:id"
-            element={<PlaceholderComponent title="Task Details" />}
-          />
-          <Route
-            path="/task/:taskId"
-            element={<PlaceholderComponent title="Task Id" />}
-          />
+          <Route path="/task/details/:id" element={<OETaskSummary />} />
+          <Route path="/task/:taskId" element={<OETaskSummary />} />
           <Route path="*" element={<Navigate to="/oe/dashboard" replace />} />
         </Routes>
       </main>

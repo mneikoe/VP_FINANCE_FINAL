@@ -1,6 +1,7 @@
 const express = require("express");
 const { registerOE, loginOE } = require("../Controller/OEController");
 const TaskController = require("../Controller/TaskCtrl");
+const RMController = require("../Controller/RMController");
 
 const router = express.Router();
 
@@ -14,7 +15,10 @@ router.get("/assigned-tasks", (req, res) => {
   return TaskController.getOEAssignedTasks(req, res);
 });
 
-// OE forward task back to RM (status, remark, files)
+// OE forward task back to RM (with RM picker) - updated
 router.put("/forward-to-rm", TaskController.oeForwardToRM);
+
+// OE get list of all active RMs (for picker)
+router.get("/rm-list", RMController.getAllRMs);
 
 module.exports = router;

@@ -41,12 +41,12 @@ const KYCComponent = () => {
   return (
     <div className="container mt-4">
       <Button variant="primary" onClick={() => setShowModal(true)}>
-        + Add KYC
+        + Add Document
       </Button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Add KYC Document</Modal.Title>
+          <Modal.Title>Add Document</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
@@ -93,7 +93,7 @@ const KYCComponent = () => {
         </Modal.Body>
       </Modal>
 
-      {/* Submitted KYC Table */}
+      {/* Submitted Documents Table */}
       <Table striped bordered hover className="mt-4">
         <thead>
           <tr>

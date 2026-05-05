@@ -103,7 +103,7 @@ const Area = () => {
 
   return (
     <div className="container mt-2">
-      <h3 className="mb-3">Location</h3>
+      <h3 className="mb-3">Area</h3>
 
       <div className="row">
         {/* Form Section */}
@@ -111,18 +111,18 @@ const Area = () => {
           <div className="card shadow border-0">
             <div className="card-body">
               <h5 className="card-title text-primary mb-3">
-                {editId ? "Edit Location" : "Add New Location"}
+                {editId ? "Edit Area" : "Add New Area"}
               </h5>
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                  <label className="form-label">Location Name</label>
+                  <label className="form-label">Area Name</label>
                   <input
                     type="text"
                     className="form-control"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Enter Location Name"
+                    placeholder="Enter Area Name"
                     required
                     disabled={loading}
                   />
@@ -195,9 +195,9 @@ const Area = () => {
         <div className="col-md-6 mb-4">
           <div className="card shadow border-0">
             <div className="card-body">
-              <h5 className="card-title text-success mb-3">Location List</h5>
+              <h5 className="card-title text-success mb-3">Area List</h5>
               {areas.length === 0 ? (
-                <p>No locations added yet.</p>
+                <p>No areas added yet.</p>
               ) : (
                 <div className="list-group">
                   {areas.map((area) => (

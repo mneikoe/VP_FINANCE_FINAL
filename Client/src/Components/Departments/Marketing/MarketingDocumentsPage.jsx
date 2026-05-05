@@ -109,9 +109,11 @@ const MarketingDocumentsPage = ({
 
   const formatDateTime = (value) => {
     if (!value) return "-";
+
     const dateObj = new Date(value);
     if (Number.isNaN(dateObj.getTime())) return "-";
-    return dateObj.toLocaleString("en-IN");
+
+    return dateObj.toLocaleDateString("en-IN");
   };
 
   const onCreate = async (values) => {
@@ -174,6 +176,12 @@ const MarketingDocumentsPage = ({
 
   const columns = [
     {
+      title: "Submit Date",
+      dataIndex: "lastUploadedAt",
+      key: "lastUploadedAt",
+      render: (value, record) => formatDateTime(value || record?.createdAt),
+    },
+    {
       title: "Financial Product",
       dataIndex: ["financialProduct", "name"],
       key: "financialProduct",
@@ -196,12 +204,7 @@ const MarketingDocumentsPage = ({
       dataIndex: "documentName",
       key: "documentName",
     },
-    {
-      title: "Last Uploaded",
-      dataIndex: "lastUploadedAt",
-      key: "lastUploadedAt",
-      render: (value, record) => formatDateTime(value || record?.createdAt),
-    },
+
     {
       title: "Total Uploads",
       key: "uploadCount",

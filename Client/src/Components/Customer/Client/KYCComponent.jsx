@@ -127,7 +127,7 @@ const KYCComponent = ({ id, familyMembers }) => {
         setPreview(null);
         setShowModal(false);
         dispatch(fetchKycsByClient(id));
-        toast.success("KYC created successfully.");
+        toast.success("Document created successfully.");
       })
       .catch((error) => {
         console.error('Error creating KYC:', error);
@@ -150,7 +150,7 @@ const KYCComponent = ({ id, familyMembers }) => {
     dispatch(updateKyc({ id: editId, formData }))
       .unwrap()
       .then(() => {
-        toast.success("KYC updated successfully.");
+        toast.success("Document updated successfully.");
         setForm({
           clientId: id,
           memberName: "",
@@ -167,19 +167,19 @@ const KYCComponent = ({ id, familyMembers }) => {
       })
       .catch((error) => {
         console.error("Error updating KYC:", error);
-        toast.error("Failed to update KYC.");
+        toast.error("Failed to update Document.");
       });
   };
 
   return (
     <div className="container mt-4">
       <Button variant="primary" onClick={() => setShowModal(true)}>
-        + Add KYC
+        + Add Document
       </Button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>{editMode ? 'Edit KYC Document' : 'Add KYC Document'}</Modal.Title>
+          <Modal.Title>{editMode ? 'Edit Document' : 'Add Document'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={editMode ? handleEditSubmit : handleSubmit}>
@@ -276,7 +276,7 @@ const KYCComponent = ({ id, familyMembers }) => {
         </Modal.Body>
       </Modal>
 
-      {/* Submitted KYC Table */}
+      {/* Submitted Documents Table */}
 
       <Table striped bordered hover responsive className="mt-4">
         <thead className=" text-center">
@@ -343,12 +343,12 @@ const KYCComponent = ({ id, familyMembers }) => {
                         dispatch(deleteKyc(item._id))
                           .unwrap()
                           .then(() => {
-                            toast.success("KYC deleted successfully.");
+                            toast.success("Document deleted successfully.");
                             dispatch(fetchKycsByClient(id));
                           })
                           .catch((error) => {
                             console.error('Error deleting KYC:', error);
-                            toast.error("Failed to delete KYC.");
+                            toast.error("Failed to delete Document.");
                           });
                       }
                     }}

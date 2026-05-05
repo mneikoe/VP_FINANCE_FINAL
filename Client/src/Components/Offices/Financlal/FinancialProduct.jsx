@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-// import {
-//   fetchProducts,
-//   addProduct,
-//   updateProduct,
-//   deleteProduct,
-// } from "../../../redux/feature/"; // apna path lagao
+import { useSearchParams } from "react-router-dom";
 import {
-  //  fetchFinancialProduct,
   deleteFinancialProduct,
   createFinancialProduct,
   updateFinancialProduct,
@@ -17,8 +11,8 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 
 const FinancialProduct = () => {
   const dispatch = useDispatch();
-  // const products = useSelector((state) => state.financialProduct
-  // ); // redux reducer se data
+  const [searchParams] = useSearchParams();
+  const isViewMode = searchParams.get("mode") === "view";
 
   const products = useSelector(
     (state) => state.financialProduct.FinancialProducts
@@ -55,8 +49,6 @@ const FinancialProduct = () => {
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure want to delete?")) {
-      console.log(id, "Sjksjs");
-
       dispatch(deleteFinancialProduct(id));
     }
   };
@@ -65,45 +57,52 @@ const FinancialProduct = () => {
     <div className="container mt-3">
       <div className="card border-0 shadow-sm mb-3">
         <div className="card-body py-3">
-          <h4 className="mb-1 fw-bold text-dark">Financial Product Master</h4>
+          <h4 className="mb-1 fw-bold text-dark">
+            {isViewMode ? "Financial Product List" : "Financial Product Master"}
+          </h4>
           <p className="mb-0 text-muted" style={{ fontSize: "0.88rem" }}>
-            Maintain product names used across office, department, and document workflows.
+            {isViewMode 
+              ? "View and browse product names used across office workflows." 
+              : "Maintain product names used across office, department, and document workflows."}
           </p>
         </div>
       </div>
+      
       <div className="row">
-        {/* Form Section */}
-        <div className="col-12 col-lg-6 mb-4">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h5 text-center mb-4">
-                {editId ? "Update" : "Add"} Financial Product
-              </h2>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter Name"
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary w-100">
-                  {editId ? "Update" : "Add"}
-                </button>
-              </form>
+        {/* Form Section - Hidden in View Mode */}
+        {!isViewMode && (
+          <div className="col-12 col-lg-6 mb-4">
+            <div className="card shadow-sm border-0 h-100">
+              <div className="card-body">
+                <h2 className="h5 text-center mb-4">
+                  {editId ? "Update" : "Add"} Financial Product
+                </h2>
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-3">
+                    <label className="form-label">Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter Name"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary w-100">
+                    {editId ? "Update" : "Add"}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* List Section */}
-        <div className="col-12 col-lg-6 mb-4">
-          <div className="card shadow-sm border-0">
+        <div className={`col-12 ${isViewMode ? "col-lg-12" : "col-lg-6"} mb-4`}>
+          <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
-              <h2 className="h5 mb-4">Financial Product List</h2>
+              <h2 className="h5 mb-4">Product Inventory</h2>
               <ul className="list-group">
                 {Array.isArray(products) &&
                   products.map((product) => (
@@ -112,20 +111,22 @@ const FinancialProduct = () => {
                       className="list-group-item d-flex justify-content-between align-items-center"
                     >
                       <span>{product.name}</span>
-                      <div>
-                        <button
-                          className="btn btn-sm btn-outline-primary me-2"
-                          onClick={() => handleEdit({ id: product })}
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(product._id)}
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
+                      {!isViewMode && (
+                        <div>
+                          <button
+                            className="btn btn-sm btn-outline-primary me-2"
+                            onClick={() => handleEdit({ id: product })}
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(product._id)}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      )}
                     </li>
                   ))}
               </ul>
@@ -138,3 +139,4 @@ const FinancialProduct = () => {
 };
 
 export default FinancialProduct;
+
