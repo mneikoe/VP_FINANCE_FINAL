@@ -41,9 +41,8 @@ const RMDashboardHome = ({ stats, assignedSuspects }) => {
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
-          config[status] || "bg-gray-100 text-gray-800"
-        }`}
+        className={`px-2 py-1 rounded-full text-xs font-medium ${config[status] || "bg-gray-100 text-gray-800"
+          }`}
       >
         {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
       </span>
@@ -62,7 +61,7 @@ const RMDashboardHome = ({ stats, assignedSuspects }) => {
             </div>
             <div className="flex-1">
               <div className="text-xs text-gray-500 font-medium">
-                Total Assigned
+                Total Assign
               </div>
               <div className="text-lg font-bold text-gray-800 mt-1">
                 {stats.totalAssigned}
@@ -301,8 +300,8 @@ const RMDashboardHome = ({ stats, assignedSuspects }) => {
               <p className="text-xl font-bold text-gray-900">
                 {stats.totalAssigned > 0
                   ? `${Math.round(
-                      (stats.completed / stats.totalAssigned) * 100
-                    )}%`
+                    (stats.completed / stats.totalAssigned) * 100
+                  )}%`
                   : "0%"}
               </p>
             </div>
