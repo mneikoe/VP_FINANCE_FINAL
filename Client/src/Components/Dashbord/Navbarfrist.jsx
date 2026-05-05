@@ -216,7 +216,7 @@ const Navbarfristn = () => {
       width: "780px",
       sections: [
         {
-          title: "Task Master",
+          title: "Task ",
           items: [
             { name: "Composite Task", to: "/composite" },
             { name: "Marketing Task", to: "/marketing-task" },
@@ -224,14 +224,14 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Area Master",
+          title: "Area ",
           items: [
             { name: "Add Area", to: "/area" },
             { name: "Add Sub Area", to: "/sub-area" },
           ],
         },
         {
-          title: "Lead Master",
+          title: "Lead ",
           items: [
             { name: "Lead Source", to: "/lead-type" },
             { name: "Lead Name", to: "/lead-source" },
@@ -242,10 +242,10 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Document Master",
+          title: "Document",
           items: [
             { name: "Document Type", to: "/kycdocument" },
-            { name: "Document Name Master", to: "/kyc-document-name-master" },
+            { name: "Document Name ", to: "/kyc-document-name-master" },
           ],
         },
       ],
