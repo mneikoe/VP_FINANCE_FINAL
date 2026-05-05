@@ -64,7 +64,7 @@ const OccupationType = () => {
 
         {/* Page Header */}
         <div style={{ marginBottom: "28px" }}>
-          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Occupation Categories</h4>
+          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Occupation Type</h4>
           <p style={{ color: "#6c757d", fontSize: "14px", margin: "4px 0 0" }}>
             Define broad categories for grouping specific occupations.
           </p>
@@ -75,12 +75,12 @@ const OccupationType = () => {
           {/* LEFT: Add Form */}
           <div style={{ background: "#fff", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "28px", position: "sticky", top: "20px" }}>
             <h6 style={{ fontWeight: 700, color: "#1a1a2e", marginBottom: "20px", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              ➕ New Category
+              ➕ New Occupation Type
             </h6>
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: "20px" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#495057", marginBottom: "6px", textTransform: "uppercase" }}>
-                  Category Name
+                  Occupation Type
                 </label>
                 <input
                   type="text"

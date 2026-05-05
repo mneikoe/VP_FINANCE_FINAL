@@ -113,7 +113,7 @@ const LeadOccupation = () => {
 
         {/* Page Header */}
         <div style={{ marginBottom: "28px" }}>
-          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Lead Occupation</h4>
+          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Occupation Name</h4>
           <p style={{ color: "#6c757d", fontSize: "14px", margin: "4px 0 0" }}>
             Assign occupation names under specific categories.
           </p>

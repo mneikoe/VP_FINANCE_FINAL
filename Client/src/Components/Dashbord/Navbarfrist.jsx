@@ -17,6 +17,7 @@ import {
   FiX,
   FiUser,
   FiBell,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 const Navbarfristn = () => {
@@ -93,13 +94,13 @@ const Navbarfristn = () => {
       to={to}
       onClick={onClick}
       className={`
-        relative flex h-12 min-w-[80px] cursor-pointer flex-col items-center justify-center 
-        rounded-lg px-2 transition-all duration-200
+        relative flex h-12 min-w-[70px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
+        rounded-lg px-1.5 xl:px-2 transition-all duration-200
         ${active ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
       `}
     >
-      <Icon className="text-lg" />
-      <span className="text-[11px] font-medium tracking-wide">{label}</span>
+      <Icon className="text-base xl:text-lg" />
+      <span className="text-[9px] xl:text-[11px] font-medium tracking-wide text-center">{label}</span>
       {active && (
         <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-blue-600" />
       )}
@@ -110,6 +111,9 @@ const Navbarfristn = () => {
   const DropdownContainer = ({ name, icon: Icon, label, width = "600px", children }) => {
     const isOpen = openDropdown === name;
 
+    // Determine alignment based on menu name
+    const isRightAligned = ["task", "reports", "depart"].includes(name);
+
     return (
       <div className="relative">
         {/* Trigger Button */}
@@ -117,16 +121,16 @@ const Navbarfristn = () => {
           type="button"
           onClick={() => handleDropdownClick(name)}
           className={`
-            relative flex h-12 min-w-[80px] cursor-pointer flex-col items-center justify-center 
-            rounded-lg px-2 transition-all duration-200
+            relative flex h-12 min-w-[70px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
+            rounded-lg px-1.5 xl:px-2 transition-all duration-200
             ${isOpen ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
           `}
         >
-          <Icon className="text-lg" />
+          <Icon className="text-base xl:text-lg" />
           <div className="flex items-center">
-            <span className="text-[11px] font-medium tracking-wide">{label}</span>
+            <span className="text-[9px] xl:text-[11px] font-medium tracking-wide">{label}</span>
             <FiChevronDown
-              className={`ml-0.5 text-[10px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+              className={`ml-0.5 text-[9px] xl:text-[10px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""
                 }`}
             />
           </div>
@@ -138,10 +142,13 @@ const Navbarfristn = () => {
         {/* Click-open menu avoids hover gap issues on dense pages */}
         {isOpen && (
           <div
-            className="absolute left-0 top-full z-[110] mt-1 max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border border-gray-100 bg-white shadow-lg"
-            style={{ width }}
+            className={`absolute top-full z-[110] mt-1 max-h-[min(75vh,560px)] overflow-y-auto rounded-lg border border-gray-100 bg-white shadow-xl
+              ${isRightAligned ? "right-0" : "left-0"} 
+              ${name === "depart" || name === "employee" ? "lg:-translate-x-1/4 xl:-translate-x-1/2 xl:left-1/2" : ""}
+            `}
+            style={{ width: `min(${width}, 92vw)` }}
           >
-            <div className="p-5">{children}</div>
+            <div className="p-4 xl:p-5">{children}</div>
           </div>
         )}
       </div>
@@ -230,7 +237,7 @@ const Navbarfristn = () => {
             { name: "Lead Name", to: "/lead-source" },
 
             { name: "Occupation Type", to: "/occupation-type" },
-            { name: "Lead Occupation", to: "/lead-occupation" },
+            { name: "Occupation Name", to: "/lead-occupation" },
             { name: "Calling Purpose", to: "/calling-purpose" },
           ],
         },
@@ -321,7 +328,7 @@ const Navbarfristn = () => {
       ],
     },
     departments: {
-      width: "560px",
+      width: "780px",
       sections: [
         {
           title: "Marketing",
@@ -330,22 +337,6 @@ const Navbarfristn = () => {
         {
           title: "Servicing",
           items: [{ name: "Servicing Documents", to: "/servicing-documents" }],
-        },
-
-      ],
-    },
-    office: {
-      width: "480px",
-      sections: [
-        {
-          title: "Financial",
-          items: [
-            { name: "Financial Product View", to: "/financial-product-list?mode=view" },
-            { name: "Company Name", to: "/company-name" },
-            { name: "MF Registrar", to: "/mutual-fund/registrar" },
-            { name: "MF AMC Name", to: "/mutual-fund/amc" },
-            { name: "Other Product", to: "/other-product" },
-          ],
         },
         {
           title: "Office Records",
@@ -356,22 +347,26 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Communication",
-          items: [
-            { name: "📱 Notification Manager", to: "/notification-manager" },
-          ],
-        },
-      ],
-    },
-    crm: {
-      width: "360px",
-      sections: [
-        {
           title: "CRM Activities",
           items: [
             { name: "CRM Advertisement Activities", to: "/crm-advertisement-activities" },
             { name: "CRM Creativity Activities", to: "/crm-creativity-activities" },
             { name: "CRM Relationship Activities", to: "/crm-relationship-activities" },
+          ],
+        },
+      ],
+    },
+    financial: {
+      width: "360px",
+      sections: [
+        {
+          title: "Financial Services",
+          items: [
+            { name: "Financial Product View", to: "/financial-product-list?mode=view" },
+            { name: "Company Name", to: "/company-name" },
+            { name: "MF Registrar", to: "/mutual-fund/registrar" },
+            { name: "MF AMC Name", to: "/mutual-fund/amc" },
+            { name: "Other Product", to: "/other-product" },
           ],
         },
       ],
@@ -417,9 +412,8 @@ const Navbarfristn = () => {
     masters: { ...menuConfig.masters, icon: FiLayers, label: "Masters" },
     customers: { ...menuConfig.customers, icon: FiUser, label: "Customers" },
     employee: { ...menuConfig.employee, icon: FiUsers, label: "Employee" },
+    financial: { ...menuConfig.financial, icon: FiTrendingUp, label: "Financial" },
     depart: { ...menuConfig.departments, icon: FiBriefcase, label: "Department" },
-    office: { ...menuConfig.office, icon: FiHome, label: "Office" },
-    crm: { ...menuConfig.crm, icon: FiMessageSquare, label: "CRM" },
     task: { ...menuConfig.task, icon: FiCheckSquare, label: "Task" },
     reports: { ...menuConfig.reports, icon: FiFileText, label: "Reports" },
   };
@@ -464,7 +458,7 @@ const Navbarfristn = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-md rounded-full lg:justify-center lg:gap-0.5 xl:gap-1">
+            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-sm rounded-full lg:justify-center lg:gap-0 xl:gap-0.5 bg-gray-50/50">
               <NavItem
                 to="/"
                 icon={FiGrid}
@@ -482,9 +476,9 @@ const Navbarfristn = () => {
                   width={menu.width}
                 >
                   <div
-                    className="grid gap-6"
+                    className="grid gap-4 xl:gap-6"
                     style={{
-                      gridTemplateColumns: `repeat(${menu.sections.length <= 2 ? 2 : 3}, minmax(0, 1fr))`,
+                      gridTemplateColumns: `repeat(${menu.sections.length === 1 ? 1 : menu.sections.length === 2 ? 2 : menu.sections.length === 4 ? 4 : 3}, minmax(0, 1fr))`,
                     }}
                   >
                     {menu.sections.map((section, idx) => (
@@ -493,6 +487,14 @@ const Navbarfristn = () => {
                   </div>
                 </DropdownContainer>
               ))}
+
+              <NavItem
+                to="/notification-manager"
+                icon={FiBell}
+                label="Notifications"
+                active={isPathActive(["/notification-manager"])}
+                onClick={closeAllDropdowns}
+              />
             </div>
 
             {/* Notification Icon */}
@@ -615,6 +617,15 @@ const Navbarfristn = () => {
                   items={menu.sections.flatMap(s => s.items)}
                 />
               ))}
+
+              <Link
+                to="/notification-manager"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={closeAllDropdowns}
+              >
+                <FiBell size={18} />
+                <span>Notifications</span>
+              </Link>
             </div>
           </div>
         </div>
