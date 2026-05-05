@@ -13,6 +13,10 @@ const officeDiarySchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  officeContactNo: {
+    type: String,
+    default: "",
+  },
   licanceNo: {
     type: String,
     default: "",

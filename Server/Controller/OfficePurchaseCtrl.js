@@ -3,7 +3,11 @@ const OfficePurchase = require("../Models/OfficePurchaseModel");
 // Create
 exports.createOfficePurchase = async (req, res) => {
   try {
-    const newPurchase = new OfficePurchase(req.body);
+    const data = { ...req.body };
+    if (req.files && req.files["invoicePdf"]) {
+      data.pdfPath = `/uploads/${req.files["invoicePdf"][0].filename}`;
+    }
+    const newPurchase = new OfficePurchase(data);
     const savedPurchase = await newPurchase.save();
     res.status(201).json(savedPurchase);
   } catch (error) {
@@ -35,9 +39,13 @@ exports.getOfficePurchaseById = async (req, res) => {
 // Update
 exports.updateOfficePurchase = async (req, res) => {
   try {
+    const data = { ...req.body };
+    if (req.files && req.files["invoicePdf"]) {
+      data.pdfPath = `/uploads/${req.files["invoicePdf"][0].filename}`;
+    }
     const updatedPurchase = await OfficePurchase.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      data,
       { new: true, runValidators: true }
     );
     if (!updatedPurchase) return res.status(404).json({ message: "Not found" });

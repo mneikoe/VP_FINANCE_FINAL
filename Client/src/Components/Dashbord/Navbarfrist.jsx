@@ -94,8 +94,8 @@ const Navbarfristn = () => {
       to={to}
       onClick={onClick}
       className={`
-        relative flex h-12 min-w-[70px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
-        rounded-lg px-1.5 xl:px-2 transition-all duration-200
+        relative flex h-12 min-w-[60px] lg:min-w-[64px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
+        rounded-lg px-1 xl:px-2 transition-all duration-200
         ${active ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
       `}
     >
@@ -121,8 +121,8 @@ const Navbarfristn = () => {
           type="button"
           onClick={() => handleDropdownClick(name)}
           className={`
-            relative flex h-12 min-w-[70px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
-            rounded-lg px-1.5 xl:px-2 transition-all duration-200
+            relative flex h-12 min-w-[60px] lg:min-w-[64px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
+            rounded-lg px-1 xl:px-2 transition-all duration-200
             ${isOpen ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
           `}
         >
@@ -248,10 +248,19 @@ const Navbarfristn = () => {
             { name: "Document Name Master", to: "/kyc-document-name-master" },
           ],
         },
+      ],
+    },
+    financial: {
+      width: "360px",
+      sections: [
         {
-          title: "Financial Master",
+          title: "Financial Services",
           items: [
-            { name: "Financial Product List", to: "/financial-product-list" },
+            { name: "Financial Products", to: "/financial-product-list" },
+            { name: "Company Name", to: "/company-name" },
+            { name: "MF Registrar", to: "/mutual-fund/registrar" },
+            { name: "MF AMC Name", to: "/mutual-fund/amc" },
+            { name: "Other Product", to: "/other-product" },
           ],
         },
       ],
@@ -356,21 +365,7 @@ const Navbarfristn = () => {
         },
       ],
     },
-    financial: {
-      width: "360px",
-      sections: [
-        {
-          title: "Financial Services",
-          items: [
-            { name: "Financial Product View", to: "/financial-product-list?mode=view" },
-            { name: "Company Name", to: "/company-name" },
-            { name: "MF Registrar", to: "/mutual-fund/registrar" },
-            { name: "MF AMC Name", to: "/mutual-fund/amc" },
-            { name: "Other Product", to: "/other-product" },
-          ],
-        },
-      ],
-    },
+
     task: {
       width: "400px",
       sections: [
@@ -434,7 +429,7 @@ const Navbarfristn = () => {
         `}
       >
         <div className="mx-auto w-full max-w-[1800px] px-4 lg:px-6 ">
-          <div className="flex h-14 items-center justify-between gap-3">
+          <div className="flex h-14 items-center justify-between gap-1 lg:gap-2 xl:gap-4">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <button
@@ -458,7 +453,7 @@ const Navbarfristn = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-sm rounded-full lg:justify-center lg:gap-0 xl:gap-0.5 bg-gray-50/50">
+            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-sm rounded-full lg:justify-center lg:gap-px xl:gap-0.5 bg-gray-50/50">
               <NavItem
                 to="/"
                 icon={FiGrid}

@@ -11,8 +11,8 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 
 const FinancialProduct = () => {
   const dispatch = useDispatch();
-  const [searchParams] = useSearchParams();
-  const isViewMode = searchParams.get("mode") === "view";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("mode") === "view" ? "view" : "master";
 
   const products = useSelector(
     (state) => state.financialProduct.FinancialProducts
@@ -21,7 +21,6 @@ const FinancialProduct = () => {
   const [name, setName] = useState("");
   const [editId, setEditId] = useState(null);
 
-  // Redux se data load
   useEffect(() => {
     dispatch(fetchFinancialProduct(products));
   }, [dispatch]);
@@ -34,7 +33,6 @@ const FinancialProduct = () => {
       } else {
         await dispatch(createFinancialProduct(name));
       }
-
       setName("");
       setEditId(null);
     } catch (error) {
@@ -42,94 +40,121 @@ const FinancialProduct = () => {
     }
   };
 
-  const handleEdit = ({ id }) => {
-    setName(id.name);
-    setEditId(id._id);
+  const handleEdit = (product) => {
+    setName(product.name);
+    setEditId(product._id);
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure want to delete?")) {
+    if (window.confirm("Delete this product?")) {
       dispatch(deleteFinancialProduct(id));
     }
   };
 
   return (
     <div className="container mt-3">
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body py-3">
-          <h4 className="mb-1 fw-bold text-dark">
-            {isViewMode ? "Financial Product List" : "Financial Product Master"}
-          </h4>
-          <p className="mb-0 text-muted" style={{ fontSize: "0.88rem" }}>
-            {isViewMode 
-              ? "View and browse product names used across office workflows." 
-              : "Maintain product names used across office, department, and document workflows."}
-          </p>
+      {/* Minimal Header & Tabs */}
+      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h4 className="fw-bold text-dark mb-0">Financial Products</h4>
+        <div className="nav nav-pills small">
+          <button
+            className={`nav-link py-1 px-3 ${activeTab === "master" ? "active" : ""}`}
+            onClick={() => setSearchParams({ mode: "master" })}
+          >
+            Add / Edit
+          </button>
+          <button
+            className={`nav-link py-1 px-3 ${activeTab === "view" ? "active" : ""}`}
+            onClick={() => setSearchParams({ mode: "view" })}
+          >
+            View List
+          </button>
         </div>
       </div>
-      
-      <div className="row">
-        {/* Form Section - Hidden in View Mode */}
-        {!isViewMode && (
-          <div className="col-12 col-lg-6 mb-4">
-            <div className="card shadow-sm border-0 h-100">
-              <div className="card-body">
-                <h2 className="h5 text-center mb-4">
-                  {editId ? "Update" : "Add"} Financial Product
-                </h2>
+
+      <div className="row g-3">
+        {activeTab === "master" && (
+          <div className="col-md-4">
+            <div className="card shadow-sm border-0">
+              <div className="card-body p-3">
+                <h6 className="fw-bold mb-3">{editId ? "Edit Product" : "Add Product"}</h6>
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <label className="form-label">Name</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control form-control-sm"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter Name"
+                      placeholder="Product Name"
                       required
                     />
                   </div>
-                  <button type="submit" className="btn btn-primary w-100">
-                    {editId ? "Update" : "Add"}
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="btn btn-sm btn-primary px-3">
+                      {editId ? "Update" : "Save"}
+                    </button>
+                    {editId && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-light border"
+                        onClick={() => { setEditId(null); setName(""); }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
             </div>
           </div>
         )}
 
-        {/* List Section */}
-        <div className={`col-12 ${isViewMode ? "col-lg-12" : "col-lg-6"} mb-4`}>
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-              <h2 className="h5 mb-4">Product Inventory</h2>
-              <ul className="list-group">
-                {Array.isArray(products) &&
-                  products.map((product) => (
-                    <li
-                      key={product._id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <span>{product.name}</span>
-                      {!isViewMode && (
-                        <div>
-                          <button
-                            className="btn btn-sm btn-outline-primary me-2"
-                            onClick={() => handleEdit({ id: product })}
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(product._id)}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-              </ul>
+        <div className={activeTab === "master" ? "col-md-8" : "col-12"}>
+          <div className="card shadow-sm border-0">
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-sm table-hover mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="ps-3 py-2">#</th>
+                      <th className="py-2">Product Name</th>
+                      {activeTab === "master" && <th className="text-end pe-3 py-2">Action</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.isArray(products) && products.length > 0 ? (
+                      products.map((product, idx) => (
+                        <tr key={product._id}>
+                          <td className="ps-3 py-2 text-muted">{idx + 1}</td>
+                          <td className="py-2">{product.name}</td>
+                          {activeTab === "master" && (
+                            <td className="text-end pe-3 py-2">
+                              <button
+                                className="btn btn-link btn-sm p-0 me-2 text-primary"
+                                onClick={() => handleEdit(product)}
+                              >
+                                <FaEdit />
+                              </button>
+                              <button
+                                className="btn btn-link btn-sm p-0 text-danger"
+                                onClick={() => handleDelete(product._id)}
+                              >
+                                <FaTrash />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="3" className="text-center py-4 text-muted small">
+                          No products found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

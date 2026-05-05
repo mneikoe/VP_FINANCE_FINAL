@@ -1,20 +1,23 @@
 const express = require("express");
 const router = express.Router();
-const officePurchaseController = require("../Controller/OfficePurchaseCtrl");
+const officePurchaseCtrl = require("../Controller/OfficePurchaseCtrl");
+const upload = require("../config/multer");
+
+const uploadFields = upload.fields([{ name: "invoicePdf", maxCount: 1 }]);
 
 // Create
-router.post("/", officePurchaseController.createOfficePurchase);
+router.post("/", uploadFields, officePurchaseCtrl.createOfficePurchase);
 
 // Read all
-router.get("/", officePurchaseController.getAllOfficePurchases);
+router.get("/", officePurchaseCtrl.getAllOfficePurchases);
 
 // Read one
-router.get("/:id", officePurchaseController.getOfficePurchaseById);
+router.get("/:id", officePurchaseCtrl.getOfficePurchaseById);
 
 // Update
-router.put("/:id", officePurchaseController.updateOfficePurchase);
+router.put("/update/:id", uploadFields, officePurchaseCtrl.updateOfficePurchase);
 
 // Delete
-router.delete("/:id", officePurchaseController.deleteOfficePurchase);
+router.delete("/delete/:id", officePurchaseCtrl.deleteOfficePurchase);
 
 module.exports = router;

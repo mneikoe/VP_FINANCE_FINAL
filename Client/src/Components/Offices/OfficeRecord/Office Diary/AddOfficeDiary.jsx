@@ -1,71 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { Button, Form, Row, Col, Card } from "react-bootstrap";
+import React, { useEffect } from "react";
+import { Form, Input, DatePicker, Button, Row, Col, Card, Upload, message } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import { useDispatch, useSelector } from "react-redux";
+import dayjs from "dayjs";
 import {
   createOfficeDiary,
   fetchOfficeDiaryByID,
   updateOfficeDiary,
 } from "../../../../redux/feature/OfficeDiary/OfficeDiaryThunx";
-import { useDispatch, useSelector } from "react-redux";
+
+const { TextArea } = Input;
 
 function AddOfficeDiary({ editId, setActiveTab, setEditId }) {
-  const [orgName, setOrgName] = useState("");
-  const [servicePerson, setServicePerson] = useState("");
-  const [contactNo, setContactNo] = useState("");
-  const [licanceNo, setLicanceNo] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [purchageDate, setPurchageDate] = useState("");
-  const [amount, setAmount] = useState("");
-  const [userId, setUserId] = useState("");
-  const [password, setPassword] = useState("");
-  const [particulars, setParticulars] = useState("");
-  const [pdfFile, setPdfFile] = useState(null);
-
+  const [form] = Form.useForm();
   const dispatch = useDispatch();
-  const { current } = useSelector((state) => state.officeDiary);
+  const { current, loading } = useSelector((state) => state.officeDiary);
 
   useEffect(() => {
     if (editId) {
       dispatch(fetchOfficeDiaryByID(editId));
+    } else {
+      form.resetFields();
     }
-  }, [editId, dispatch]);
+  }, [editId, dispatch, form]);
 
   useEffect(() => {
     if (current && editId) {
-      setOrgName(current.orgName || "");
-      setServicePerson(current.servicePerson || "");
-      setContactNo(current.contactNo || "");
-      setLicanceNo(current.licanceNo || "");
-      setStartDate(current.startDate || "");
-      setEndDate(current.endDate || "");
-      setPurchageDate(current.purchageDate || "");
-      setAmount(current.amount || "");
-      setUserId(current.userId || "");
-      setPassword(current.password || "");
-      setParticulars(current.particulars || "");
+      form.setFieldsValue({
+        ...current,
+        startDate: current.startDate ? dayjs(current.startDate) : null,
+        endDate: current.endDate ? dayjs(current.endDate) : null,
+        purchageDate: current.purchageDate ? dayjs(current.purchageDate) : null,
+      });
     }
-  }, [current, editId]);
+  }, [current, editId, form]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!orgName || !pdfFile) {
-      alert("Please fill in the required fields");
+  const onFinish = (values) => {
+    const formData = new FormData();
+    Object.keys(values).forEach((key) => {
+      if (values[key] !== undefined && values[key] !== null) {
+        if (["startDate", "endDate", "purchageDate"].includes(key)) {
+          formData.append(key, values[key].format("YYYY-MM-DD"));
+        } else if (key !== "diaryPdf") {
+          formData.append(key, values[key]);
+        }
+      }
+    });
+
+    if (values.diaryPdf && values.diaryPdf.file) {
+      formData.append("diaryPdf", values.diaryPdf.file.originFileObj);
+    } else if (!editId) {
+      message.error("Please upload a PDF document");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("orgName", orgName);
-    formData.append("servicePerson", servicePerson);
-    formData.append("contactNo", contactNo);
-    formData.append("licanceNo", licanceNo);
-    formData.append("startDate", startDate);
-    formData.append("endDate", endDate);
-    formData.append("purchageDate", purchageDate);
-    formData.append("amount", amount);
-    formData.append("userId", userId);
-    formData.append("password", password);
-    formData.append("particulars", particulars);
-    if (pdfFile) formData.append("diaryPdf", pdfFile);
 
     if (editId) {
       dispatch(updateOfficeDiary({ id: editId, formData }));
@@ -73,177 +60,112 @@ function AddOfficeDiary({ editId, setActiveTab, setEditId }) {
       dispatch(createOfficeDiary(formData));
     }
 
-    // Reset form
-    setOrgName("");
-    setServicePerson("");
-    setContactNo("");
-    setLicanceNo("");
-    setStartDate("");
-    setEndDate("");
-    setPurchageDate("");
-    setAmount("");
-    setUserId("");
-    setPassword("");
-    setParticulars("");
-    setPdfFile(null);
+    form.resetFields();
     setEditId(null);
     setActiveTab("view");
   };
 
   return (
-    <Card className="p-3 mt-3">
-      <Form onSubmit={handleSubmit}>
-        <Row>
-          <Col md={6}>
-            <Form.Group controlId="formParticulars">
-              <Form.Label>
-                <strong>Particulars</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={particulars}
-                onChange={(e) => setParticulars(e.target.value)}
-              />
-            </Form.Group>
+    <Card className="mt-3 shadow-sm border-0">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        requiredMark={false}
+      >
+        <Row gutter={[16, 0]}>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Particulars</strong>} name="particulars">
+              <Input placeholder="Enter particulars" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="orgName">
-              <Form.Label>
-                <strong>Org. Name</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                required
-              />
-            </Form.Group>
+          <Col xs={24} md={12}>
+            <Form.Item 
+              label={<strong>Company Name</strong>} 
+              name="orgName" 
+              rules={[{ required: true, message: "Required" }]}
+            >
+              <Input placeholder="Enter company name" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="servicePerson">
-              <Form.Label>
-                <strong>Service Person</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={servicePerson}
-                onChange={(e) => setServicePerson(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Service Person</strong>} name="servicePerson">
+              <Input placeholder="Enter service person name" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="contactNo">
-              <Form.Label>
-                <strong>Contact No</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Mobile Number</strong>} name="contactNo">
+              <Input placeholder="Enter mobile number" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="licanceNo">
-              <Form.Label>
-                <strong>License No.</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={licanceNo}
-                onChange={(e) => setLicanceNo(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Contact Number</strong>} name="officeContactNo">
+              <Input placeholder="Enter contact number" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="startDate">
-              <Form.Label>
-                <strong>Start Date</strong>
-              </Form.Label>
-              <Form.Control
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>License No.</strong>} name="licanceNo">
+              <Input placeholder="Enter license number" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="endDate">
-              <Form.Label>
-                <strong>End Date</strong>
-              </Form.Label>
-              <Form.Control
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Purchase Date</strong>} name="purchageDate">
+              <DatePicker className="w-100" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="purchageDate">
-              <Form.Label>
-                <strong>Purchage Date</strong>
-              </Form.Label>
-              <Form.Control
-                type="date"
-                value={purchageDate}
-                onChange={(e) => setPurchageDate(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Start Date</strong>} name="startDate">
+              <DatePicker className="w-100" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="amount">
-              <Form.Label>
-                <strong>Amount</strong>
-              </Form.Label>
-              <Form.Control
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Renewal Date</strong>} name="endDate">
+              <DatePicker className="w-100" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="userId">
-              <Form.Label>
-                <strong>User Id</strong>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Purchase Amount</strong>} name="amount">
+              <Input type="number" placeholder="0.00" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="password">
-              <Form.Label>
-                <strong>Password</strong>
-              </Form.Label>
-              <Form.Control
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>User Id</strong>} name="userId">
+              <Input placeholder="Enter user id" />
+            </Form.Item>
           </Col>
-          <Col md={6}>
-            <Form.Group controlId="formPdf">
-              <Form.Label>
-                <strong>Upload PDF Document</strong>
-              </Form.Label>
-              <Form.Control
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setPdfFile(e.target.files[0])}
-                required={!editId}
-              />
-            </Form.Group>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Password</strong>} name="password">
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          </Col>
+          <Col xs={24}>
+            <Form.Item 
+              label={<strong>Upload PDF Document</strong>} 
+              name="diaryPdf"
+            >
+              <Upload 
+                beforeUpload={() => false} 
+                maxCount={1}
+                accept=".pdf"
+              >
+                <Button icon={<UploadOutlined />}>Select PDF</Button>
+              </Upload>
+            </Form.Item>
           </Col>
         </Row>
-        <Button variant="primary" type="submit" className="mt-3">
-          Save
-        </Button>
+        <Form.Item className="mb-0 mt-2">
+          <Button type="primary" htmlType="submit" loading={loading} block={false}>
+            {editId ? "Update Diary" : "Save Diary"}
+          </Button>
+          {editId && (
+            <Button 
+              className="ms-2" 
+              onClick={() => { setEditId(null); form.resetFields(); setActiveTab("view"); }}
+            >
+              Cancel
+            </Button>
+          )}
+        </Form.Item>
       </Form>
     </Card>
   );

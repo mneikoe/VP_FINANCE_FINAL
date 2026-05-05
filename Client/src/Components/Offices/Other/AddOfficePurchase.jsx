@@ -1,139 +1,163 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Row, Col, Card } from "react-bootstrap";
+import { Form, Input, DatePicker, Button, Row, Col, Card, Upload, message } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
+import dayjs from "dayjs";
 import {
   createOfficePurchase,
   fetchOfficePurchaseByID,
   updateOfficePurchase,
 } from "../../../redux/feature/OfficePurchase/PurchaseThunx";
 import { clearCurrent } from "../../../redux/feature/OfficePurchase/PurchaseSlice";
-// import {
-//   createOfficePurchase,
-//   fetchOfficePurchaseByID,
-//   updateOfficePurchase,
-// } from "../../redux/features/officePurchase/officePurchaseThunks";
-// import { clearCurrent } from "../../redux/features/officePurchase/officePurchaseSlice";
+
+const { TextArea } = Input;
 
 function AddOfficePurchase({ setActiveTab, editId, setEditId }) {
+  const [form] = Form.useForm();
   const dispatch = useDispatch();
   const { current, loading } = useSelector((state) => state.officePurchase);
 
-  const [formData, setFormData] = useState({
-    vrNo: "",
-    invoiceNo: "",
-    date: "",
-    headOfACs: "",
-    itemParticulars: "",
-    firmName: "",
-    ratePerUnit: "",
-    quantity: "",
-    amount: "",
-  });
-
-  // Fetch and populate form for editing
   useEffect(() => {
     if (editId) dispatch(fetchOfficePurchaseByID(editId));
-  }, [dispatch, editId]);
+    else form.resetFields();
+  }, [dispatch, editId, form]);
 
   useEffect(() => {
     if (current && editId) {
-      setFormData({
+      form.setFieldsValue({
         ...current,
-        date: current.date?.substring(0, 10),
+        date: current.date ? dayjs(current.date) : null,
       });
     }
-  }, [current, editId]);
+  }, [current, editId, form]);
 
-  const calculateAmount = () => {
-    const rate = parseFloat(formData.ratePerUnit);
-    const qty = parseFloat(formData.quantity);
-    return !isNaN(rate) && !isNaN(qty) ? (rate * qty).toFixed(2) : "";
+  const onValuesChange = (changedValues, allValues) => {
+    if (changedValues.ratePerUnit !== undefined || changedValues.quantity !== undefined) {
+      const rate = parseFloat(allValues.ratePerUnit || 0);
+      const qty = parseFloat(allValues.quantity || 0);
+      form.setFieldsValue({ amount: (rate * qty).toFixed(2) });
+    }
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      ...formData,
-      amount: calculateAmount(),
-    };
-
-    try {
-      if (editId) {
-        await dispatch(
-          updateOfficePurchase({ id: editId, data: payload })
-        ).unwrap();
-      } else {
-        await dispatch(createOfficePurchase(payload)).unwrap();
+  const onFinish = (values) => {
+    const data = new FormData();
+    Object.keys(values).forEach((key) => {
+      if (values[key] !== undefined && values[key] !== null) {
+        if (key === "date") {
+          data.append(key, values[key].format("YYYY-MM-DD"));
+        } else if (key !== "invoicePdf") {
+          data.append(key, values[key]);
+        }
       }
+    });
 
-      dispatch(clearCurrent());
-      setEditId(null);
-      setActiveTab("view");
-    } catch (err) {
-      console.error("Failed to save office purchase:", err);
+    if (values.invoicePdf && values.invoicePdf.file) {
+      data.append("invoicePdf", values.invoicePdf.file.originFileObj);
+    } else if (!editId) {
+      message.error("Please upload the invoice PDF");
+      return;
     }
 
-    setFormData({
-      vrNo: "",
-      invoiceNo: "",
-      date: "",
-      headOfACs: "",
-      itemParticulars: "",
-      firmName: "",
-      ratePerUnit: "",
-      quantity: "",
-      amount: "",
-    });
+    if (editId) {
+      dispatch(updateOfficePurchase({ id: editId, data }));
+    } else {
+      dispatch(createOfficePurchase(data));
+    }
+
+    dispatch(clearCurrent());
+    setEditId(null);
+    setActiveTab("view");
+    form.resetFields();
   };
 
   return (
-    <Card className="p-3 mt-3">
-      <Form onSubmit={handleSubmit}>
-        <Row>
-          {[
-            { label: "Vr No.", name: "vrNo" },
-            { label: "Invoice No.", name: "invoiceNo" },
-            { label: "Date", name: "date", type: "date" },
-            { label: "Head of A/Cs", name: "headOfACs" },
-            { label: "Item Particulars", name: "itemParticulars" },
-            { label: "Name of Firm or Company", name: "firmName" },
-            { label: "Rates per Unit", name: "ratePerUnit", type: "number" },
-            { label: "Quantity", name: "quantity", type: "number" },
-          ].map(({ label, name, type = "text" }, idx) => (
-            <Col md={idx > 4 ? 3 : 4} key={name}>
-              <Form.Group controlId={name}>
-                <Form.Label>{label}</Form.Label>
-                <Form.Control
-                  type={type}
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-            </Col>
-          ))}
-
-          <Col md={4}>
-            <Form.Group controlId="amount">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control type="number" value={calculateAmount()} readOnly />
-            </Form.Group>
+    <Card className="mt-3 shadow-sm border-0">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        onValuesChange={onValuesChange}
+        requiredMark={false}
+      >
+        <Row gutter={[16, 0]}>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Purchase Date</strong>} name="date" rules={[{ required: true }]}>
+              <DatePicker className="w-100" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Voucher Number</strong>} name="vrNo" rules={[{ required: true }]}>
+              <Input placeholder="Enter voucher number" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item label={<strong>Invoice Number</strong>} name="invoiceNo" rules={[{ required: true }]}>
+              <Input placeholder="Enter invoice number" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Head of Account</strong>} name="headOfACs" rules={[{ required: true }]}>
+              <Input placeholder="Enter head of account" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Particular</strong>} name="itemParticulars" rules={[{ required: true }]}>
+              <Input placeholder="Enter particulars" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Name of Firm/Company</strong>} name="firmName" rules={[{ required: true }]}>
+              <Input placeholder="Enter firm or company name" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label={<strong>Address</strong>} name="address">
+              <Input placeholder="Enter address" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item label={<strong>Contact Number</strong>} name="contactNumber">
+              <Input placeholder="Enter contact" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item label={<strong>Rate</strong>} name="ratePerUnit" rules={[{ required: true }]}>
+              <Input type="number" placeholder="0.00" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item label={<strong>Quantity</strong>} name="quantity" rules={[{ required: true }]}>
+              <Input type="number" placeholder="0" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item label={<strong>Amount</strong>} name="amount">
+              <Input type="number" readOnly placeholder="0.00" />
+            </Form.Item>
+          </Col>
+          <Col xs={24}>
+            <Form.Item label={<strong>Remark</strong>} name="remark">
+              <TextArea rows={2} placeholder="Any remarks..." />
+            </Form.Item>
+          </Col>
+          <Col xs={24}>
+            <Form.Item label={<strong>Upload Invoice PDF</strong>} name="invoicePdf">
+              <Upload beforeUpload={() => false} maxCount={1} accept=".pdf">
+                <Button icon={<UploadOutlined />}>Select PDF</Button>
+              </Upload>
+            </Form.Item>
           </Col>
         </Row>
-
-        <Button
-          className="mt-3"
-          type="submit"
-          variant="primary"
-          disabled={loading}
-        >
-          {editId ? "Update" : "Save"}
-        </Button>
+        <Form.Item className="mb-0">
+          <Button type="primary" htmlType="submit" loading={loading}>
+            {editId ? "Update Purchase" : "Save Purchase"}
+          </Button>
+          {editId && (
+            <Button className="ms-2" onClick={() => { setEditId(null); setActiveTab("view"); }}>
+              Cancel
+            </Button>
+          )}
+        </Form.Item>
       </Form>
     </Card>
   );

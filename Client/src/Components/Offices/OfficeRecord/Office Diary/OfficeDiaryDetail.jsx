@@ -1,25 +1,22 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, Card, Table } from "react-bootstrap";
-import { FaEdit, FaTrash } from "react-icons/fa";
-
+import { Table, Button, Space, Card, Input, Tooltip, Tag } from "antd";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   deleteOfficeDiary,
   fetchOfficeDiaries,
 } from "../../../../redux/feature/OfficeDiary/OfficeDiaryThunx";
-import { toast } from "react-toastify";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+
 const OfficeDiaryDetail = ({ setActiveTab, setEditId }) => {
   const dispatch = useDispatch();
   const { list, loading, error } = useSelector((state) => state.officeDiary);
-  console.log(list, "office diary");
+  const [searchText, setSearchText] = useState("");
+
   useEffect(() => {
     dispatch(fetchOfficeDiaries());
   }, [dispatch]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
-  if (!Array.isArray(list)) return <p>Invalid data format</p>;
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this Office Diary?")) {
       dispatch(deleteOfficeDiary(id))
@@ -33,80 +30,163 @@ const OfficeDiaryDetail = ({ setActiveTab, setEditId }) => {
         });
     }
   };
+
   const handleUpdate = (id) => {
     setEditId(id);
     setActiveTab("add");
   };
 
+  const columns = [
+    {
+      title: "#",
+      key: "index",
+      width: 50,
+      render: (text, record, index) => index + 1,
+    },
+    {
+      title: "Particulars",
+      dataIndex: "particulars",
+      key: "particulars",
+    },
+    {
+      title: "Company Name",
+      dataIndex: "orgName",
+      key: "orgName",
+      sorter: (a, b) => a.orgName?.localeCompare(b.orgName),
+    },
+    {
+      title: "Service Person",
+      dataIndex: "servicePerson",
+      key: "servicePerson",
+    },
+    {
+      title: "Mobile Number",
+      dataIndex: "contactNo",
+      key: "contactNo",
+    },
+    {
+      title: "Contact Number",
+      dataIndex: "officeContactNo",
+      key: "officeContactNo",
+      render: (val) => val || "-",
+    },
+    {
+      title: "License No.",
+      dataIndex: "licanceNo",
+      key: "licanceNo",
+    },
+    {
+      title: "Purchase Date",
+      dataIndex: "purchageDate",
+      key: "purchageDate",
+      render: (date) => date?.substring(0, 10),
+      sorter: (a, b) => new Date(a.purchageDate) - new Date(b.purchageDate),
+    },
+    {
+      title: "Start Date",
+      dataIndex: "startDate",
+      key: "startDate",
+      render: (date) => date?.substring(0, 10),
+    },
+    {
+      title: "Renewal Date",
+      dataIndex: "endDate",
+      key: "endDate",
+      render: (date) => date?.substring(0, 10),
+    },
+    {
+      title: "Purchase Amount",
+      dataIndex: "amount",
+      key: "amount",
+      render: (val) => val ? `₹${val}` : "-",
+    },
+    {
+      title: "User Id",
+      dataIndex: "userId",
+      key: "userId",
+    },
+    {
+      title: "Password",
+      dataIndex: "password",
+      key: "password",
+    },
+    {
+      title: "Document",
+      dataIndex: "pdfPath",
+      key: "pdfPath",
+      render: (path) => (
+        path ? (
+          <Tooltip title="View PDF">
+            <Button 
+              type="link" 
+              icon={<FilePdfOutlined />} 
+              href={path} 
+              target="_blank"
+              className="p-0"
+            />
+          </Tooltip>
+        ) : "-"
+      ),
+    },
+    {
+      title: "Uploaded At",
+      dataIndex: "uploadedAt",
+      key: "uploadedAt",
+      render: (date) => new Date(date).toLocaleString(),
+    },
+    {
+      title: "Action",
+      key: "action",
+      fixed: 'right',
+      width: 100,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined className="text-primary" />}
+              onClick={() => handleUpdate(record._id)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              icon={<DeleteOutlined className="text-danger" />}
+              onClick={() => handleDelete(record._id)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
+  const filteredData = Array.isArray(list) 
+    ? list.filter(item => 
+        item.orgName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.particulars?.toLowerCase().includes(searchText.toLowerCase())
+      )
+    : [];
+
   return (
-    <Card className="mt-3">
-      <Card.Header>Office Diary List</Card.Header>
-      <Card.Body>
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Org. Name</th>
-              <th>Service Person</th>
-              <th>Contact No</th>
-              <th>Licance No</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Purchage Date</th>
-              <th>Amount</th>
-              <th>User Id</th>
-              <th>Password</th>
-              <th>Particulars</th>
-              <th>PDF</th>
-              <th>Uploaded At</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((diary, index) => (
-              <tr key={diary._id}>
-                <td>{index + 1}</td>
-                <td>{diary.orgName}</td>
-                <td>{diary.servicePerson}</td>
-                <td>{diary.contactNo}</td>
-                <td>{diary.licanceNo}</td>
-                <td>{diary.startDate?.substring(0, 10)}</td>
-                <td>{diary.endDate?.substring(0, 10)}</td>
-                <td>{diary.purchageDate?.substring(0, 10)}</td>
-                <td>{diary.amount}</td>
-                <td>{diary.userId}</td>
-                <td>{diary.password}</td>
-                <td>{diary.particulars}</td>
-                <td>
-                  <a
-                    href={diary.pdfPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View PDF
-                  </a>
-                </td>
-                <td>{new Date(diary.uploadedAt).toLocaleString()}</td>
-                <td>
-                  <Button
-                    variant="link"
-                    onClick={() => handleUpdate(diary._id)}
-                  >
-                    <FaEdit />
-                  </Button>
-                  <Button
-                    variant="link"
-                    className="text-danger"
-                    onClick={() => handleDelete(diary._id)}
-                  >
-                    <FaTrash />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card.Body>
+    <Card className="mt-3 shadow-sm border-0">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5 className="mb-0">Office Diary Entries</h5>
+        <Input
+          placeholder="Search by company or particulars"
+          prefix={<SearchOutlined />}
+          style={{ width: 300 }}
+          onChange={e => setSearchText(e.target.value)}
+        />
+      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredData}
+        rowKey="_id"
+        loading={loading}
+        pagination={{ pageSize: 10 }}
+        size="small"
+        scroll={{ x: 'max-content' }}
+      />
       <ToastContainer />
     </Card>
   );
