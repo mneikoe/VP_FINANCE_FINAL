@@ -155,7 +155,7 @@ const Service = () => {
   const columns = [
     {
       title: "#",
-      width: 60,
+      width: 40,
       align: "center",
       render: (_, __, index) => (
         <Text type="secondary">
@@ -167,22 +167,21 @@ const Service = () => {
       title: "Financial Product",
       dataIndex: ["cat", "name"],
       key: "product",
-      width: 160,
-      ellipsis: true,
+      width: 130,
       render: (text) => text || "N/A",
     },
     {
       title: "Company",
       dataIndex: "sub",
       key: "company",
-      width: 140,
+      width: 100,
       ellipsis: true,
     },
     {
-      title: "Employee Role",
+      title: "Role",
       dataIndex: "depart",
       key: "role",
-      width: 150,
+      width: 90,
       render: (roles) => (
         <Space wrap>
           {roles?.map((role, i) => (
@@ -197,23 +196,56 @@ const Service = () => {
       title: "Task Name",
       dataIndex: "name",
       key: "name",
-      width: 180,
-      ellipsis: true,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text) => (
+        <span style={{ whiteSpace: "normal", wordBreak: "break-word", fontWeight: "normal", textTransform: "capitalize" }}>
+          {text ? text.toLowerCase() : ""}
+        </span>
+      ),
+    },
+    {
+      title: "Checklist",
+      key: "checklist",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Checklist">
+          <Button
+            type="link"
+            size="small"
+            icon={<UnorderedListOutlined style={{ fontSize: '14px' }} />}
+            onClick={() => openModal("checklist", record)}
+            style={{ color: "#ff4d4f" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "View",
+      key: "description",
+      width: 60,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Description">
+          <Button
+            type="link"
+            size="small"
+            icon={<FileTextOutlined style={{ fontSize: '14px' }} />}
+            onClick={() => openModal("detail", record)}
+            style={{ color: "#f093fb" }}
+          />
+        </Tooltip>
+      ),
     },
     {
       title: "Priority",
       dataIndex: "templatePriority",
       key: "priority",
-      width: 100,
+      width: 90,
       align: "center",
       render: (priority) => {
-        const config = getPriorityConfig(priority);
-        return (
-          <Tag color={config.color} style={{ minWidth: 80, textAlign: "center" }}>
-            {config.label}
-          </Tag>
-        );
+        const p = priority || "medium";
+        const colors = { urgent: "error", high: "warning", medium: "processing", low: "default" };
+        return <Tag color={colors[p]} style={{ textTransform: "capitalize", minWidth: 70, textAlign: "center", margin: 0 }}>{p}</Tag>;
       },
     },
     {
@@ -222,7 +254,11 @@ const Service = () => {
       key: "days",
       width: 70,
       align: "center",
-      render: (days) => <Text>{days || 1}</Text>,
+      render: (days, record) => (
+        <span style={{ whiteSpace: "nowrap" }}>
+          {record.taskMode === "default" ? "N/A" : `${days || 1} day${(days || 1) !== 1 ? "s" : ""}`}
+        </span>
+      ),
     },
     {
       title: "Assigned",
@@ -235,81 +271,18 @@ const Service = () => {
       ),
     },
     {
-      title: "Description",
-      key: "description",
-      width: 100,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View Description">
-          <Button
-            type="link"
-            icon={<FileTextOutlined />}
-            onClick={() => openModal("detail", record)}
-            style={{ color: "#f093fb" }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Checklist",
-      key: "checklist",
-      width: 90,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View Checklist">
-          <Button
-            type="link"
-            icon={<UnorderedListOutlined />}
-            onClick={() => openModal("checklist", record)}
-            style={{ color: "#ff4d4f" }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
-      title: "SMS",
-      key: "sms",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View SMS Template">
-          <Button
-            type="link"
-            icon={<MessageOutlined />}
-            onClick={() => openModal("sms", record)}
-            style={{ color: "#faad14" }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Email",
-      key: "email",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View Email Template">
-          <Button
-            type="link"
-            icon={<MailOutlined />}
-            onClick={() => openModal("email", record)}
-            style={{ color: "#52c41a" }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 80,
       align: "center",
       fixed: "right",
       render: (_, record) => (
-        <Space>
+        <Space size="small">
           <Tooltip title="Edit">
             <Button
               type="link"
-              icon={<EditOutlined />}
+              size="small"
+              icon={<EditOutlined style={{ fontSize: '14px' }} />}
               onClick={() => handleEdit(record._id)}
               style={{ color: "#1890ff" }}
             />
@@ -325,7 +298,8 @@ const Service = () => {
             <Tooltip title="Delete">
               <Button
                 type="link"
-                icon={<DeleteOutlined />}
+                size="small"
+                icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
                 danger
               />
             </Tooltip>
@@ -432,6 +406,15 @@ const Service = () => {
               <Card size="small" style={{ marginBottom: 16 }}>
                 <Space>
                   <Button
+                    type={taskModeTab === "default" ? "primary" : "default"}
+                    onClick={() => {
+                      setTaskModeTab("default");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Default Tasks ({tasks.filter((t) => t.taskMode === "default").length})
+                  </Button>
+                  <Button
                     type={taskModeTab === "assigned" ? "primary" : "default"}
                     onClick={() => {
                       setTaskModeTab("assigned");
@@ -441,15 +424,6 @@ const Service = () => {
                     Assigned Tasks (
                     {tasks.filter((t) => (t.taskMode || "assigned") !== "default").length}
                     )
-                  </Button>
-                  <Button
-                    type={taskModeTab === "default" ? "primary" : "default"}
-                    onClick={() => {
-                      setTaskModeTab("default");
-                      setCurrentPage(1);
-                    }}
-                  >
-                    Default Tasks ({tasks.filter((t) => t.taskMode === "default").length})
                   </Button>
                 </Space>
               </Card>
@@ -510,8 +484,7 @@ const Service = () => {
                       showTotal: (total, range) =>
                         `${range[0]}-${range[1]} of ${total} items`,
                     }}
-                    scroll={{ x: 1300 }}
-                    size="middle"
+                    size="small"
                   />
                 </>
               )}
