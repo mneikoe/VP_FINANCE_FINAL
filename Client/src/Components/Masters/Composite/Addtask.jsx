@@ -333,40 +333,40 @@ const Addtask = ({ on, data, onSuccess }) => {
     {
       key: "work",
       label: (
-        <span>
-          <FileTextOutlined /> Work Description
+        <span style={{ fontWeight: 600 }}>
+          <FileTextOutlined style={{ color: "#1890ff", fontSize: '16px' }} /> Work Description
         </span>
       ),
     },
     {
       key: "checklist",
       label: (
-        <span>
-          <UnorderedListOutlined /> Checklist
+        <span style={{ fontWeight: 600 }}>
+          <UnorderedListOutlined style={{ color: "#ff4d4f", fontSize: '16px' }} /> Checklist
         </span>
       ),
     },
     {
       key: "forms",
       label: (
-        <span>
-          <DownloadOutlined /> Download Forms
+        <span style={{ fontWeight: 600 }}>
+          <DownloadOutlined style={{ color: "#52c41a", fontSize: '16px' }} /> Download Forms
         </span>
       ),
     },
     {
       key: "email",
       label: (
-        <span>
-          <MailOutlined /> Email
+        <span style={{ fontWeight: 600 }}>
+          <MailOutlined style={{ color: "#faad14", fontSize: '16px' }} /> Email
         </span>
       ),
     },
     {
       key: "whatsapp",
       label: (
-        <span>
-          <WhatsAppOutlined /> WhatsApp
+        <span style={{ fontWeight: 600 }}>
+          <WhatsAppOutlined style={{ color: "#25D366", fontSize: '16px' }} /> WhatsApp
         </span>
       ),
     },
@@ -374,13 +374,47 @@ const Addtask = ({ on, data, onSuccess }) => {
 
   return (
     <div
-      className="composite-task-shell"
+      className="composite-task-shell custom-bold-form"
       style={{
         padding: "6px 16px 10px",
-        background: "linear-gradient(180deg, #f8fbff 0%, #f5f7fa 45%, #f3f4f6 100%)",
+        background: "#fff",
         minHeight: "100vh",
+        fontFamily: "'Poppins', sans-serif",
       }}
     >
+      <style>{`
+        .custom-bold-form .ant-input,
+        .custom-bold-form .ant-input-number,
+        .custom-bold-form .ant-select .ant-select-selector,
+        .custom-bold-form .ant-select-selector {
+          border: 2px solid #000 !important;
+          border-color: #000 !important;
+          border-radius: 6px !important;
+          font-family: 'Poppins', sans-serif !important;
+        }
+        .custom-bold-form .ant-input:focus,
+        .custom-bold-form .ant-input-number:focus,
+        .custom-bold-form .ant-select .ant-select-selector:focus,
+        .custom-bold-form .ant-select-selector:focus,
+        .custom-bold-form .ant-select-focused .ant-select-selector {
+          border-color: #1890ff !important;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+        }
+        .custom-bold-form .ant-tabs-nav-list {
+          width: 100%;
+          justify-content: space-around;
+        }
+        .custom-dropdown-style .ant-select-item-option-content {
+          font-family: 'Poppins', sans-serif !important;
+          font-size: 14px;
+          text-transform: capitalize;
+        }
+        .custom-dropdown-style .ant-select-item-option-active .ant-select-item-option-content,
+        .custom-dropdown-style .ant-select-item-option-selected .ant-select-item-option-content {
+          font-weight: 600 !important;
+          color: #1890ff;
+        }
+      `}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Card
           bordered={false}
@@ -425,150 +459,85 @@ const Addtask = ({ on, data, onSuccess }) => {
                 marginBottom: 8,
                 borderRadius: 12,
                 border: "1px solid #e5e7eb",
-                background: "#f9fafb",
+                background: "#fff",
               }}
               styles={{ header: { borderBottom: "none", paddingBottom: 0 } }}
             >
               <Row gutter={[10, 0]}>
-                <Col xs={24} md={6}>
-                  <Form.Item
-                    name="cat"
-                    label="Financial Product"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Select
-                      placeholder="Select Financial Product"
-                      size="middle"
-                      allowClear
-                      onChange={() => form.setFieldValue("sub", undefined)}
-                    >
-                      {products.map((product) => (
-                        <Option key={product._id} value={product._id}>
-                          {product.name}
-                        </Option>
-                      ))}
+                <Col xs={24} md={4}>
+                  <Form.Item name="cat" label="Financial Product" rules={[{ required: true, message: "Required" }]}>
+                    <Select placeholder="Product" size="middle" allowClear popupClassName="custom-dropdown-style" onChange={() => form.setFieldValue("sub", undefined)}>
+                      {products.map((product) => (<Option key={product._id} value={product._id}>{product.name}</Option>))}
                     </Select>
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={6}>
-                  <Form.Item
-                    name="sub"
-                    label="Company Name"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Select
-                      placeholder="Select Company Name"
-                      size="middle"
-                      allowClear
-                    >
-                      {filteredCompanies.map((comp) => (
-                        <Option key={comp._id} value={comp.companyName}>
-                          {comp.companyName}
-                        </Option>
-                      ))}
+                <Col xs={24} md={4}>
+                  <Form.Item name="sub" label="Company Name" rules={[{ required: true, message: "Required" }]}>
+                    <Select placeholder="Company" size="middle" allowClear popupClassName="custom-dropdown-style">
+                      {filteredCompanies.map((comp) => (<Option key={comp._id} value={comp.companyName}>{comp.companyName}</Option>))}
                     </Select>
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={6}>
-                  <Form.Item
-                    name="depart"
-                    label="Employee Type"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Select
-                      placeholder="Select Employee Type"
-                      size="middle"
-                      loading={loadingEmployeeTypes}
-                      allowClear
-                    >
-                      {employeeTypes.map((empType) => (
-                        <Option key={empType} value={empType}>
-                          {empType}
-                        </Option>
-                      ))}
+                <Col xs={24} md={4}>
+                  <Form.Item name="depart" label="Employee Role" rules={[{ required: true, message: "Required" }]}>
+                    <Select placeholder="Role" size="middle" loading={loadingEmployeeTypes} allowClear popupClassName="custom-dropdown-style">
+                      {employeeTypes.map((empType) => (<Option key={empType} value={empType}>{empType}</Option>))}
                     </Select>
                   </Form.Item>
                 </Col>
 
-                <Col xs={24} md={6}>
-                  <Form.Item
-                    name="name"
-                    label="Task Name"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Input placeholder="Enter task name" size="middle" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={[10, 0]}>
-                <Col xs={24} md={8}>
-                  <Form.Item name="templatePriority" label="Priority">
-                    <Select size="middle">
-                      {priorityOptions.map((opt) => (
-                        <Option key={opt.value} value={opt.value}>
-                          <Tag color={opt.color}>{opt.label}</Tag>
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-
-                <Col xs={24} md={8}>
+                <Col xs={24} md={4}>
                   <Form.Item name="taskMode" label="Task Type">
-                    <Select size="middle">
+                    <Select size="middle" popupClassName="custom-dropdown-style">
                       <Option value="assigned">Assigned Task</Option>
                       <Option value="default">Default Task</Option>
                     </Select>
                   </Form.Item>
                 </Col>
 
-                {selectedTaskMode !== "default" && (
-                  <Col xs={24} md={8}>
-                    <Form.Item name="estimatedDays" label="Estimated Days">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={365}
-                        size="middle"
-                        prefix={<CalendarOutlined />}
-                      />
-                    </Form.Item>
-                  </Col>
-                )}
+                <Col xs={24} md={4}>
+                  <Form.Item name="templatePriority" label="Priority">
+                    <Select size="middle" popupClassName="custom-dropdown-style">
+                      {priorityOptions.map((opt) => (
+                        <Option key={opt.value} value={opt.value}>
+                          <Tag color={opt.color} style={{ margin: 0 }}>{opt.label}</Tag>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
 
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="reward"
-                    label="Reward"
-                    tooltip="Reward for completing before estimated days"
-                  >
-                    <Input
-                      placeholder="Enter reward (e.g. 500 / Gift Voucher)"
-                      size="middle"
-                    />
+                <Col xs={24} md={4}>
+                  <Form.Item name="estimatedDays" label="Estimated Days">
+                    <Input type="number" min={1} max={365} size="middle" prefix={<CalendarOutlined />} disabled={selectedTaskMode === "default"} />
                   </Form.Item>
                 </Col>
               </Row>
+
+              <Row gutter={[10, 0]}>
+                <Col xs={24} md={18}>
+                  <Form.Item name="name" label="Task Name" rules={[{ required: true, message: "Required" }]}>
+                    <Input placeholder="Enter a descriptive task name" size="large" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="reward" label="Reward" tooltip="Reward for completing before estimated days">
+                    <Input placeholder="E.g. 500 / Voucher" size="large" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
               {selectedTaskMode === "default" && (
                 <Row gutter={[10, 0]}>
-                  <Col xs={24} md={6}>
-                    <Form.Item
-                      name="monthlyWindowFrom"
-                      label="Monthly Window From"
-                      rules={[{ required: true, message: "Required" }]}
-                    >
+                  <Col xs={24} md={12}>
+                    <Form.Item name="monthlyWindowFrom" label="Monthly Window From" rules={[{ required: true, message: "Required" }]}>
                       <Input type="number" min={1} max={31} size="middle" />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} md={6}>
-                    <Form.Item
-                      name="monthlyWindowTo"
-                      label="Monthly Window To"
-                      rules={[{ required: true, message: "Required" }]}
-                    >
+                  <Col xs={24} md={12}>
+                    <Form.Item name="monthlyWindowTo" label="Monthly Window To" rules={[{ required: true, message: "Required" }]}>
                       <Input type="number" min={1} max={31} size="middle" />
                     </Form.Item>
                   </Col>
