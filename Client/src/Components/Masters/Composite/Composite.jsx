@@ -120,7 +120,7 @@ const Composite = () => {
   const columns = [
     {
       title: "#",
-      width: 60,
+      width: 40,
       align: "center",
       render: (_, __, index) => (
         <Text type="secondary">
@@ -132,7 +132,7 @@ const Composite = () => {
       title: "Financial Product",
       dataIndex: ["cat", "name"],
       key: "product",
-      width: 160,
+      width: 130,
       ellipsis: true,
       render: (text) => text || "N/A",
     },
@@ -140,14 +140,14 @@ const Composite = () => {
       title: "Company",
       dataIndex: "sub",
       key: "company",
-      width: 140,
+      width: 100,
       ellipsis: true,
     },
     {
-      title: "Emp Roles",
+      title: "Role",
       dataIndex: "depart",
       key: "roles",
-      width: 80,
+      width: 90,
       render: (roles) => (
         <Space wrap>
           {roles?.map((role, i) => (
@@ -162,20 +162,40 @@ const Composite = () => {
       title: "Task Name",
       dataIndex: "name",
       key: "name",
-      width: 180,
-      ellipsis: true,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text) => (
+        <span style={{ whiteSpace: "normal", wordBreak: "break-word", fontWeight: "normal", textTransform: "capitalize" }}>
+          {text ? text.toLowerCase() : ""}
+        </span>
+      ),
     },
     {
-      title: "Description",
+      title: "Checklist",
+      key: "checklist",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Tooltip title="View Checklist">
+          <Button
+            type="link"
+            size="small"
+            icon={<UnorderedListOutlined style={{ fontSize: '14px' }} />}
+            onClick={() => openModal("checklist", record)}
+            style={{ color: "#ff4d4f" }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "View",
       key: "description",
-      width: 100,
+      width: 60,
       align: "center",
       render: (_, record) => (
         <Tooltip title="View Description">
           <Button
             type="link"
-            icon={<FileTextOutlined />}
+            size="small"
+            icon={<FileTextOutlined style={{ fontSize: '14px' }} />}
             onClick={() => openModal("detail", record)}
             style={{ color: "#1890ff" }}
           />
@@ -183,73 +203,33 @@ const Composite = () => {
       ),
     },
     {
-      title: "Checklist",
-      key: "checklist",
+      title: "Priority",
+      dataIndex: "templatePriority",
+      key: "priority",
       width: 90,
       align: "center",
-      render: (_, record) => (
-        <Tooltip title="View Checklist">
-          <Button
-            type="link"
-            icon={<UnorderedListOutlined />}
-            onClick={() => openModal("checklist", record)}
-            style={{ color: "#ff4d4f" }}
-          />
-        </Tooltip>
-      ),
-    },
-    // {
-    //   title: "SMS",
-    //   key: "sms",
-    //   width: 80,
-    //   align: "center",
-    //   render: (_, record) => (
-    //     <Tooltip title="View SMS Template">
-    //       <Button
-    //         type="link"
-    //         icon={<MessageOutlined />}
-    //         onClick={() => openModal("sms", record)}
-    //         style={{ color: "#faad14" }}
-    //       />
-    //     </Tooltip>
-    //   ),
-    // },
-    {
-      title: "Email",
-      key: "email",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <Tooltip title="View Email Template">
-          <Button
-            type="link"
-            icon={<MailOutlined />}
-            onClick={() => openModal("email", record)}
-            style={{ color: "#52c41a" }}
-          />
-        </Tooltip>
-      ),
+      render: (priority) => {
+        const p = priority || "medium";
+        const colors = { urgent: "error", high: "warning", medium: "processing", low: "default" };
+        return <Tag color={colors[p]} style={{ textTransform: "capitalize", minWidth: 70, textAlign: "center", margin: 0 }}>{p}</Tag>;
+      },
     },
     {
-      title: "WhatsApp",
-      key: "whatsapp",
-      width: 90,
+      title: "Days",
+      dataIndex: "estimatedDays",
+      key: "days",
+      width: 70,
       align: "center",
-      render: (_, record) => (
-        <Tooltip title="Share via WhatsApp">
-          <Button
-            type="link"
-            icon={<WhatsAppOutlined />}
-            onClick={() => handleWhatsAppShare(record)}
-            style={{ color: "#25D366", fontSize: 18 }}
-          />
-        </Tooltip>
+      render: (days, record) => (
+        <span style={{ whiteSpace: "nowrap" }}>
+          {record.taskMode === "default" ? "N/A" : `${days || 1} day${(days || 1) !== 1 ? "s" : ""}`}
+        </span>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 80,
       align: "center",
       fixed: "right",
       render: (_, record) => (
@@ -383,6 +363,15 @@ const Composite = () => {
               <Card size="small" style={{ marginBottom: 16 }}>
                 <Space>
                   <Button
+                    type={taskModeTab === "default" ? "primary" : "default"}
+                    onClick={() => {
+                      setTaskModeTab("default");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Default Tasks ({taskList.filter((t) => t.taskMode === "default").length})
+                  </Button>
+                  <Button
                     type={taskModeTab === "assigned" ? "primary" : "default"}
                     onClick={() => {
                       setTaskModeTab("assigned");
@@ -392,15 +381,6 @@ const Composite = () => {
                     Assigned Tasks (
                     {taskList.filter((t) => (t.taskMode || "assigned") !== "default").length}
                     )
-                  </Button>
-                  <Button
-                    type={taskModeTab === "default" ? "primary" : "default"}
-                    onClick={() => {
-                      setTaskModeTab("default");
-                      setCurrentPage(1);
-                    }}
-                  >
-                    Default Tasks ({taskList.filter((t) => t.taskMode === "default").length})
                   </Button>
                 </Space>
               </Card>
@@ -462,8 +442,7 @@ const Composite = () => {
                       showTotal: (total, range) =>
                         `${range[0]}-${range[1]} of ${total} items`,
                     }}
-                    scroll={{ x: 1300 }}
-                    size="middle"
+                    size="small"
                   />
                 </>
               )}
